@@ -14,6 +14,26 @@
 // sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
 #include <string>
+#include <fstream>
+
+#include <boost/assign/list_of.hpp>
+#include <boost/bind.hpp>
+#include <boost/format.hpp>
+#include <boost/make_shared.hpp>
+
+#include <jrl/mal/boost.hh>
+#include <dynamic-graph/entity.h>
+#include <dynamic-graph/factory.h>
+#include <dynamic-graph/pool.h>
+#include <dynamic-graph/null-ptr.hh>
+#include <dynamic-graph/signal-time-dependent.h>
+#include <dynamic-graph/signal-ptr.h>
+#include <sot-core/matrix-homogeneous.h>
+#include <sot-core/matrix-rotation.h>
+#include <sot-core/vector-roll-pitch-yaw.h>
+
+#include <dynamic-graph/command.h>
+
 
 // Python:
 //
@@ -66,6 +86,13 @@ makeSignalString (const std::string& className,
     MAKE_SIGNAL_STRING(name, false, TYPE, SIGNAL_NAME)
 
 
+class Localizer;
+
+namespace command
+{
+  class AddLandmarkObservation;
+} // end of namespace command.
+
 struct LandmarkObservation
 {
   typedef dg::SignalPtr<sot::MatrixHomogeneous,int> signalInMatrixHomo_t;
@@ -73,39 +100,7 @@ struct LandmarkObservation
   typedef dg::SignalPtr<ml::Matrix,int> signalInVector_t;
 
   explicit LandmarkObservation (const Localizer& localizer,
-				const std::string& signalNamePrefix)
-    : sensorPosition_
-      (dg::nullptr,
-       MAKE_SIGNAL_STRING
-       (localizer.getName (), true, "MatrixHomo", signalNamePrefix + "_sensorPosition")),
-      JsensorPosition_
-      (dg::nullptr,
-       MAKE_SIGNAL_STRING
-       (localizer.getName (), true, "Matrix", signalNamePrefix + "_JsensorPosition")),
-      featureReferencePosition_
-      (dg::nullptr,
-       MAKE_SIGNAL_STRING
-       (localizer.getName (), true, "Vector", signalNamePrefix + "_featureReferencePosition")),
-      JfeatureReferencePosition_
-      (dg::nullptr,
-       MAKE_SIGNAL_STRING
-       (localizer.getName (), true, "Matrix", signalNamePrefix + "_JfeatureReferencePosition")),
-      featureObservedPosition_
-      (dg::nullptr,
-       MAKE_SIGNAL_STRING
-       (localizer.getName (), true, "Vector", signalNamePrefix + "_featureObservedPosition")),
-      weight_
-      (dg::nullptr,
-       MAKE_SIGNAL_STRING
-       (localizer.getName (), true, "Vector", signalNamePrefix + "_weight"))
-  {
-    signalRegistration (sensorPosition_
-			<< JsensorPosition_
-			<< featureReferencePosition_
-			<< JfeatureReferencePosition_
-			<< featureObservedPosition_
-			<< weight_);
-  }
+				const std::string& signalNamePrefix);
 
   /// \name Output signals
   /// \{
@@ -166,18 +161,10 @@ namespace command
     virtual ~AddLandmarkObservation ()
     {}
 
-    explicit AddLandmarkObservation (Localizer& entity, const std::string& docstring)
-      : Command(entity, boost::assign::list_of(Value::STRING), docstring)
-    {}
+    explicit AddLandmarkObservation
+    (Localizer& entity, const std::string& docstring);
 
-    virtual Value doExecute ()
-    {
-      Localizer& entity = static_cast<Localizer&> (owner ());
-      const std::vector<Value>& values = getParameterValues();
-      entity.landmarkObervations_.push_back
-	(LandmarkObservation (localizer, values[0].value()));
-      return Value ();
-    }
+    virtual Value doExecute ();
   };
 } // end of namespace command.
 
@@ -191,9 +178,10 @@ public:
       configurationOffset_
       (boost::bind (&Localizer::computeConfigurationOffset, this, _1, _2),
        dg::sotNOSIGNAL,
-       MAKE_SIGNAL_STRING (name, false, "Vector", ""))
+       MAKE_SIGNAL_STRING (name, false, "Vector", "")),
+      landmarkObservations_ ()
   {
-    signalRegistration (weight_ << configurationOffset_);
+    signalRegistration (configurationOffset_);
 
     std::string docstring = "    \n"
       "    Add a landmark observation to the localizer.\n"
@@ -212,7 +200,7 @@ public:
 	       new command::AddLandmarkObservation(*this, docstring));
   }
 
-  ml::Vector& computeConfigurationOffset (ml::Vector& res, int t)
+  ml::Vector& computeConfigurationOffset (ml::Vector& res, int)
   {
     //FIXME:
     return res;
@@ -229,5 +217,58 @@ private:
   signalOutVector_t configurationOffset_;
   /// \}
 
-  std::vector<LandmarkObservation> landmarkObservation_;
+  std::vector<boost::shared_ptr<LandmarkObservation> > landmarkObservations_;
 };
+
+
+LandmarkObservation::LandmarkObservation (const Localizer& localizer,
+					  const std::string& signalNamePrefix)
+  : sensorPosition_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING
+     (localizer.getName (), true, "MatrixHomo", signalNamePrefix + "_sensorPosition")),
+    JsensorPosition_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING
+     (localizer.getName (), true, "Matrix", signalNamePrefix + "_JsensorPosition")),
+    featureReferencePosition_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING
+     (localizer.getName (), true, "Vector", signalNamePrefix + "_featureReferencePosition")),
+    JfeatureReferencePosition_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING
+     (localizer.getName (), true, "Matrix", signalNamePrefix + "_JfeatureReferencePosition")),
+    featureObservedPosition_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING
+     (localizer.getName (), true, "Vector", signalNamePrefix + "_featureObservedPosition")),
+    weight_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING
+     (localizer.getName (), true, "Vector", signalNamePrefix + "_weight"))
+{
+  // signalRegistration (sensorPosition_
+  // 		      << JsensorPosition_
+  // 		      << featureReferencePosition_
+  // 		      << JfeatureReferencePosition_
+  // 		      << featureObservedPosition_
+  // 		      << weight_);
+}
+
+namespace command
+{
+  AddLandmarkObservation::AddLandmarkObservation
+  (Localizer& entity, const std::string& docstring)
+    : Command (entity, boost::assign::list_of (Value::STRING), docstring)
+  {}
+
+  Value AddLandmarkObservation::doExecute ()
+  {
+    Localizer& localizer = static_cast<Localizer&> (owner ());
+    const std::vector<Value>& values = getParameterValues();
+    localizer.landmarkObservations_.push_back
+      (boost::make_shared<LandmarkObservation> (localizer, values[0].value()));
+    return Value ();
+  }
+} // end of namespace command.
