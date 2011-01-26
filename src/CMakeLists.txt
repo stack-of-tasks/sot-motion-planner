@@ -51,5 +51,5 @@ EXEC_PROGRAM(
 
 INSTALL(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner/__init__.py
-  DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/dynamics
+  DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/motion_planner
   )
