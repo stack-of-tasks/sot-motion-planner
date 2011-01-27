@@ -18,6 +18,7 @@
 
 #include <boost/assign/list_of.hpp>
 #include <boost/bind.hpp>
+#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/make_shared.hpp>
 
@@ -95,11 +96,11 @@ namespace command
 
 struct LandmarkObservation
 {
-  typedef dg::SignalPtr<sot::MatrixHomogeneous,int> signalInMatrixHomo_t;
-  typedef dg::SignalPtr<ml::Matrix,int> signalInMatrix_t;
-  typedef dg::SignalPtr<ml::Matrix,int> signalInVector_t;
+  typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalInMatrixHomo_t;
+  typedef dg::SignalPtr<ml::Matrix, int> signalInMatrix_t;
+  typedef dg::SignalPtr<ml::Vector, int> signalInVector_t;
 
-  explicit LandmarkObservation (const Localizer& localizer,
+  explicit LandmarkObservation (Localizer& localizer,
 				const std::string& signalNamePrefix);
 
   /// \name Output signals
@@ -126,7 +127,7 @@ struct LandmarkObservation
   /// \brief Expected current position of the feature.
   ///
   /// Read from motion plan.
-  signalInMatrixHomo_t featureReferencePosition_;
+  signalInVector_t featureReferencePosition_;
 
   /// \brief Variation of the feature position w.r.t the sensor
   ///        position.
@@ -168,45 +169,103 @@ namespace command
   };
 } // end of namespace command.
 
+
+namespace ublas = boost::numeric::ublas;
 class Localizer : public dg::Entity
 {
 public:
+
   typedef dg::SignalTimeDependent<ml::Vector, int> signalOutVector_t;
 
-  explicit Localizer (const std::string& name)
-    : Entity(name),
-      configurationOffset_
-      (boost::bind (&Localizer::computeConfigurationOffset, this, _1, _2),
-       dg::sotNOSIGNAL,
-       MAKE_SIGNAL_STRING (name, false, "Vector", "")),
-      landmarkObservations_ ()
-  {
-    signalRegistration (configurationOffset_);
+  explicit Localizer (const std::string& name);
 
-    std::string docstring = "    \n"
-      "    Add a landmark observation to the localizer.\n"
-      "    \n"
-      "    In practice, calling this generates signals prefixed by\n"
-      "    the name of the landmark observation.\n"
-      "    \n"
-      "    Generated signals are:"
-      "    - FIXME"
-      "    \n"
-      "      Input:\n"
-      "        - a string: landmark observation name,\n"
-      "      Return:\n"
-      "        - nothing\n";
-    addCommand("add_landmark_observation",
-	       new command::AddLandmarkObservation(*this, docstring));
+  size_t getFinalProblemSize (int t) const
+  {
+    size_t acc = 0;
+    BOOST_FOREACH (const boost::shared_ptr<LandmarkObservation> obs,
+		   this->landmarkObservations_)
+      acc += obs->featureReferencePosition_ (t).size ();
+    return acc;
   }
 
-  ml::Vector& computeConfigurationOffset (ml::Vector& res, int)
+  ublas::vector<double> computeFeatureOffset (int t)
   {
-    //FIXME:
-    return res;
+    using namespace boost::numeric::ublas;
+
+    size_t size = getFinalProblemSize (t);
+    vector<double> featureDelta (size);
+    // Compute im - im0.
+    unsigned i = 0;
+    BOOST_FOREACH (const boost::shared_ptr<LandmarkObservation> obs,
+		   this->landmarkObservations_)
+      {
+	const vector<double>& featureObservedPos =
+	  obs->featureObservedPosition_ (t).accessToMotherLib ();
+	const vector<double>& featureReferencePos =
+	  obs->featureReferencePosition_ (t).accessToMotherLib ();
+	const vector<double>& weight =
+	  obs->weight_ (t).accessToMotherLib ();
+
+	range r (i, obs->featureReferencePosition_ (t).size ());
+	vector_range<vector<double> > vr (featureDelta, r);
+	vr = featureObservedPos - featureReferencePos;
+
+	// Multiply by weight.
+	for (unsigned idx = 0; idx < weight.size (); ++idx)
+	  vr[idx] *= weight[idx];
+
+
+	i += obs->featureReferencePosition_ (t).size ();
+      }
+    return featureDelta;
+  }
+
+  ublas::matrix<double> computeW (int t)
+  {
+    using namespace boost::numeric::ublas;
+
+    matrix<double> W (getFinalProblemSize (t), 3);
+
+    unsigned i = 0;
+    BOOST_FOREACH (const boost::shared_ptr<LandmarkObservation> obs,
+		   this->landmarkObservations_)
+      {
+	const matrix<double>& JfeatureReferencePosition =
+	  obs->JfeatureReferencePosition_ (t).accessToMotherLib ();
+
+	const matrix<double>& JsensorPosition =
+	  obs->JsensorPosition_ (t).accessToMotherLib ();
+
+	const vector<double>& weight =
+	  obs->weight_ (t).accessToMotherLib ();
+
+	range rx (i, obs->featureReferencePosition_ (t).size ());
+	range ry (0, 3);
+	matrix_range<matrix<double> > mr (W, rx, ry);
+
+	mr = prod (JfeatureReferencePosition, JsensorPosition);
+
+	// Multiply by weight.
+	for (unsigned idx = 0; idx < weight.size (); ++idx)
+	  matrix_row<matrix_range<matrix<double> > > (mr, idx)
+	    *= weight[idx];
+
+	i += obs->featureReferencePosition_ (t).size ();
+      }
+    return W;
+  }
+
+  ml::Vector& computeConfigurationOffset (ml::Vector& res, int t)
+  {
+    using namespace boost::numeric::ublas;
+    vector<double> featureDelta = computeFeatureOffset (t);
+    matrix<double> W = computeW (t);
+    matrix<double> Wp = W; //FIXME: pseudoinverse here.
+    return res.initFromMotherLib (prod (W, featureDelta));
   }
 
 private:
+  friend class LandmarkObservation;
   friend class command::AddLandmarkObservation;
 
   /// Commands
@@ -221,7 +280,7 @@ private:
 };
 
 
-LandmarkObservation::LandmarkObservation (const Localizer& localizer,
+LandmarkObservation::LandmarkObservation (Localizer& localizer,
 					  const std::string& signalNamePrefix)
   : sensorPosition_
     (dg::nullptr,
@@ -248,12 +307,40 @@ LandmarkObservation::LandmarkObservation (const Localizer& localizer,
      MAKE_SIGNAL_STRING
      (localizer.getName (), true, "Vector", signalNamePrefix + "_weight"))
 {
-  // signalRegistration (sensorPosition_
-  // 		      << JsensorPosition_
-  // 		      << featureReferencePosition_
-  // 		      << JfeatureReferencePosition_
-  // 		      << featureObservedPosition_
-  // 		      << weight_);
+  localizer.signalRegistration (sensorPosition_
+				<< JsensorPosition_
+				<< featureReferencePosition_
+				<< JfeatureReferencePosition_
+				<< featureObservedPosition_
+				<< weight_);
+}
+
+Localizer::Localizer (const std::string& name)
+  : Entity(name),
+    configurationOffset_
+    (boost::bind (&Localizer::computeConfigurationOffset, this, _1, _2),
+     dg::sotNOSIGNAL,
+     MAKE_SIGNAL_STRING (name, false, "Vector", "")),
+    landmarkObservations_ ()
+{
+  signalRegistration (configurationOffset_);
+
+  std::string docstring = "    \n"
+    "    Add a landmark observation to the localizer.\n"
+    "    \n"
+    "    In practice, calling this generates signals prefixed by\n"
+    "    the name of the landmark observation.\n"
+    "    \n"
+    "    Generated signals are:"
+    "    - FIXME"
+    "    \n"
+    "      Input:\n"
+    "        - a string: landmark observation name,\n"
+    "      Return:\n"
+    "        - nothing\n";
+  addCommand
+    ("add_landmark_observation",
+     new command::AddLandmarkObservation (*this, docstring));
 }
 
 namespace command
@@ -267,8 +354,12 @@ namespace command
   {
     Localizer& localizer = static_cast<Localizer&> (owner ());
     const std::vector<Value>& values = getParameterValues();
+    const std::string& landmarkName = values[0].value();
+
+    LandmarkObservation* lmo =
+      new LandmarkObservation (localizer, landmarkName);
     localizer.landmarkObservations_.push_back
-      (boost::make_shared<LandmarkObservation> (localizer, values[0].value()));
+      (boost::shared_ptr<LandmarkObservation> (lmo));
     return Value ();
   }
 } // end of namespace command.
