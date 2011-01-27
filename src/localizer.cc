@@ -108,7 +108,7 @@ struct LandmarkObservation
 
   /// \brief Homogeneous matrix
   /// sensorPosition_ = s_i(q)
-  signalInMatrixHomo_t sensorPosition_;
+  signalInVector_t sensorPosition_;
 
   /// \brief Variation of the sensor position w.r.t. the robot
   ///        configuration.
@@ -174,8 +174,9 @@ namespace ublas = boost::numeric::ublas;
 class Localizer : public dg::Entity
 {
 public:
-
   typedef dg::SignalTimeDependent<ml::Vector, int> signalOutVector_t;
+
+  static const std::string CLASS_NAME;
 
   explicit Localizer (const std::string& name);
 
@@ -285,13 +286,15 @@ private:
   std::vector<boost::shared_ptr<LandmarkObservation> > landmarkObservations_;
 };
 
+DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(Localizer, "Localizer");
+
 
 LandmarkObservation::LandmarkObservation (Localizer& localizer,
 					  const std::string& signalNamePrefix)
   : sensorPosition_
     (dg::nullptr,
      MAKE_SIGNAL_STRING
-     (localizer.getName (), true, "MatrixHomo", signalNamePrefix + "_sensorPosition")),
+     (localizer.getName (), true, "Vector", signalNamePrefix + "_sensorPosition")),
     JsensorPosition_
     (dg::nullptr,
      MAKE_SIGNAL_STRING
@@ -326,7 +329,7 @@ Localizer::Localizer (const std::string& name)
     configurationOffset_
     (boost::bind (&Localizer::computeConfigurationOffset, this, _1, _2),
      dg::sotNOSIGNAL,
-     MAKE_SIGNAL_STRING (name, false, "Vector", "")),
+     MAKE_SIGNAL_STRING (name, false, "Vector", "configurationOffset")),
     landmarkObservations_ ()
 {
   signalRegistration (configurationOffset_);
