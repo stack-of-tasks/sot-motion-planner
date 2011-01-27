@@ -42,7 +42,7 @@ l.obs_featureReferencePosition.value = (0, 0)
 
 l.obs_sensorPosition.value = (0, 0, 0)
 
-# Equal weigth for X/Y of the only one observation.
+# Equal weight for X/Y of the only one observation.
 l.obs_weight.value = (1., 1.)
 
 l.configurationOffset.recompute(0)
