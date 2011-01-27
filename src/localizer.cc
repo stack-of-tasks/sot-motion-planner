@@ -195,6 +195,7 @@ public:
 
     size_t size = getFinalProblemSize (t);
     vector<double> featureDelta (size);
+
     // Compute im - im0.
     unsigned i = 0;
     BOOST_FOREACH (const boost::shared_ptr<LandmarkObservation> obs,
@@ -207,7 +208,7 @@ public:
 	const vector<double>& weight =
 	  obs->weight_ (t).accessToMotherLib ();
 
-	range r (i, obs->featureReferencePosition_ (t).size ());
+	range r (i, i + featureReferencePos.size ());
 	vector_range<vector<double> > vr (featureDelta, r);
 	vr = featureObservedPos - featureReferencePos;
 
@@ -216,7 +217,7 @@ public:
 	  vr[idx] *= weight[idx];
 
 
-	i += obs->featureReferencePosition_ (t).size ();
+	i += featureReferencePos.size ();
       }
     return featureDelta;
   }
@@ -240,7 +241,7 @@ public:
 	const vector<double>& weight =
 	  obs->weight_ (t).accessToMotherLib ();
 
-	range rx (i, obs->featureReferencePosition_ (t).size ());
+	range rx (i, i + obs->featureReferencePosition_ (t).size ());
 	range ry (0, 3);
 	matrix_range<matrix<double> > mr (W, rx, ry);
 
