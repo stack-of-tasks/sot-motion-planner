@@ -261,7 +261,13 @@ public:
     vector<double> featureDelta = computeFeatureOffset (t);
     matrix<double> W = computeW (t);
     matrix<double> Wp = W; //FIXME: pseudoinverse here.
-    return res.initFromMotherLib (prod (W, featureDelta));
+
+    ml::Matrix Wp_;
+    Wp_.initFromMotherLib (Wp);
+    Wp_ = Wp_.pseudoInverse (Wp_);
+
+    return res.initFromMotherLib
+      (prod (Wp_.accessToMotherLib (), featureDelta));
   }
 
 private:
