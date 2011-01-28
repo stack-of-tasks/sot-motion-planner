@@ -40,8 +40,6 @@ l.obs_JsensorPosition.value = (
 l.obs_featureObservedPosition.value = (0, 0)
 l.obs_featureReferencePosition.value = (0, 0)
 
-l.obs_sensorPosition.value = (0, 0, 0)
-
 # Equal weight for X/Y of the only one observation.
 l.obs_weight.value = (1., 1.)
 

@@ -42,7 +42,6 @@ JsensorPosition = (
 # First observation.
 l.obs_JfeatureReferencePosition.value = JfeatureReferencePosition
 l.obs_JsensorPosition.value = JsensorPosition
-l.obs_sensorPosition.value = (0, 0, 0)
 l.obs_weight.value = (1., 1.)
 
 l.obs_featureObservedPosition.value = (5, 0)
@@ -51,7 +50,6 @@ l.obs_featureReferencePosition.value = (0, 3)
 # Second observation.
 l.obs2_JfeatureReferencePosition.value = JfeatureReferencePosition
 l.obs2_JsensorPosition.value = JsensorPosition
-l.obs2_sensorPosition.value = (0, 0, 0)
 l.obs2_weight.value = (1., 1.)
 
 l.obs2_featureObservedPosition.value = (0, 0)
