@@ -106,10 +106,6 @@ struct LandmarkObservation
   /// \name Output signals
   /// \{
 
-  /// \brief Homogeneous matrix
-  /// sensorPosition_ = s_i(q)
-  signalInVector_t sensorPosition_;
-
   /// \brief Variation of the sensor position w.r.t. the robot
   ///        configuration.
   ///
@@ -292,11 +288,7 @@ DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(Localizer, "Localizer");
 
 LandmarkObservation::LandmarkObservation (Localizer& localizer,
 					  const std::string& signalNamePrefix)
-  : sensorPosition_
-    (dg::nullptr,
-     MAKE_SIGNAL_STRING
-     (localizer.getName (), true, "Vector", signalNamePrefix + "_sensorPosition")),
-    JsensorPosition_
+  : JsensorPosition_
     (dg::nullptr,
      MAKE_SIGNAL_STRING
      (localizer.getName (), true, "Matrix", signalNamePrefix + "_JsensorPosition")),
@@ -317,8 +309,7 @@ LandmarkObservation::LandmarkObservation (Localizer& localizer,
      MAKE_SIGNAL_STRING
      (localizer.getName (), true, "Vector", signalNamePrefix + "_weight"))
 {
-  localizer.signalRegistration (sensorPosition_
-				<< JsensorPosition_
+  localizer.signalRegistration (JsensorPosition_
 				<< featureReferencePosition_
 				<< JfeatureReferencePosition_
 				<< featureObservedPosition_
