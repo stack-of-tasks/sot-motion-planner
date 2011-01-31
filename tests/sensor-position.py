@@ -35,52 +35,111 @@ from dynamic_graph.sot.motion_planner import Localizer
 #  y+ <--X
 #
 # (0, 0) = O = robot position
+# (r, 0) = sensor position
+#
+# Q = (x, y, theta)
+# S = (x, y)
+# IM = D
+#
 
 
 l = Localizer('localizer')
-l.add_landmark_observation('obs')
 
-r = 1.
-robot = (0, 0, 0)
-error = (1, 0, 0)
+r = 1.            # robot radius
+error = (1, 0, 0) # dx, dy, dtheta
 
-featurePos = (10, 10)
+expectedRobot = (0, 0, 0) # x, y, theta
+realRobot = tuple(map(lambda (p, e): p + e, zip(expectedRobot, error))) # x, y, theta
 
-def computeObservedFeaturePos((x, y, theta), (ex, ey, etheta)):
-    """Compute the observed feature position
-    from a position error."""
+# Sensor positions around the robot:
+#
+#     1
+#   3   2
+#     .
+#
+sensorPos = (0., pi / 2.)
 
-    (rsx, rsy) = S((x + ex, y + ey, theta + etheta))
-    (fx, fy) = featurePos
+# Features position (x,y)
+features = ((10, 10), (200, 4), (-3, -15))
 
-    return (fx - rsx, fy - rsy)
+def S((x, y, theta), sensor):
+    return (x + r * sin(sensorPos[sensor] + theta), y - r * cos(sensorPos[sensor] + theta))
 
-def S((x, y, theta)):
-    return (x + r * sin(theta), y - r * cos(theta))
-
-def P((x, y)):
-    (xr, yr) = featurePos
+def P((x, y), l):
+    (xr, yr) = features[l]
     return (.5 * (xr - x) * (xr - x) + .5 * (yr - y) * (yr - y),)
 
-def dS((x, y, theta)):
-    return ((1, 0, r * cos(theta)),
-            (0, 1, r * sin(theta)))
+def dS((x, y, theta), sensor):
+    return ((1, 0, r * cos(sensorPos[sensor] + theta)),
+            (0, 1, r * sin(sensorPos[sensor] + theta)))
 
-def dP((x, y)):
-    (xr, yr) = featurePos
+def dP((x, y), l):
+    (xr, yr) = features[l]
     return ((x - xr, y - yr,), )
 
-observedFeaturePos = computeObservedFeaturePos(robot, error)
+for sensor in xrange(len(sensorPos)):
+    for i in xrange(len(features)):
+        prefix = 'obs_{0}_{1}'.format(sensor, i)
+        l.add_landmark_observation(prefix)
 
+        l.signal(prefix + '_JfeatureReferencePosition').value = dP(S(expectedRobot, sensor), i)
+        l.signal(prefix + '_JsensorPosition').value = dS(expectedRobot, sensor)
+        l.signal(prefix + '_weight').value = (1.,)
 
+        l.signal(prefix + '_featureObservedPosition').value =  P(S(realRobot, sensor), i)
+        l.signal(prefix + '_featureReferencePosition').value = \
+            P(S(expectedRobot, sensor), i)
 
-# First observation.
-l.obs_JfeatureReferencePosition.value = dP(S(robot))
-l.obs_JsensorPosition.value = dS(robot)
-l.obs_weight.value = (1.,)
-
-l.obs_featureObservedPosition.value =  P(featurePos)
-l.obs_featureReferencePosition.value = P(observedFeaturePos)
 
 l.configurationOffset.recompute(0)
-print l.configurationOffset.value
+
+
+for sensor in xrange(len(sensorPos)):
+    print "* Sensor {0}:".format(sensor)
+    print "\t S({0[0]}, {0[1]}, {0[2]}) = ({1[0]}, {1[1]})".format(
+        (0, 0, 0), S((0, 0, 0), sensor))
+    print "\t S({0[0]}, {0[1]}, {0[2]}) = ({1[0]}, {1[1]})".format(
+        (0, 0, "pi / 2."), S((0, 0, pi / 2.), sensor))
+    print ""
+    for i in xrange(len(features)):
+        print "* Feature value i = {0}:".format(i)
+        print "\t P(S({0[0]}, {0[1]}, {0[2]})) = {1[0]}".format(
+            (0, 0, 0), P(S((0, 0, 0), sensor), i))
+        print "\t P(S({0[0]}, {0[1]}, {0[2]})) = {1[0]}".format(
+            (0, 0, "pi / 2."), P(S((0, 0, pi / 2.), sensor), i))
+        print ""
+    print ""
+
+print "* Result:"
+
+print "\t Initial robot position: " + str(expectedRobot)
+for sensor in xrange(len(sensorPos)):
+    print "\t Initial sensor {0} position: {1}".format(sensor,  S(expectedRobot, sensor))
+
+offset = l.configurationOffset.value
+cfg = tuple(map(lambda (p, e): p + e, zip(expectedRobot, offset)))
+
+print ""
+print "\t Real error: " + str(error)
+print "\t Real robot position: " + str(realRobot)
+for sensor in xrange(len(sensorPos)):
+    print "\t Real sensor {0} position: {1}".format(sensor,  S(realRobot, sensor))
+print ""
+print "\t Correction: " + str(offset)
+print "\t Corrected robot position: " + str(cfg)
+for sensor in xrange(len(sensorPos)):
+    print "\t Corrected sensor {0} position: {1}".format(sensor,  S(cfg, sensor))
+print ""
+
+print "* Back projection:"
+
+for sensor in xrange(len(sensorPos)):
+    print "* Sensor {0}:".format(sensor)
+    for i in xrange(len(features)):
+        print "\t Feature " + str(i)
+        print "\t - Feature: {0}".format(features[i])
+        print "\t - Initial feature pos: {0}".format(P(S(expectedRobot, sensor), i))
+        print "\t - Observed feature pos: {0}".format(P(S(realRobot, sensor), i))
+        print "\t - Corrected feature pos: {0}".format(P(S(cfg, sensor), i))
+        print ""
+    print ""
