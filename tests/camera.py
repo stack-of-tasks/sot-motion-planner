@@ -103,6 +103,12 @@ def pitch(rotationMatrix):
 def yaw(rotationMatrix):
     return atan2(rotationMatrix[2,1], rotationMatrix[2,2])
 
+def matrixToTuple(M):
+    tmp = M.tolist()
+    res = []
+    for i in tmp:
+        res.append(tuple(i))
+    return tuple(res)
 
 ###################################
 checkAlgebra = False
@@ -253,7 +259,12 @@ def P(sensorPosition, referencePoint):
 
 
 def dP(sensorPosition, landmark):
-    pass #FIXME:
+    t = getT(sensorPosition)
+    return np.matrix(
+        [[ (-t[0] * px) / (t[2] * t[2]), -1.,  0., 0., 0., 0.],
+         [ (-t[1] * py) / (t[2] * t[2]),  0., -1., 0., 0., 0.]],
+        dtype = np.dtype(np.float)
+        )
 
 
 ###############################
@@ -267,7 +278,24 @@ print "P"
 print P(S(0,0), np.array([1., 0.072, 0.723, 1.], dtype=np.float))
 
 print "dP"
-#print dP(S(0, 0),0)
+print dP(S(0, 0), 0)
 
-# TODO: implementer dP
-# verifier projection vecteur rotation sur axe Z
+
+# Localizer setup.
+l.add_landmark_observation('obs')
+
+l.obs_JfeatureReferencePosition.value = matrixToTuple(dP(S(0, 0), 0))
+l.obs_JsensorPosition.value = matrixToTuple(dS(0, 0))
+l.obs_weight.value = (1., 1.)
+
+l.obs_featureObservedPosition.value = (0., 0.)
+l.obs_featureReferencePosition.value = (0., 0.)
+
+l.configurationOffset.recompute(0)
+
+print "Offset:"
+print l.configurationOffset.value
+
+#FIXME: W has 6 columns , localizer expects 3.
+# Handle properly estimation vs observations of dofs in C++
+#FIXME: implement angular velocities in dP.
