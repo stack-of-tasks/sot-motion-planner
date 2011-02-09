@@ -23,6 +23,13 @@ from dynamic_graph.sot.motion_planner import Localizer
 
 from dynamic_graph.sot.dynamics.hrp2 import Hrp2
 
+try:
+    from dynamic_graph.sot.core import OpPointModifior
+    OpPointModifier = OpPointModifior
+except ImportError:
+    from dynamic_graph.sot.core import OpPointModifier
+
+
 # Vector3
 def makeVector3(x = 0., y = 0., z = 0.):
     return np.array([x, y, z], dtype=np.dtype(np.float))
@@ -52,6 +59,12 @@ def getR(H):
     return H[0:3,0:3]
 def getT(H):
     return np.array([H[0,3], H[1,3], H[2,3]], dtype=np.float)
+
+def inverseHomogeneousMatrix(H):
+    print H
+    H[0:3,0:3] = np.linalg.inv(H[0:3,0:3])
+    H[0,3] *= -1.; H[1,3] *= -1.; H[2,3] *= -1.
+    return H
 
 # rotation vector representation
 def makeRotationVector(x = 0., y = 0., z = 0.):
@@ -141,34 +154,6 @@ if checkAlgebra:
 # S(q) = (x, y, z?, u, v, w)
 # P(S(q)) = (x, y)
 #
-#            dS/dx, dS/dy, dS/dtheta
-# dS(q) = [[ 1      0                ] x
-#          [ 0      1                ] y
-#          [ 0      0      0         ] z
-#          [ 0      0                ] u
-#          [ 0      0                ] v
-#          [ 0      0                ] w
-#
-#
-#
-# APPROACH 1: consider (u, v, w) = (0, 0, theta)
-#
-#            dS/dx, dS/dy, dS/dtheta
-# dS(q) = [[ 1      0      -x * sin(theta) - y * cos(theta) ] x
-#          [ 0      1      x * cos(theta) - y * sin(theta)  ] y
-#          [ 0      0      0                                ] z
-#          [ 0      0      0                                ] u
-#          [ 0      0      0                                ] v
-#          [ 0      0      1                                ] w
-#
-# x' = x * cos(theta) - y * sin(theta)
-# y' = x * sin(theta) + y * cos(theta)
-#
-# dtheta = [[ -x * sin(theta) - y * cos(theta) ]
-#           [  x * cos(theta) - y * sin(theta) ]]
-#
-# ---
-#
 #               dS/dx dS/dy dS/dz dS/du dS/dv dS/dw
 # dP(s(q)) = [[                                     ] x
 #             [                                     ] y
@@ -193,10 +178,25 @@ if checkAlgebra:
 #
 
 robot = Hrp2("robot", True)
-robot.dynamic.createOpPoint('gaze', 'gaze')
 robot.dynamic.gaze.recompute(0)
 robot.dynamic.Jgaze.recompute(0)
 
+# Additional frames for sensors.
+lwcam = OpPointModifier('lwcam')
+plug(robot.dynamic.gaze, lwcam.positionIN)
+plug(robot.dynamic.Jgaze, lwcam.jacobianIN)
+
+# HRP2-14 extrinsic camera parameters
+leftWideCamera = ((1., 0., 0., 0.035),
+                  (0., 1., 0., 0.072),
+                  (0., 0., 1., 0.075),
+                  (0., 0., 0., 1.))
+lwcam.setTransformation(leftWideCamera)
+lwcam.position.recompute(0)
+lwcam.jacobian.recompute(0)
+
+
+# Localization
 l = Localizer('localizer')
 
 q = np.array([0., 0. ,0.])
@@ -205,51 +205,52 @@ error = np.array([1., 0. , 0.])
 expectedRobot = np.array([0., 0., 0.]) # x, y, theta
 realRobot = np.array(map(lambda (p, e): p + e, zip(expectedRobot, error)))
 
+sensors = [lwcam]
+
 f = 1.
 (px, py) = (1., 1.)
 (u0, v0) = (0., 0.)
 C = np.matrix(
-    [[ f * px, 0.,      u0 ],
-     [ 0.,     -f * py, v0 ],
-     [ 0.,     0.,      1. ]],
+    [[ f * px, 0.,     u0 ],
+     [ 0.,     f * py, v0 ],
+     [ 0.,     0.,     1. ]],
     dtype = np.dtype(np.float)
     )
 
 def S(q, sensorId):
-    return np.matrix(robot.dynamic.gaze.value, dtype=np.float)
+    #FIXME: use q
+    return np.matrix(sensors[sensorId].position.value, dtype=np.float)
+def dS(q, sensorId):
+    #FIXME: use q
+    return np.matrix(sensors[sensorId].jacobian.value, dtype=np.float)[0:6,0:6]
 
-def P(sensorPosition, landmark):
+def P(sensorPosition, referencePoint):
+    #FIXME: replace referencePoint by landmark
+
+    # This rotates the world frame to the camera frame.
+    # 3d frames are front/left/up (FLU).
+    # 2d images coordinates are (0,0) on the top-left corner
+    # x, y increases toward bottom-right corner.
     _3to4 = np.matrix(
-        [[ 1., 0., 0., 0.],
-         [ 0., 1., 0., 0.],
-         [ 0., 0., 1., 0.]],
+        [[ 0., -1.,  0., 0.],
+         [ 0.,  0., -1., 0.],
+         [ 1.,  0.,  0., 0.]],
         dtype = np.dtype(np.float)
         )
-    referencePoint = np.array([1., 2., 3., 1.], dtype=np.float)
 
-    referencePoint_ = np.inner(sensorPosition, referencePoint)
+    referencePoint_ = np.inner(inverseHomogeneousMatrix(sensorPosition),
+                               referencePoint)
+
+    print referencePoint_
+
     tmp = np.inner(C * _3to4, referencePoint_)
+
+    print tmp[0]
+    print tmp[1]
+    print tmp[2]
+
     return np.array([tmp[0]/tmp[2], tmp[1]/tmp[2]], dtype=np.float)
 
-def dS(q, sensorId):
-    value = np.matrix(robot.dynamic.gaze.value)
-    J = np.matrix(robot.dynamic.Jgaze.value, dtype=np.float)
-    m = np.zeros(shape=(6,3), dtype=np.float)
-    m[0:5,0:2] = J[0:5,0:2]
-
-    m[2,0:2] = [0.,0.] #dS/dZ is null
-
-    (x, y, theta) = (getT(value)[0],
-                     getT(value)[1],
-                     yaw(getR(value)))
-
-    m[0,2] = -x * sin(theta) - y * cos(theta)
-    m[1,2] = x * cos(theta) - y * sin(theta)
-    m[2,2] = 0.
-    m[3,2] = 0.
-    m[4,2] = 0.
-    m[5,2] = 1.
-    return m
 
 def dP(sensorPosition, landmark):
     pass #FIXME:
@@ -257,16 +258,13 @@ def dP(sensorPosition, landmark):
 
 ###############################
 
-print "GAZE"
+print "S(q)"
 print S(0,0)
-print "JGAZE (position + rotation vector)^2"
-print np.matrix(robot.dynamic.Jgaze.value)[0:6,0:6]
+print "dS(q)/dq (position + rotation vector)^2"
+print dS(0,0)
 
 print "P"
-print P(S(0,0), 0)
-
-print "dS"
-print dS(0,0)
+print P(S(0,0), np.array([1., 0.072, 0.723, 1.], dtype=np.float))
 
 print "dP"
 #print dP(S(0, 0),0)
