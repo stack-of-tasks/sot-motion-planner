@@ -100,7 +100,6 @@ struct LandmarkObservation
   typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalInMatrixHomo_t;
   typedef dg::SignalPtr<ml::Matrix, int> signalInMatrix_t;
   typedef dg::SignalPtr<ml::Vector, int> signalInVector_t;
-  typedef dg::SignalPtr<std::vector<bool>, int> signalInVectorBool_t;
 
   explicit LandmarkObservation (Localizer& localizer,
 				const std::string& signalNamePrefix);
@@ -159,7 +158,7 @@ struct LandmarkObservation
   ///
   /// Additionally, it means that the size of the offset output signal
   /// of the localizer will be 2.
-  signalInVectorBool_t correctedDofs_;
+  signalInVector_t correctedDofs_;
   /// \}
 
 };
@@ -239,10 +238,10 @@ public:
   nbConsideredDofs (const boost::shared_ptr<LandmarkObservation> obs, int t)
   {
     assert (obs);
-    const std::vector<bool>& correctedDofs = obs->correctedDofs_ (t);
+    const ml::Vector& correctedDofs = obs->correctedDofs_ (t);
     size_t nbDofs = 0;
-    BOOST_FOREACH(bool x, correctedDofs)
-      if (x)
+    for (size_t i = 0; i < correctedDofs.size (); ++i)
+      if (correctedDofs (i) == 1.)
 	++nbDofs;
     return nbDofs;
   }
@@ -254,7 +253,7 @@ public:
     typedef ublas::matrix_column<ublas::matrix<double> > column_t;
     typedef ublas::matrix_column<const ublas::matrix<double> > constColumn_t;
 
-    const std::vector<bool>& correctedDofs = obs->correctedDofs_ (t);
+    const ml::Vector& correctedDofs = obs->correctedDofs_ (t);
     size_t nbDofs = nbConsideredDofs (obs, t);
     ublas::matrix<double> res (M.size1 (), nbDofs);
 
@@ -263,19 +262,19 @@ public:
 
     // Search for first considered DoF.
     size_t j = 0u;
-    while (!correctedDofs[j] && j < correctedDofs.size ())
+    while (j < correctedDofs.size () && correctedDofs (j) != 1.)
       ++j;
 
     for (size_t i = 0; i < nbDofs; ++i)
       {
-	assert (correctedDofs[j]);
+	assert (correctedDofs (j));
 
 	// Fill the appropriate column.
 	column_t (res, i) = constColumn_t (M, j);
 
 	// Search for next considered DoF.
 	++j;
-	while (!correctedDofs[j] && j < correctedDofs.size())
+	while (j < correctedDofs.size() && correctedDofs (j) != 1.)
 	  ++j;
       }
     return res;
@@ -381,7 +380,8 @@ LandmarkObservation::LandmarkObservation (Localizer& localizer,
 				<< featureReferencePosition_
 				<< JfeatureReferencePosition_
 				<< featureObservedPosition_
-				<< weight_);
+				<< weight_
+				<< correctedDofs_);
 }
 
 Localizer::Localizer (const std::string& name)
