@@ -61,7 +61,6 @@ def getT(H):
     return np.array([H[0,3], H[1,3], H[2,3]], dtype=np.float)
 
 def inverseHomogeneousMatrix(H):
-    print H
     H[0:3,0:3] = np.linalg.inv(H[0:3,0:3])
     H[0,3] *= -1.; H[1,3] *= -1.; H[2,3] *= -1.
     return H
@@ -247,14 +246,7 @@ def P(sensorPosition, referencePoint):
     referencePoint_ = np.inner(inverseHomogeneousMatrix(sensorPosition),
                                referencePoint)
 
-    print referencePoint_
-
     tmp = np.inner(C * _3to4, referencePoint_)
-
-    print tmp[0]
-    print tmp[1]
-    print tmp[2]
-
     return np.array([tmp[0]/tmp[2], tmp[1]/tmp[2]], dtype=np.float)
 
 
@@ -282,17 +274,53 @@ print dP(S(0, 0), 0)
 
 
 # Localizer setup.
+
+delta = [0., 0., 0.]
+landmarks = [
+    # (0, 0)
+    np.array([1., 0.072, 0.723, 1.], dtype=np.float),
+
+    np.array([1., 23., 42., 1.], dtype=np.float),
+    np.array([-15., 10., 10., 1.], dtype=np.float)
+    ]
+
+observed_landmarks = []
+for l_ in landmarks:
+    observed_landmarks.append(np.array(
+            [l_[0] + delta[0],
+             l_[1] + delta[1],
+             l_[2] + delta[2],
+             1.], dtype=np.float))
+
+#########
 l.add_landmark_observation('obs')
 
 l.obs_JfeatureReferencePosition.value = matrixToTuple(dP(S(0, 0), 0))
 l.obs_JsensorPosition.value = matrixToTuple(dS(0, 0))
 l.obs_weight.value = (1., 1.)
 
-l.obs_featureObservedPosition.value = (0., 0.)
-l.obs_featureReferencePosition.value = (0., 0.)
+l.obs_featureObservedPosition.value = \
+    tuple(P(S(0,0), observed_landmarks[0]).tolist())
+l.obs_featureReferencePosition.value = \
+    tuple(P(S(0,0), landmarks[0]).tolist())
 
 # Select (x, y, yaw) only!
 l.obs_correctedDofs.value = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
+#########
+l.add_landmark_observation('obs2')
+
+l.obs2_JfeatureReferencePosition.value = matrixToTuple(dP(S(0, 0), 0))
+l.obs2_JsensorPosition.value = matrixToTuple(dS(0, 0))
+l.obs2_weight.value = (1., 1.)
+
+l.obs2_featureObservedPosition.value = \
+    tuple(P(S(0,0), observed_landmarks[1]).tolist())
+l.obs2_featureReferencePosition.value = \
+    tuple(P(S(0,0), landmarks[1]).tolist())
+
+# Select (x, y, yaw) only!
+l.obs2_correctedDofs.value = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
+#########
 
 l.configurationOffset.recompute(0)
 
