@@ -13,6 +13,7 @@
 // received a copy of the GNU Lesser General Public License along with
 // sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
+#include <algorithm>
 #include <string>
 #include <fstream>
 
@@ -99,11 +100,12 @@ struct LandmarkObservation
   typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalInMatrixHomo_t;
   typedef dg::SignalPtr<ml::Matrix, int> signalInMatrix_t;
   typedef dg::SignalPtr<ml::Vector, int> signalInVector_t;
+  typedef dg::SignalPtr<std::vector<bool>, int> signalInVectorBool_t;
 
   explicit LandmarkObservation (Localizer& localizer,
 				const std::string& signalNamePrefix);
 
-  /// \name Output signals
+  /// \name Input signals
   /// \{
 
   /// \brief Variation of the sensor position w.r.t. the robot
@@ -111,10 +113,10 @@ struct LandmarkObservation
   ///
   /// JsensorPosition_ = \frac{ds_i}{dq}
   ///
-  ///       s_i(q)[0] (x) s_i(q)[0] (y) s_i(q)[0] (z) ...
-  /// q0[0]
-  /// q0[1]
-  /// q0[2]
+  ///           dq[0] dq[1] dq[2]
+  /// s_i(q)[0]
+  /// s_i(q)[1]
+  /// s_i(q)[2]
   ///
   /// Here only (x,y, theta) columns are interesting.signalInVector_t
   signalInMatrix_t JsensorPosition_;
@@ -130,10 +132,10 @@ struct LandmarkObservation
   ///
   /// JfeatureReferencePosition_ = \frac{dP_{S_i,L_j}}{ds}(s_i(q0), l_j)
   ///
-  ///          feature_x feature_y feature_z
-  /// sensor_x
-  /// sensor_y
-  /// sensor_z
+  ///          sensor_x sensor_y sensor_z
+  /// feature_x
+  /// feature_y
+  /// feature_z
   signalInMatrix_t JfeatureReferencePosition_;
 
   /// \brief Current real feature position as detected by the sensor.
@@ -143,6 +145,21 @@ struct LandmarkObservation
   /// This is a vector of N elements, where N is the dimension
   /// of the feature space.
   signalInVector_t weight_;
+
+  /// \brief Degrees of freedom that will be corrected by the
+  ///        algorithm.
+  ///
+  /// This vector is expressed as a list of boolean values, true
+  /// meaning that the DoF is considered, false that the configuration
+  /// value will be discarded.
+  ///
+  /// For instance:
+  /// (true, true, false)
+  /// ...means that only the first two DoF will be taken into account.
+  ///
+  /// Additionally, it means that the size of the offset output signal
+  /// of the localizer will be 2.
+  signalInVectorBool_t correctedDofs_;
   /// \}
 
 };
@@ -218,6 +235,52 @@ public:
     return featureDelta;
   }
 
+  size_t
+  nbConsideredDofs (const boost::shared_ptr<LandmarkObservation> obs, int t)
+  {
+    assert (obs);
+    const std::vector<bool>& correctedDofs = obs->correctedDofs_ (t);
+    size_t nbDofs = 0;
+    BOOST_FOREACH(bool x, correctedDofs)
+      if (x)
+	++nbDofs;
+    return nbDofs;
+  }
+
+  ublas::matrix<double>
+  extractConsideredDofs (const boost::shared_ptr<LandmarkObservation> obs,
+			 const ublas::matrix<double>& M, int t)
+  {
+    typedef ublas::matrix_column<ublas::matrix<double> > column_t;
+    typedef ublas::matrix_column<const ublas::matrix<double> > constColumn_t;
+
+    const std::vector<bool>& correctedDofs = obs->correctedDofs_ (t);
+    size_t nbDofs = nbConsideredDofs (obs, t);
+    ublas::matrix<double> res (M.size1 (), nbDofs);
+
+    if (!nbDofs)
+      return res;
+
+    // Search for first considered DoF.
+    size_t j = 0u;
+    while (!correctedDofs[j] && j < correctedDofs.size ())
+      ++j;
+
+    for (size_t i = 0; i < nbDofs; ++i)
+      {
+	assert (correctedDofs[j]);
+
+	// Fill the appropriate column.
+	column_t (res, i) = constColumn_t (M, j);
+
+	// Search for next considered DoF.
+	++j;
+	while (!correctedDofs[j] && j < correctedDofs.size())
+	  ++j;
+      }
+    return res;
+  }
+
   ublas::matrix<double> computeW (int t)
   {
     using namespace boost::numeric::ublas;
@@ -238,10 +301,11 @@ public:
 	  obs->weight_ (t).accessToMotherLib ();
 
 	range rx (i, i + obs->featureReferencePosition_ (t).size ());
-	range ry (0, 3);
+	range ry (0, nbConsideredDofs (obs, t));
 	matrix_range<matrix<double> > mr (W, rx, ry);
 
-	mr = prod (JfeatureReferencePosition, JsensorPosition);
+	mr = extractConsideredDofs
+	  (obs, prod (JfeatureReferencePosition, JsensorPosition), t);
 
 	// Multiply by weight.
 	for (unsigned idx = 0; idx < weight.size (); ++idx)
@@ -307,7 +371,11 @@ LandmarkObservation::LandmarkObservation (Localizer& localizer,
     weight_
     (dg::nullptr,
      MAKE_SIGNAL_STRING
-     (localizer.getName (), true, "Vector", signalNamePrefix + "_weight"))
+     (localizer.getName (), true, "Vector", signalNamePrefix + "_weight")),
+    correctedDofs_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING
+     (localizer.getName (), true, "Vector", signalNamePrefix + "_correctedDofs"))
 {
   localizer.signalRegistration (JsensorPosition_
 				<< featureReferencePosition_
