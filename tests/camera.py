@@ -289,13 +289,17 @@ print dP(S(0, 0), 0)
 
 # Localizer setup.
 
-delta = [0., 0., 0.]
+delta = [1., 0., 0.]
 landmarks = [
     # (0, 0)
     np.array([1.06, 0.072, 0.723, 1.], dtype=np.float),
+    # (-1, 0)
+    np.array([2.06, 1.072, 0.723, 1.], dtype=np.float),
+    # (0, -1)
+    np.array([3.06, 0.072, 1.723, 1.], dtype=np.float),
 
-    np.array([1.06, 23., 42., 1.], dtype=np.float),
-    np.array([-15., 10., 10., 1.], dtype=np.float)
+    np.array([3., 17., 5., 1.], dtype=np.float),
+    np.array([5., -12., -1., 1.], dtype=np.float),
     ]
 
 observed_landmarks = []
@@ -344,3 +348,26 @@ print "Offset:"
 print l.configurationOffset.value
 
 #FIXME: implement angular velocities in dP.
+
+
+###############################################################################
+display = True
+if display:
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import axes3d, Axes3D
+    fig = plt.figure()
+
+    ax = Axes3D(fig)
+
+    camPos = getT(S(0,0))
+    ax.scatter(camPos[0], camPos[1], [camPos[2]], c='r', marker='^')
+
+    for (i, m) in [(landmarks, 'o')]: #, (observed_landmarks, '+')
+        for l_ in i:
+            ax.scatter(l_[0], l_[1], [l_[2]], c='g', marker=m)
+
+            ax.set_xlabel('X Label')
+            ax.set_ylabel('Y Label')
+            ax.set_zlabel('Z Label')
+
+    plt.show()
