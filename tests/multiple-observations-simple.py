@@ -46,6 +46,7 @@ l.obs_weight.value = (1., 1.)
 
 l.obs_featureObservedPosition.value = (5, 0)
 l.obs_featureReferencePosition.value = (0, 3)
+l.obs_correctedDofs.value = (1., 1.)
 
 # Second observation.
 l.obs2_JfeatureReferencePosition.value = JfeatureReferencePosition
@@ -54,6 +55,7 @@ l.obs2_weight.value = (1., 1.)
 
 l.obs2_featureObservedPosition.value = (0, 0)
 l.obs2_featureReferencePosition.value = (0, 0)
+l.obs2_correctedDofs.value = (1., 1.)
 
 l.configurationOffset.recompute(0)
 print l.configurationOffset.value

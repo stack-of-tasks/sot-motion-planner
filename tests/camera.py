@@ -291,6 +291,9 @@ l.obs_weight.value = (1., 1.)
 l.obs_featureObservedPosition.value = (0., 0.)
 l.obs_featureReferencePosition.value = (0., 0.)
 
+# Select (x, y, yaw) only!
+l.obs_correctedDofs.value = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
+
 l.configurationOffset.recompute(0)
 
 print "Offset:"

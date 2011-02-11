@@ -75,7 +75,7 @@ print robot.dynamic.gaze.value
 print "POSITION"
 print lwcam.position.value
 #print "JACOBIAN"
-#print lwcam.jacobian.value
+print np.asmatrix(lwcam.jacobian.value)[0:6,0:6]
 
 
 plug(lwcam.position,

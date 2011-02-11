@@ -90,6 +90,9 @@ for sensor in xrange(len(sensorPos)):
         l.signal(prefix + '_featureReferencePosition').value = \
             P(S(expectedRobot, sensor), i)
 
+        l.signal(prefix + '_correctedDofs').value = \
+            (1., 1.,  1.)
+
 
 l.configurationOffset.recompute(0)
 
