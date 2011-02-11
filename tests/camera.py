@@ -220,7 +220,7 @@ C = np.matrix(
      [ 0.,     f * py, v0 ],
      [ 0.,     0.,     1. ]],
     dtype = np.dtype(np.float)
-    )
+   )
 
 def S(q, sensorId):
     #FIXME: use q
@@ -229,35 +229,44 @@ def dS(q, sensorId):
     #FIXME: use q
     return np.matrix(sensors[sensorId].jacobian.value, dtype=np.float)[0:6,0:6]
 
+
+def split(P):
+    return (P[0], P[1], P[2])
+
 def P(sensorPosition, referencePoint):
     #FIXME: replace referencePoint by landmark
-
-    # This rotates the world frame to the camera frame.
-    # 3d frames are front/left/up (FLU).
-    # 2d images coordinates are (0,0) on the top-left corner
-    # x, y increases toward bottom-right corner.
-    _3to4 = np.matrix(
-        [[ 0., -1.,  0., 0.],
-         [ 0.,  0., -1., 0.],
-         [ 1.,  0.,  0., 0.]],
-        dtype = np.dtype(np.float)
-        )
 
     referencePoint_ = np.inner(inverseHomogeneousMatrix(sensorPosition),
                                referencePoint)
 
-    tmp = np.inner(C * _3to4, referencePoint_)
-    return np.array([tmp[0]/tmp[2], tmp[1]/tmp[2]], dtype=np.float)
+    (X, Y, Z) = split(referencePoint_)
+
+    x = u0 + f * px * -Y / X
+    y = v0 + f * py * -Z / X
+
+    return np.array([x, y], dtype=np.float)
 
 
-def dP(sensorPosition, landmark):
-    t = getT(sensorPosition)
-    return np.matrix(
-        [[ (-t[0] * px) / (t[2] * t[2]), -1.,  0., 0., 0., 0.],
-         [ (-t[1] * py) / (t[2] * t[2]),  0., -1., 0., 0., 0.]],
-        dtype = np.dtype(np.float)
-        )
+def dP(sensorPosition, referencePoint):
+    referencePoint_ = np.inner(inverseHomogeneousMatrix(sensorPosition),
+                               referencePoint)
 
+    sensorVelocity = dS(0, 0)
+    proj = P(sensorPosition, referencePoint)
+    (x, y) = (proj[0], proj[1])
+    (X, Y, Z) = split(referencePoint_)
+
+#    Lx = np.matrix(
+#        [[-1. / Z,  0.,      x / Z, x * y,     -(1 + x * x), y],
+#         [0.,      -1. / Z, -y / Z, 1 + y * y, -x * y,      -x]],
+#        dtype=np.float)
+
+    Lx = np.matrix(
+        [[-1. / X,  0.,      x / X, x * y,     -(1 + x * x), y],
+         [0.,      -1. / X, -y / X, 1 + y * y, -x * y,      -x]],
+        dtype=np.float)
+
+    return Lx * sensorVelocity
 
 ###############################
 
@@ -284,12 +293,12 @@ print P(S(0,0), np.array([2.06, 0.072-1., 0.723, 1.], dtype=np.float))
 print P(S(0,0), np.array([2.06, 0.072, 0.723-1., 1.], dtype=np.float))
 
 print "dP"
-print dP(S(0, 0), 0)
+print dP(S(0, 0), np.array([1.06, 0.072, 0.723, 1.], dtype=np.float))
 
 
 # Localizer setup.
 
-delta = [1., 0., 0.]
+delta = [0., 12., -20.]
 landmarks = [
     # (0, 0)
     np.array([1.06, 0.072, 0.723, 1.], dtype=np.float),
@@ -315,7 +324,7 @@ correctedDofs = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
 #########
 l.add_landmark_observation('obs')
 
-l.obs_JfeatureReferencePosition.value = matrixToTuple(dP(S(0, 0), 0))
+l.obs_JfeatureReferencePosition.value = matrixToTuple(dP(S(0, 0), landmarks[0]))
 l.obs_JsensorPosition.value = matrixToTuple(dS(0, 0))
 l.obs_weight.value = (1., 1.)
 
@@ -329,7 +338,7 @@ l.obs_correctedDofs.value = correctedDofs
 #########
 l.add_landmark_observation('obs2')
 
-l.obs2_JfeatureReferencePosition.value = matrixToTuple(dP(S(0, 0), 0))
+l.obs2_JfeatureReferencePosition.value = matrixToTuple(dP(S(0, 0), landmarks[1]))
 l.obs2_JsensorPosition.value = matrixToTuple(dS(0, 0))
 l.obs2_weight.value = (1., 1.)
 
@@ -344,14 +353,14 @@ l.obs2_correctedDofs.value = correctedDofs
 
 l.configurationOffset.recompute(0)
 
-print "Offset:"
+print "Offset (x, y, theta):"
 print l.configurationOffset.value
 
-#FIXME: implement angular velocities in dP.
+#FIXME: debug dP (bad frame?)
 
 
 ###############################################################################
-display = True
+display = False
 if display:
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import axes3d, Axes3D
