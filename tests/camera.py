@@ -267,7 +267,21 @@ print "dS(q)/dq (position + rotation vector)^2"
 print dS(0,0)
 
 print "P"
-print P(S(0,0), np.array([1., 0.072, 0.723, 1.], dtype=np.float))
+# Z distance = 1
+print P(S(0,0), np.array([1.06, 0.072, 0.723, 1.], dtype=np.float))
+
+print P(S(0,0), np.array([1.06, 1.072, 0.723, 1.], dtype=np.float))
+print P(S(0,0), np.array([1.06, 0.072, 1.723, 1.], dtype=np.float))
+
+print P(S(0,0), np.array([1.06, 0.072-1., 0.723, 1.], dtype=np.float))
+print P(S(0,0), np.array([1.06, 0.072, 0.723-1., 1.], dtype=np.float))
+
+# Z distance = 2
+print P(S(0,0), np.array([2.06, 0.072, 0.723, 1.], dtype=np.float))
+print P(S(0,0), np.array([2.06, 1.072, 0.723, 1.], dtype=np.float))
+print P(S(0,0), np.array([2.06, 0.072, 1.723, 1.], dtype=np.float))
+print P(S(0,0), np.array([2.06, 0.072-1., 0.723, 1.], dtype=np.float))
+print P(S(0,0), np.array([2.06, 0.072, 0.723-1., 1.], dtype=np.float))
 
 print "dP"
 print dP(S(0, 0), 0)
@@ -278,9 +292,9 @@ print dP(S(0, 0), 0)
 delta = [0., 0., 0.]
 landmarks = [
     # (0, 0)
-    np.array([1., 0.072, 0.723, 1.], dtype=np.float),
+    np.array([1.06, 0.072, 0.723, 1.], dtype=np.float),
 
-    np.array([1., 23., 42., 1.], dtype=np.float),
+    np.array([1.06, 23., 42., 1.], dtype=np.float),
     np.array([-15., 10., 10., 1.], dtype=np.float)
     ]
 
@@ -291,6 +305,8 @@ for l_ in landmarks:
              l_[1] + delta[1],
              l_[2] + delta[2],
              1.], dtype=np.float))
+
+correctedDofs = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
 
 #########
 l.add_landmark_observation('obs')
@@ -305,7 +321,7 @@ l.obs_featureReferencePosition.value = \
     tuple(P(S(0,0), landmarks[0]).tolist())
 
 # Select (x, y, yaw) only!
-l.obs_correctedDofs.value = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
+l.obs_correctedDofs.value = correctedDofs
 #########
 l.add_landmark_observation('obs2')
 
@@ -319,7 +335,7 @@ l.obs2_featureReferencePosition.value = \
     tuple(P(S(0,0), landmarks[1]).tolist())
 
 # Select (x, y, yaw) only!
-l.obs2_correctedDofs.value = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
+l.obs2_correctedDofs.value = correctedDofs
 #########
 
 l.configurationOffset.recompute(0)
@@ -327,6 +343,4 @@ l.configurationOffset.recompute(0)
 print "Offset:"
 print l.configurationOffset.value
 
-#FIXME: W has 6 columns , localizer expects 3.
-# Handle properly estimation vs observations of dofs in C++
 #FIXME: implement angular velocities in dP.
