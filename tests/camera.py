@@ -15,6 +15,7 @@
 # received a copy of the GNU Lesser General Public License along with
 # sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 import numpy as np
 from math import acos, atan2, cos, sin, pi, sqrt
 
@@ -49,9 +50,9 @@ def hat(a):
 # Homogeneous matrices
 def makeHomogeneousMatrix(R = None, t = None):
     res = np.asmatrix(np.identity(4, dtype=np.dtype(np.float)))
-    if R:
+    if not R is None:
         res[0:3,0:3] = R
-    if t:
+    if not t is None:
         res[0:3,3:] = map(lambda x: [x], t)
     return res
 
@@ -61,9 +62,10 @@ def getT(H):
     return np.array([H[0,3], H[1,3], H[2,3]], dtype=np.float)
 
 def inverseHomogeneousMatrix(H):
-    H[0:3,0:3] = np.linalg.inv(H[0:3,0:3])
-    H[0,3] *= -1.; H[1,3] *= -1.; H[2,3] *= -1.
-    return H
+    return np.linalg.inv(H)
+#    res = makeHomogeneousMatrix(H[0:3,0:3].transpose(), getT(H))
+#    res[0,3] *= -1.; res[1,3] *= -1.; res[2,3] *= -1.
+#    return res
 
 # rotation vector representation
 def makeRotationVector(x = 0., y = 0., z = 0.):
@@ -121,33 +123,33 @@ if checkAlgebra:
                                     [4., 5., 6.],
                                     [7., 8., 9.]])
 
-    print "V1"
-    print V1
-    print "hatV1"
-    print hatV1
-    print "hatV1 . V1"
-    print np.inner(hatV1,V1)
-    print "H1"
-    print H1
-    print "H2"
-    print H2
-    print "H3"
-    print H3
+    print("V1")
+    print(V1)
+    print("hatV1")
+    print(hatV1)
+    print("hatV1 . V1")
+    print(np.inner(hatV1,V1))
+    print("H1")
+    print(H1)
+    print("H2")
+    print(H2)
+    print("H3")
+    print(H3)
 
-    print getR(H1)
-    print getT(H2)
+    print(getR(H1))
+    print(getT(H2))
 
-    print rotationVectorToRotationMAtrix(makeRotationVector(0., 0., 1.))
-    print rotationVectorToRotationMAtrix(makeRotationVector(0., 0., 2.))
-    print rotationVectorToRotationMAtrix(makeRotationVector(0., 1., 0.))
-    print rotationVectorToRotationMAtrix(makeRotationVector(1., 0., 0.))
-    print rotationVectorToRotationMAtrix(makeRotationVector(1., 1., 0.))
-    print rotationVectorToRotationMAtrix(makeRotationVector(0., 1., 1.))
-    print rotationVectorToRotationMAtrix(makeRotationVector(1., 0., 1.))
-    print rotationVectorToRotationMAtrix(makeRotationVector(1., 1., 1.))
+    print(rotationVectorToRotationMAtrix(makeRotationVector(0., 0., 1.)))
+    print(rotationVectorToRotationMAtrix(makeRotationVector(0., 0., 2.)))
+    print(rotationVectorToRotationMAtrix(makeRotationVector(0., 1., 0.)))
+    print(rotationVectorToRotationMAtrix(makeRotationVector(1., 0., 0.)))
+    print(rotationVectorToRotationMAtrix(makeRotationVector(1., 1., 0.)))
+    print(rotationVectorToRotationMAtrix(makeRotationVector(0., 1., 1.)))
+    print(rotationVectorToRotationMAtrix(makeRotationVector(1., 0., 1.)))
+    print(rotationVectorToRotationMAtrix(makeRotationVector(1., 1., 1.)))
 
-    print rotationMatrixToRotationVector( \
-        rotationVectorToRotationMAtrix(makeRotationVector(1., 1., 1.)))
+    print(rotationMatrixToRotationVector( \
+        rotationVectorToRotationMAtrix(makeRotationVector(1., 1., 1.))))
     exit()
 
 # Robot is HRP-2 robot.
@@ -186,20 +188,47 @@ robot = Hrp2("robot", True)
 robot.dynamic.gaze.recompute(0)
 robot.dynamic.Jgaze.recompute(0)
 
-# Additional frames for sensors.
-lwcam = OpPointModifier('lwcam')
-plug(robot.dynamic.gaze, lwcam.positionIN)
-plug(robot.dynamic.Jgaze, lwcam.jacobianIN)
+# Camera related frames.
 
-# HRP2-14 extrinsic camera parameters
-leftWideCamera = ((1., 0., 0., 0.035),
-                  (0., 1., 0., 0.072),
-                  (0., 0., 1., 0.075),
-                  (0., 0., 0., 1.))
-lwcam.setTransformation(leftWideCamera)
-lwcam.position.recompute(0)
-lwcam.jacobian.recompute(0)
+w_M_c = OpPointModifier('w_M_c')
 
+# Compute the transformation between the
+# gaze and the left bottom (wide) camera.
+
+# Extrinsic camera parameters.
+g_M_c1 = np.matrix(
+    [[1., 0., 0., 0.035],
+     [0., 1., 0., 0.072],
+     [0., 0., 1., 0.075],
+     [0., 0., 0., 1.]])
+g_M_c1 = np.matrix( #FIXME: disabled as long as it has not been checked.
+    [[1., 0., 0., 0.],
+     [0., 1., 0., 0.],
+     [0., 0., 1., 0.],
+     [0., 0., 0., 1.]])
+
+# Frames re-orientation:
+# Z = depth (increase from near to far)
+# X = increase from left to right
+# Y = increase from top to bottom
+c1_M_c = np.matrix(
+    [[ 0.,  0.,  1., 0.],
+     [-1.,  0.,  0., 0.],
+     [ 0., -1.,  0., 0.],
+     [ 0.,  0.,  0., 1.]])
+g_M_c = matrixToTuple(g_M_c1 * c1_M_c)
+
+plug(robot.dynamic.gaze, w_M_c.positionIN)
+plug(robot.dynamic.Jgaze, w_M_c.jacobianIN)
+
+w_M_c.setTransformation(g_M_c)
+w_M_c.position.recompute(0)
+w_M_c.jacobian.recompute(0)
+
+#DEBUG
+#Xr = np.array([0., 0., 0., 1.])
+#w_M_c_value = np.asmatrix(w_M_c.position.value)
+#c_M_w_value = inverseHomogeneousMatrix(w_M_c_value)
 
 # Localization
 l = Localizer('localizer')
@@ -210,7 +239,7 @@ error = np.array([1., 0. , 0.])
 expectedRobot = np.array([0., 0., 0.]) # x, y, theta
 realRobot = np.array(map(lambda (p, e): p + e, zip(expectedRobot, error)))
 
-sensors = [lwcam]
+sensors = [w_M_c]
 
 f = 1.
 (px, py) = (1., 1.)
@@ -235,15 +264,11 @@ def split(P):
 
 def P(sensorPosition, referencePoint):
     #FIXME: replace referencePoint by landmark
-
     referencePoint_ = np.inner(inverseHomogeneousMatrix(sensorPosition),
                                referencePoint)
-
     (X, Y, Z) = split(referencePoint_)
-
-    x = u0 + f * px * -Y / X
-    y = v0 + f * py * -Z / X
-
+    x = u0 + f * px * X / Z
+    y = v0 + f * py * Y / Z
     return np.array([x, y], dtype=np.float)
 
 
@@ -256,49 +281,30 @@ def dP(sensorPosition, referencePoint):
     (x, y) = (proj[0], proj[1])
     (X, Y, Z) = split(referencePoint_)
 
-#    Lx = np.matrix(
-#        [[-1. / Z,  0.,      x / Z, x * y,     -(1 + x * x), y],
-#         [0.,      -1. / Z, -y / Z, 1 + y * y, -x * y,      -x]],
-#        dtype=np.float)
-
     Lx = np.matrix(
-        [[-1. / X,  0.,      x / X, x * y,     -(1 + x * x), y],
-         [0.,      -1. / X, -y / X, 1 + y * y, -x * y,      -x]],
+        [[-1. / Z,  0.,      x / Z, x * y,     -(1 + x * x), y],
+         [0.,      -1. / Z, -y / Z, 1 + y * y, -x * y,      -x]],
         dtype=np.float)
 
     return Lx * sensorVelocity
 
 ###############################
 
-print "S(q)"
-print S(0,0)
-print "dS(q)/dq (position + rotation vector)^2"
-print dS(0,0)
+print("S(q)")
+print(S(0,0))
+print("dS(q)/dq (position + rotation vector)^2")
+print(dS(0,0))
 
-print "P"
+print("P")
 # Z distance = 1
-print P(S(0,0), np.array([1.06, 0.072, 0.723, 1.], dtype=np.float))
+print(P(S(0,0), np.array([0.025+1., 0., 0.648, 1.], dtype=np.float)))
 
-print P(S(0,0), np.array([1.06, 1.072, 0.723, 1.], dtype=np.float))
-print P(S(0,0), np.array([1.06, 0.072, 1.723, 1.], dtype=np.float))
-
-print P(S(0,0), np.array([1.06, 0.072-1., 0.723, 1.], dtype=np.float))
-print P(S(0,0), np.array([1.06, 0.072, 0.723-1., 1.], dtype=np.float))
-
-# Z distance = 2
-print P(S(0,0), np.array([2.06, 0.072, 0.723, 1.], dtype=np.float))
-print P(S(0,0), np.array([2.06, 1.072, 0.723, 1.], dtype=np.float))
-print P(S(0,0), np.array([2.06, 0.072, 1.723, 1.], dtype=np.float))
-print P(S(0,0), np.array([2.06, 0.072-1., 0.723, 1.], dtype=np.float))
-print P(S(0,0), np.array([2.06, 0.072, 0.723-1., 1.], dtype=np.float))
-
-print "dP"
-print dP(S(0, 0), np.array([1.06, 0.072, 0.723, 1.], dtype=np.float))
+print("dP")
+print(dP(S(0,0), np.array([0.025+1., 0., 0.648, 1.], dtype=np.float)))
 
 
 # Localizer setup.
-
-delta = [0., 12., -20.]
+delta = [0., 0., 0.]
 landmarks = [
     # (0, 0)
     np.array([1.06, 0.072, 0.723, 1.], dtype=np.float),
@@ -353,8 +359,8 @@ l.obs2_correctedDofs.value = correctedDofs
 
 l.configurationOffset.recompute(0)
 
-print "Offset (x, y, theta):"
-print l.configurationOffset.value
+print("Offset (x, y, theta):")
+print(l.configurationOffset.value)
 
 #FIXME: debug dP (bad frame?)
 
