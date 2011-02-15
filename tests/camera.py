@@ -273,20 +273,18 @@ def P(sensorPosition, referencePoint):
 
 
 def dP(sensorPosition, referencePoint):
+    proj = P(sensorPosition, referencePoint)
+
     referencePoint_ = np.inner(inverseHomogeneousMatrix(sensorPosition),
                                referencePoint)
-
-    sensorVelocity = dS(0, 0)
-    proj = P(sensorPosition, referencePoint)
     (x, y) = (proj[0], proj[1])
     (X, Y, Z) = split(referencePoint_)
 
     Lx = np.matrix(
-        [[-1. / Z,  0.,      x / Z, x * y,     -(1 + x * x), y],
-         [0.,      -1. / Z, -y / Z, 1 + y * y, -x * y,      -x]],
+        [[-1. / Z,  0.,     x / Z, x * y,     -(1 + x * x), y],
+         [0.,      -1. / Z, y / Z, 1 + y * y, -x * y,      -x]],
         dtype=np.float)
-
-    return Lx * sensorVelocity
+    return Lx
 
 ###############################
 
@@ -302,19 +300,21 @@ print(P(S(0,0), np.array([0.025+1., 0., 0.648, 1.], dtype=np.float)))
 print("dP")
 print(dP(S(0,0), np.array([0.025+1., 0., 0.648, 1.], dtype=np.float)))
 
+print("dP*dS")
+print(dP(S(0,0), np.array([0.025+1., 0., 0.648, 1.], dtype=np.float))*dS(0,0))
+
+import sys; sys.exit()
+
 
 # Localizer setup.
 delta = [0., 0., 0.]
 landmarks = [
     # (0, 0)
-    np.array([1.06, 0.072, 0.723, 1.], dtype=np.float),
+    np.array([0.025+1., 0., 0.648, 1.], dtype=np.float),
     # (-1, 0)
-    np.array([2.06, 1.072, 0.723, 1.], dtype=np.float),
+    np.array([0.025+1., 0.+1., 0.648, 1.], dtype=np.float),
     # (0, -1)
-    np.array([3.06, 0.072, 1.723, 1.], dtype=np.float),
-
-    np.array([3., 17., 5., 1.], dtype=np.float),
-    np.array([5., -12., -1., 1.], dtype=np.float),
+    np.array([0.025+1., 0., 0.648+1., 1.], dtype=np.float),
     ]
 
 observed_landmarks = []
