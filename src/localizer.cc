@@ -30,9 +30,9 @@
 #include <dynamic-graph/null-ptr.hh>
 #include <dynamic-graph/signal-time-dependent.h>
 #include <dynamic-graph/signal-ptr.h>
-#include <sot-core/matrix-homogeneous.h>
-#include <sot-core/matrix-rotation.h>
-#include <sot-core/vector-roll-pitch-yaw.h>
+#include <sot/core/matrix-homogeneous.hh>
+#include <sot/core/matrix-rotation.hh>
+#include <sot/core/vector-roll-pitch-yaw.hh>
 
 #include <dynamic-graph/command.h>
 
@@ -53,7 +53,7 @@
 
 namespace ml = maal::boost;
 namespace dg = dynamicgraph;
-
+namespace sot = dg::sot;
 
 std::string
 makeSignalString (const std::string& className,
