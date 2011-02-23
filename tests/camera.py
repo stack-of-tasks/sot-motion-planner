@@ -22,13 +22,15 @@ from math import acos, atan2, cos, sin, pi, sqrt
 from dynamic_graph import plug
 from dynamic_graph.sot.motion_planner import Localizer
 
-from dynamic_graph.sot.dynamics.hrp2 import Hrp2
+from dynamic_graph.sot.dynamics.hrp2 import Hrp2Laas
 
 try:
     from dynamic_graph.sot.core import OpPointModifior
     OpPointModifier = OpPointModifior
 except ImportError:
     from dynamic_graph.sot.core import OpPointModifier
+
+from dynamic_graph.sot.core import FeatureVisualPoint
 
 
 # Vector3
@@ -184,7 +186,7 @@ if checkAlgebra:
 #
 #
 
-robot = Hrp2("robot", True)
+robot = Hrp2Laas("robot")
 robot.dynamic.gaze.recompute(0)
 robot.dynamic.Jgaze.recompute(0)
 
@@ -216,6 +218,8 @@ c1_M_c = np.matrix(
      [-1.,  0.,  0., 0.],
      [ 0., -1.,  0., 0.],
      [ 0.,  0.,  0., 1.]])
+
+
 g_M_c = matrixToTuple(g_M_c1 * c1_M_c)
 
 plug(robot.dynamic.gaze, w_M_c.positionIN)
@@ -225,25 +229,15 @@ w_M_c.setTransformation(g_M_c)
 w_M_c.position.recompute(0)
 w_M_c.jacobian.recompute(0)
 
-#DEBUG
-#Xr = np.array([0., 0., 0., 1.])
-#w_M_c_value = np.asmatrix(w_M_c.position.value)
-#c_M_w_value = inverseHomogeneousMatrix(w_M_c_value)
-
 # Localization
 l = Localizer('localizer')
-
-q = np.array([0., 0. ,0.])
-error = np.array([1., 0. , 0.])
-
-expectedRobot = np.array([0., 0., 0.]) # x, y, theta
-realRobot = np.array(map(lambda (p, e): p + e, zip(expectedRobot, error)))
 
 sensors = [w_M_c]
 
 f = 1.
 (px, py) = (1., 1.)
 (u0, v0) = (0., 0.)
+
 C = np.matrix(
     [[ f * px, 0.,     u0 ],
      [ 0.,     f * py, v0 ],
@@ -267,10 +261,10 @@ def P(sensorPosition, referencePoint):
     referencePoint_ = np.inner(inverseHomogeneousMatrix(sensorPosition),
                                referencePoint)
     (X, Y, Z) = split(referencePoint_)
+
     x = u0 + f * px * X / Z
     y = v0 + f * py * Y / Z
     return np.array([x, y], dtype=np.float)
-
 
 def dP(sensorPosition, referencePoint):
     proj = P(sensorPosition, referencePoint)
@@ -286,6 +280,7 @@ def dP(sensorPosition, referencePoint):
         dtype=np.float)
     return Lx
 
+
 ###############################
 
 print("S(q)")
@@ -295,26 +290,39 @@ print(dS(0,0))
 
 print("P")
 # Z distance = 1
-print(P(S(0,0), np.array([0.025+1., 0., 0.648, 1.], dtype=np.float)))
+Xw = np.array([0.025+1., 0., 1.2967, 1.], dtype=np.float)
+print(P(S(0,0), Xw))
 
 print("dP")
-print(dP(S(0,0), np.array([0.025+1., 0., 0.648, 1.], dtype=np.float)))
+print(dP(S(0,0), Xw))
 
 print("dP*dS")
-print(dP(S(0,0), np.array([0.025+1., 0., 0.648, 1.], dtype=np.float))*dS(0,0))
+print(dP(S(0,0), Xw)*dS(0,0))
 
-import sys; sys.exit()
-
+print("dP*dS (fvp)")
+fvp = FeatureVisualPoint('fvp')
+fvp.xy.value = (P(S(0,0), Xw)[0], P(S(0,0), Xw)[1])
+fvp.Z.value = np.inner(inverseHomogeneousMatrix(S(0,0)), Xw)[2]
+plug(w_M_c.jacobian, fvp.Jq)
+fvp.jacobian.recompute(0)
+print(np.asmatrix(fvp.jacobian.value)[0:2,0:6])
 
 # Localizer setup.
-delta = [0., 0., 0.]
+
+# X wrong
+# Y ok
+# theta wrong
+
+delta = [0., 1., 0.]
 landmarks = [
     # (0, 0)
-    np.array([0.025+1., 0., 0.648, 1.], dtype=np.float),
-    # (-1, 0)
-    np.array([0.025+1., 0.+1., 0.648, 1.], dtype=np.float),
-    # (0, -1)
-    np.array([0.025+1., 0., 0.648+1., 1.], dtype=np.float),
+    np.array([0.025+1., 0., 1.2967, 1.], dtype=np.float),
+    # (-2, 0)
+    np.array([0.025+2., 0.+2., 1.2967, 1.], dtype=np.float),
+    # (0, -3)
+    np.array([0.025+3.4, 0., 1.2967+3., 1.], dtype=np.float),
+    # (-4, -5)
+    np.array([0.025+5.6, 0.+4., 1.2967+5., 1.], dtype=np.float),
     ]
 
 observed_landmarks = []
@@ -328,42 +336,64 @@ for l_ in landmarks:
 correctedDofs = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
 
 #########
-l.add_landmark_observation('obs')
+for i in xrange(len(observed_landmarks)):
+    observed_landmark = observed_landmarks[i]
+    landmark = landmarks[i]
+    obsName = 'obs' + str(i)
 
-l.obs_JfeatureReferencePosition.value = matrixToTuple(dP(S(0, 0), landmarks[0]))
-l.obs_JsensorPosition.value = matrixToTuple(dS(0, 0))
-l.obs_weight.value = (1., 1.)
+    print("Landmark:", obsName)
+    print("\t position: ", landmark)
+    print("\t observed position: ", observed_landmark)
+    print("\t P(landmark): ", P(S(0,0), landmark))
+    print("\t P(observed_landmark): ", P(S(0,0), observed_landmark))
 
-l.obs_featureObservedPosition.value = \
-    tuple(P(S(0,0), observed_landmarks[0]).tolist())
-l.obs_featureReferencePosition.value = \
-    tuple(P(S(0,0), landmarks[0]).tolist())
+    l.add_landmark_observation('obs'+str(i))
 
-# Select (x, y, yaw) only!
-l.obs_correctedDofs.value = correctedDofs
-#########
-l.add_landmark_observation('obs2')
+    l.signal(obsName + '_JfeatureReferencePosition').value = \
+        matrixToTuple(dP(S(0, 0), landmark))
+    l.signal(obsName + '_JsensorPosition').value = matrixToTuple(dS(0, 0))
+    l.signal(obsName + '_weight').value = (1., 1.)
 
-l.obs2_JfeatureReferencePosition.value = matrixToTuple(dP(S(0, 0), landmarks[1]))
-l.obs2_JsensorPosition.value = matrixToTuple(dS(0, 0))
-l.obs2_weight.value = (1., 1.)
-
-l.obs2_featureObservedPosition.value = \
-    tuple(P(S(0,0), observed_landmarks[1]).tolist())
-l.obs2_featureReferencePosition.value = \
-    tuple(P(S(0,0), landmarks[1]).tolist())
-
-# Select (x, y, yaw) only!
-l.obs2_correctedDofs.value = correctedDofs
-#########
+    l.signal(obsName + '_featureObservedPosition').value = \
+        tuple(P(S(0,0), observed_landmark).tolist())
+    l.signal(obsName + '_featureReferencePosition').value = \
+        tuple(P(S(0,0), landmark).tolist())
+    # Select (x, y, yaw) only!
+    l.signal(obsName + '_correctedDofs').value = correctedDofs
 
 l.configurationOffset.recompute(0)
 
-print("Offset (x, y, theta):")
+print("\n\nOffset (x, y, theta):")
 print(l.configurationOffset.value)
+print("\n\n")
 
-#FIXME: debug dP (bad frame?)
+(offsetX, offsetY, offsetTheta) = l.configurationOffset.value
 
+# planned position in the real position frame
+offset = np.matrix([
+        [cos (offsetTheta), -sin(offsetTheta), 0., offsetX],
+        [sin (offsetTheta),  cos(offsetTheta), 0., offsetY],
+        [               0.,                0., 1.,      0.],
+        [               0.,                0., 0.,      1.]], dtype = np.float)
+
+
+
+for i in xrange(len(observed_landmarks)):
+    observed_landmark = observed_landmarks[i]
+    landmark = landmarks[i]
+    obsName = 'obs' + str(i)
+
+    rectified = np.inner(offset, observed_landmark)
+
+    pRect = P(S(0,0), rectified)
+    p = P(S(0,0), landmark)
+
+    print("Landmark after rectification:", obsName)
+    print("\t rectified position: ", rectified)
+    print("\t P(rectified): ", pRect)
+    print("\t P(planned pos): ", p)
+    if np.linalg.norm(p - pRect) > 1e-3:
+        print("\t WRONG: delta =", np.linalg.norm(p - pRect))
 
 ###############################################################################
 display = False
