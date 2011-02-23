@@ -46,7 +46,7 @@ class Solver:
                  self.robot.dynamic.position)
 
 
-robot = Hrp2("robot", True)
+robot = Hrp2("robot")
 solver = Solver(robot)
 timeStep = 0.005
 
