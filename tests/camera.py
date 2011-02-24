@@ -65,9 +65,6 @@ def getT(H):
 
 def inverseHomogeneousMatrix(H):
     return np.linalg.inv(H)
-#    res = makeHomogeneousMatrix(H[0:3,0:3].transpose(), getT(H))
-#    res[0,3] *= -1.; res[1,3] *= -1.; res[2,3] *= -1.
-#    return res
 
 # rotation vector representation
 def makeRotationVector(x = 0., y = 0., z = 0.):
@@ -187,8 +184,7 @@ if checkAlgebra:
 #
 
 robot = Hrp2Laas("robot")
-robot.dynamic.gaze.recompute(0)
-robot.dynamic.Jgaze.recompute(0)
+
 
 # Camera related frames.
 
@@ -224,10 +220,8 @@ g_M_c = matrixToTuple(g_M_c1 * c1_M_c)
 
 plug(robot.dynamic.gaze, w_M_c.positionIN)
 plug(robot.dynamic.Jgaze, w_M_c.jacobianIN)
-
 w_M_c.setTransformation(g_M_c)
-w_M_c.position.recompute(0)
-w_M_c.jacobian.recompute(0)
+
 
 # Localization
 l = Localizer('localizer')
@@ -275,64 +269,65 @@ def dP(sensorPosition, referencePoint):
     (X, Y, Z) = split(referencePoint_)
 
     Lx = np.matrix(
-        [[-1. / Z,  0.,     x / Z, x * y,     -(1 + x * x), y],
-         [0.,      -1. / Z, y / Z, 1 + y * y, -x * y,      -x]],
+        [[-1. / Z,  0.,     x / Z, x * y,     -(1 + (x * x)), y],
+         [0.,      -1. / Z, y / Z, 1 + (y * y), -x * y,      -x]],
         dtype=np.float)
     return Lx
 
 
 ###############################
 
+def XYThetaToHomogeneousMatrix(error):
+    (offsetX, offsetY, offsetTheta) = (error[0], error[1], error[2])
+    return np.matrix([
+            [cos (offsetTheta), -sin(offsetTheta), 0., offsetX],
+            [sin (offsetTheta),  cos(offsetTheta), 0., offsetY],
+            [               0.,                0., 1.,      0.],
+            [               0.,                0., 0.,      1.]],
+                     dtype = np.float)
+
+# Localizer setup.
+
+plannedRobot = [0., 0., 0., 1.] # robot planned position
+error =  [10., 0., 0.] # x, y, theta
+
+realRobot = np.inner(XYThetaToHomogeneousMatrix(error), plannedRobot)
+
+realRobotCfg = list(robot.halfSitting)
+realRobotCfg[0] = realRobot[0]; realRobotCfg[1] = realRobot[1]; realRobotCfg[5] = realRobot[2]
+robot.device.set(tuple(realRobotCfg))
+robot.dynamic.gaze.recompute(1)
+robot.dynamic.Jgaze.recompute(1)
+w_M_c.position.recompute(1)
+w_M_c.jacobian.recompute(1)
+
+print("Planned robot position:", plannedRobot[0:3])
+print("Real robot position:", realRobot[0:3])
+
 print("S(q)")
 print(S(0,0))
 print("dS(q)/dq (position + rotation vector)^2")
 print(dS(0,0))
 
-print("P")
-# Z distance = 1
-Xw = np.array([0.025+1., 0., 1.2967, 1.], dtype=np.float)
-print(P(S(0,0), Xw))
 
-print("dP")
-print(dP(S(0,0), Xw))
-
-print("dP*dS")
-print(dP(S(0,0), Xw)*dS(0,0))
-
-print("dP*dS (fvp)")
-fvp = FeatureVisualPoint('fvp')
-fvp.xy.value = (P(S(0,0), Xw)[0], P(S(0,0), Xw)[1])
-fvp.Z.value = np.inner(inverseHomogeneousMatrix(S(0,0)), Xw)[2]
-plug(w_M_c.jacobian, fvp.Jq)
-fvp.jacobian.recompute(0)
-print(np.asmatrix(fvp.jacobian.value)[0:2,0:6])
-
-# Localizer setup.
-
-# X wrong
-# Y ok
-# theta wrong
-
-delta = [0., 1., 0.]
+# planned 3d position of landmarks in the world frame
 landmarks = [
     # (0, 0)
-    np.array([0.025+1., 0., 1.2967, 1.], dtype=np.float),
+    np.array([0.025+10. , 0.        , 1.2967   , 1.], dtype=np.float),
     # (-2, 0)
-    np.array([0.025+2., 0.+2., 1.2967, 1.], dtype=np.float),
+    np.array([0.025+10. , 0.+2.     , 1.2967   , 1.], dtype=np.float),
     # (0, -3)
-    np.array([0.025+3.4, 0., 1.2967+3., 1.], dtype=np.float),
+    np.array([0.025+10. , 0.        , 1.2967+3., 1.], dtype=np.float),
     # (-4, -5)
-    np.array([0.025+5.6, 0.+4., 1.2967+5., 1.], dtype=np.float),
+    np.array([0.025+10. , 0.+4.     , 1.2967+5., 1.], dtype=np.float),
     ]
 
+# observed 3d position of landmarks in the world frame
 observed_landmarks = []
 for l_ in landmarks:
-    observed_landmarks.append(np.array(
-            [l_[0] + delta[0],
-             l_[1] + delta[1],
-             l_[2] + delta[2],
-             1.], dtype=np.float))
+    observed_landmarks.append(np.inner(np.linalg.inv(XYThetaToHomogeneousMatrix(error)), l_))
 
+# Select, X Y, yaw only!
 correctedDofs = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
 
 #########
@@ -342,10 +337,28 @@ for i in xrange(len(observed_landmarks)):
     obsName = 'obs' + str(i)
 
     print("Landmark:", obsName)
-    print("\t position: ", landmark)
-    print("\t observed position: ", observed_landmark)
+    print("\t position (world frame): ", landmark[0:3])
+    print("\t observed position (world frame): ", observed_landmark[0:3])
+    print("\t position (camera frame): ", np.inner(
+            inverseHomogeneousMatrix(S(0,0)), landmark)[0:3])
+    print("\t observed position (camera frame): ", np.inner(
+            inverseHomogeneousMatrix(S(0,0)), observed_landmark)[0:3])
     print("\t P(landmark): ", P(S(0,0), landmark))
+    print("\t dP(landmark):")
+    print(dP(S(0,0), landmark))
     print("\t P(observed_landmark): ", P(S(0,0), observed_landmark))
+
+    print("\t dP*dS:")
+    print(dP(S(0,0), landmark)*dS(0,0))
+
+    print("\t dP*dS (fvp):")
+    fvp = FeatureVisualPoint('fvp'+str(i))
+    fvp.xy.value = (P(S(0,0), landmark)[0], P(S(0,0), landmark)[1])
+    fvp.Z.value = np.inner(inverseHomogeneousMatrix(S(0,0)), landmark)[2]
+    plug(w_M_c.jacobian, fvp.Jq)
+    fvp.jacobian.recompute(0)
+    print(np.matrix(fvp.jacobian.value)[0:2,0:6])
+
 
     l.add_landmark_observation('obs'+str(i))
 
@@ -361,22 +374,25 @@ for i in xrange(len(observed_landmarks)):
     # Select (x, y, yaw) only!
     l.signal(obsName + '_correctedDofs').value = correctedDofs
 
+    print("\n")
+
 l.configurationOffset.recompute(0)
 
 print("\n\nOffset (x, y, theta):")
 print(l.configurationOffset.value)
-print("\n\n")
-
-(offsetX, offsetY, offsetTheta) = l.configurationOffset.value
+print("\n")
 
 # planned position in the real position frame
-offset = np.matrix([
-        [cos (offsetTheta), -sin(offsetTheta), 0., offsetX],
-        [sin (offsetTheta),  cos(offsetTheta), 0., offsetY],
-        [               0.,                0., 1.,      0.],
-        [               0.,                0., 0.,      1.]], dtype = np.float)
+# pP = pMr rP
+offset = XYThetaToHomogeneousMatrix(l.configurationOffset.value)
+correction = np.linalg.inv(offset)
 
+rectifiedPosition = np.inner(correction, realRobot)
+print("Rectified position:", rectifiedPosition[0:3])
+print("...should be:", plannedRobot[0:3])
+print("...delta norm = ", np.linalg.norm(plannedRobot[0:3]-rectifiedPosition[0:3]))
 
+print("\n\n")
 
 for i in xrange(len(observed_landmarks)):
     observed_landmark = observed_landmarks[i]
