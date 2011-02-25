@@ -302,8 +302,8 @@ landmarks = [
 # Localizer setup.
 
 plannedRobot = [0., 0., 0., 1.] # robot planned position
-error =  np.array([0., 10., 0.]) # x, y, theta
-Tmax = 2
+error =  np.array([0., 0., 1.]) # x, y, theta
+Tmax = 100
 
 realRobot = np.inner(XYThetaToHomogeneousMatrix(error), plannedRobot)
 
@@ -313,9 +313,10 @@ for i in xrange(len(landmarks)):
 for t in xrange(Tmax):
     T = t + 10
     print("--- T =", T, "---")
-    realRobotCfg = list(robot.dynamic.position.value)
-    realRobotCfg[0] = realRobot[0]; realRobotCfg[1] = realRobot[1]; realRobotCfg[5] = realRobot[2]
-    robot.dynamic.position.value = tuple(realRobotCfg)
+    cfg = list(robot.dynamic.position.value)
+    #cfg[0] = realRobot[0]; cfg[1] = realRobot[1]; cfg[5] = realRobot[2]
+    cfg[0] = plannedRobot[0]; cfg[1] = plannedRobot[1]; cfg[5] = plannedRobot[2]
+    robot.dynamic.position.value = tuple(cfg)
     robot.dynamic.gaze.recompute(T)
     robot.dynamic.Jgaze.recompute(T)
     w_M_c.position.recompute(T)
@@ -418,6 +419,6 @@ for t in xrange(Tmax):
 
     # Update robot position and error!
     realRobot = rectifiedPosition
-    error = map(lambda (e1, e2): e1 - e2, zip(plannedRobot, realRobot))
+    error = map(lambda (e1, e2): e2 - e1, zip(plannedRobot, realRobot))
 
 print("Final position:", realRobot[0:3])
