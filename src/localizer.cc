@@ -231,6 +231,8 @@ public:
 
 	i += featureReferencePos.size ();
       }
+    std::cout << "Feature delta:" << std::endl
+	      << featureDelta << std::endl;
     return featureDelta;
   }
 
@@ -277,6 +279,10 @@ public:
 	while (j < correctedDofs.size() && correctedDofs (j) != 1.)
 	  ++j;
       }
+    std::cout << "Extract (before):" << std::endl
+	      << M << std::endl
+	      << "Extract (after):" << std::endl
+	      << res << std::endl;
     return res;
   }
 
@@ -313,6 +319,8 @@ public:
 
 	i += obs->featureReferencePosition_ (t).size ();
       }
+    std::cout << "W:" << std::endl
+	      << W << std::endl;
     return W;
   }
 
@@ -376,6 +384,14 @@ LandmarkObservation::LandmarkObservation (Localizer& localizer,
      MAKE_SIGNAL_STRING
      (localizer.getName (), true, "Vector", signalNamePrefix + "_correctedDofs"))
 {
+  localizer.configurationOffset_.addDependency(JsensorPosition_);
+  localizer.configurationOffset_.addDependency(featureReferencePosition_);
+  localizer.configurationOffset_.addDependency(JfeatureReferencePosition_);
+  localizer.configurationOffset_.addDependency(featureObservedPosition_);
+  localizer.configurationOffset_.addDependency(weight_);
+  localizer.configurationOffset_.addDependency(correctedDofs_);
+
+
   localizer.signalRegistration (JsensorPosition_
 				<< featureReferencePosition_
 				<< JfeatureReferencePosition_
