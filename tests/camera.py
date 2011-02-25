@@ -286,30 +286,6 @@ def XYThetaToHomogeneousMatrix(error):
             [               0.,                0., 0.,      1.]],
                      dtype = np.float)
 
-# Localizer setup.
-
-plannedRobot = [0., 0., 0., 1.] # robot planned position
-error =  [10., 0., 0.] # x, y, theta
-
-realRobot = np.inner(XYThetaToHomogeneousMatrix(error), plannedRobot)
-
-realRobotCfg = list(robot.halfSitting)
-realRobotCfg[0] = realRobot[0]; realRobotCfg[1] = realRobot[1]; realRobotCfg[5] = realRobot[2]
-robot.device.set(tuple(realRobotCfg))
-robot.dynamic.gaze.recompute(1)
-robot.dynamic.Jgaze.recompute(1)
-w_M_c.position.recompute(1)
-w_M_c.jacobian.recompute(1)
-
-print("Planned robot position:", plannedRobot[0:3])
-print("Real robot position:", realRobot[0:3])
-
-print("S(q)")
-print(S(0,0))
-print("dS(q)/dq (position + rotation vector)^2")
-print(dS(0,0))
-
-
 # planned 3d position of landmarks in the world frame
 landmarks = [
     # (0, 0)
@@ -322,113 +298,126 @@ landmarks = [
     np.array([0.025+10. , 0.+4.     , 1.2967+5., 1.], dtype=np.float),
     ]
 
-# observed 3d position of landmarks in the world frame
-observed_landmarks = []
-for l_ in landmarks:
-    observed_landmarks.append(np.inner(np.linalg.inv(XYThetaToHomogeneousMatrix(error)), l_))
 
-# Select, X Y, yaw only!
-correctedDofs = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
+# Localizer setup.
 
-#########
-for i in xrange(len(observed_landmarks)):
-    observed_landmark = observed_landmarks[i]
-    landmark = landmarks[i]
-    obsName = 'obs' + str(i)
+plannedRobot = [0., 0., 0., 1.] # robot planned position
+error =  np.array([0., 10., 0.]) # x, y, theta
+Tmax = 2
 
-    print("Landmark:", obsName)
-    print("\t position (world frame): ", landmark[0:3])
-    print("\t observed position (world frame): ", observed_landmark[0:3])
-    print("\t position (camera frame): ", np.inner(
-            inverseHomogeneousMatrix(S(0,0)), landmark)[0:3])
-    print("\t observed position (camera frame): ", np.inner(
-            inverseHomogeneousMatrix(S(0,0)), observed_landmark)[0:3])
-    print("\t P(landmark): ", P(S(0,0), landmark))
-    print("\t dP(landmark):")
-    print(dP(S(0,0), landmark))
-    print("\t P(observed_landmark): ", P(S(0,0), observed_landmark))
+realRobot = np.inner(XYThetaToHomogeneousMatrix(error), plannedRobot)
 
-    print("\t dP*dS:")
-    print(dP(S(0,0), landmark)*dS(0,0))
-
-    print("\t dP*dS (fvp):")
-    fvp = FeatureVisualPoint('fvp'+str(i))
-    fvp.xy.value = (P(S(0,0), landmark)[0], P(S(0,0), landmark)[1])
-    fvp.Z.value = np.inner(inverseHomogeneousMatrix(S(0,0)), landmark)[2]
-    plug(w_M_c.jacobian, fvp.Jq)
-    fvp.jacobian.recompute(0)
-    print(np.matrix(fvp.jacobian.value)[0:2,0:6])
-
-
+for i in xrange(len(landmarks)):
     l.add_landmark_observation('obs'+str(i))
 
-    l.signal(obsName + '_JfeatureReferencePosition').value = \
-        matrixToTuple(dP(S(0, 0), landmark))
-    l.signal(obsName + '_JsensorPosition').value = matrixToTuple(dS(0, 0))
-    l.signal(obsName + '_weight').value = (1., 1.)
+for t in xrange(Tmax):
+    T = t + 10
+    print("--- T =", T, "---")
+    realRobotCfg = list(robot.dynamic.position.value)
+    realRobotCfg[0] = realRobot[0]; realRobotCfg[1] = realRobot[1]; realRobotCfg[5] = realRobot[2]
+    robot.dynamic.position.value = tuple(realRobotCfg)
+    robot.dynamic.gaze.recompute(T)
+    robot.dynamic.Jgaze.recompute(T)
+    w_M_c.position.recompute(T)
+    w_M_c.jacobian.recompute(T)
 
-    l.signal(obsName + '_featureObservedPosition').value = \
-        tuple(P(S(0,0), observed_landmark).tolist())
-    l.signal(obsName + '_featureReferencePosition').value = \
-        tuple(P(S(0,0), landmark).tolist())
-    # Select (x, y, yaw) only!
-    l.signal(obsName + '_correctedDofs').value = correctedDofs
+    print("Planned robot position:", plannedRobot[0:3])
+    print("Real robot position:", realRobot[0:3])
+    print("Error:", error[0:3])
 
+    print("S(q)")
+    print(S(0,0))
+    print("dS(q)/dq (position + rotation vector)^2")
+    print(dS(0,0))
+
+    # observed 3d position of landmarks in the world frame
+    observed_landmarks = []
+    for l_ in landmarks:
+        observed_landmarks.append(np.inner(np.linalg.inv(XYThetaToHomogeneousMatrix(error)), l_))
+
+    # Select, X Y, yaw only!
+    correctedDofs = (1., 1., 0., 0., 0., 1.) + 30 * (0.,)
+
+    for i in xrange(len(observed_landmarks)):
+        observed_landmark = observed_landmarks[i]
+        landmark = landmarks[i]
+        obsName = 'obs' + str(i)
+
+        print("Landmark:", obsName)
+        print("\t position (world frame): ", landmark[0:3])
+        print("\t observed position (world frame): ", observed_landmark[0:3])
+        print("\t position (camera frame): ", np.inner(
+                inverseHomogeneousMatrix(S(0,0)), landmark)[0:3])
+        print("\t observed position (camera frame): ", np.inner(
+                inverseHomogeneousMatrix(S(0,0)), observed_landmark)[0:3])
+        print("\t P(landmark): ", P(S(0,0), landmark))
+        print("\t dP(landmark):")
+        print(dP(S(0,0), landmark))
+        print("\t P(observed_landmark): ", P(S(0,0), observed_landmark))
+
+        print("\t dP*dS:")
+        print(dP(S(0,0), landmark)*dS(0,0))
+
+        print("\t dP*dS (fvp):")
+        fvp = FeatureVisualPoint('fvp'+str(i))
+        fvp.xy.value = (P(S(0,0), landmark)[0], P(S(0,0), landmark)[1])
+        fvp.Z.value = np.inner(inverseHomogeneousMatrix(S(0,0)), landmark)[2]
+        plug(w_M_c.jacobian, fvp.Jq)
+        fvp.jacobian.recompute(T)
+        print(np.matrix(fvp.jacobian.value)[0:2,0:6])
+
+        l.signal(obsName + '_JfeatureReferencePosition').value = \
+            matrixToTuple(dP(S(0, 0), landmark))
+        l.signal(obsName + '_JsensorPosition').value = matrixToTuple(dS(0, 0))
+        l.signal(obsName + '_weight').value = (1., 1.)
+
+        l.signal(obsName + '_featureObservedPosition').value = \
+            tuple(P(S(0,0), observed_landmark).tolist())
+        l.signal(obsName + '_featureReferencePosition').value = \
+            tuple(P(S(0,0), landmark).tolist())
+        # Select (x, y, yaw) only!
+        l.signal(obsName + '_correctedDofs').value = correctedDofs
+
+        print("\n")
+
+    l.configurationOffset.recompute(T)
+
+    print("\n\nOffset (x, y, theta):")
+    print(l.configurationOffset.value)
     print("\n")
 
-l.configurationOffset.recompute(0)
+    # planned position in the real position frame
+    # pP = pMr rP
+    offset = XYThetaToHomogeneousMatrix(l.configurationOffset.value)
+    correction = np.linalg.inv(offset)
 
-print("\n\nOffset (x, y, theta):")
-print(l.configurationOffset.value)
-print("\n")
+    rectifiedPosition = np.inner(correction, realRobot)
+    print("Rectified position:", rectifiedPosition[0:3])
+    print("...should be:", plannedRobot[0:3])
+    print("...delta norm = ", np.linalg.norm(plannedRobot[0:3]-rectifiedPosition[0:3]))
 
-# planned position in the real position frame
-# pP = pMr rP
-offset = XYThetaToHomogeneousMatrix(l.configurationOffset.value)
-correction = np.linalg.inv(offset)
+    print("\n\n")
 
-rectifiedPosition = np.inner(correction, realRobot)
-print("Rectified position:", rectifiedPosition[0:3])
-print("...should be:", plannedRobot[0:3])
-print("...delta norm = ", np.linalg.norm(plannedRobot[0:3]-rectifiedPosition[0:3]))
+    for i in xrange(len(observed_landmarks)):
+        observed_landmark = observed_landmarks[i]
+        landmark = landmarks[i]
+        obsName = 'obs' + str(i)
 
-print("\n\n")
+        rectified = np.inner(offset, observed_landmark)
 
-for i in xrange(len(observed_landmarks)):
-    observed_landmark = observed_landmarks[i]
-    landmark = landmarks[i]
-    obsName = 'obs' + str(i)
+        pRect = P(S(0,0), rectified)
+        p = P(S(0,0), landmark)
 
-    rectified = np.inner(offset, observed_landmark)
+        print("Landmark after rectification:", obsName)
+        print("\t rectified position: ", rectified)
+        print("\t P(rectified): ", pRect)
+        print("\t P(planned pos): ", p)
+        if np.linalg.norm(p - pRect) > 1e-3:
+            print("\t WRONG: delta =", np.linalg.norm(p - pRect))
 
-    pRect = P(S(0,0), rectified)
-    p = P(S(0,0), landmark)
 
-    print("Landmark after rectification:", obsName)
-    print("\t rectified position: ", rectified)
-    print("\t P(rectified): ", pRect)
-    print("\t P(planned pos): ", p)
-    if np.linalg.norm(p - pRect) > 1e-3:
-        print("\t WRONG: delta =", np.linalg.norm(p - pRect))
+    # Update robot position and error!
+    realRobot = rectifiedPosition
+    error = map(lambda (e1, e2): e1 - e2, zip(plannedRobot, realRobot))
 
-###############################################################################
-display = False
-if display:
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import axes3d, Axes3D
-    fig = plt.figure()
-
-    ax = Axes3D(fig)
-
-    camPos = getT(S(0,0))
-    ax.scatter(camPos[0], camPos[1], [camPos[2]], c='r', marker='^')
-
-    for (i, m) in [(landmarks, 'o')]: #, (observed_landmarks, '+')
-        for l_ in i:
-            ax.scatter(l_[0], l_[1], [l_[2]], c='g', marker=m)
-
-            ax.set_xlabel('X Label')
-            ax.set_ylabel('Y Label')
-            ax.set_zlabel('Z Label')
-
-    plt.show()
+print("Final position:", realRobot[0:3])
