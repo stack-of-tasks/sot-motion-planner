@@ -16,3 +16,4 @@
 # sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
 from localizer import Localizer
+from correction import Correction
