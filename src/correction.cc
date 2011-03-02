@@ -44,6 +44,11 @@ namespace sot = dg::sot;
 
 namespace ublas = boost::numeric::ublas;
 
+//FIXME: remove me. Should be an attribute and set by user (or add updateTime?)
+static const double timeStep = 0.005;
+
+//FIXME: add a command to set the stepLength
+
 namespace
 {
   class E
@@ -138,7 +143,11 @@ private:
 	return initialOffset_;
 
       if (t > correction_->tmax_)
-	correction_.reset ();
+	{
+	  initialOffset_ += correction_->finalValue_;
+	  correction_.reset ();
+	  return initialOffset_;
+	}
 
       return initialOffset_ + (*correction_) (t);
     }
@@ -190,6 +199,8 @@ DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(Correction, "Correction");
 Correction::Correction (const std::string& name)
   : Entity (name),
 
+    stepLength_ (1.),
+
     trajectoryLeftFootIn_
     (dg::nullptr,
      MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "trajectoryLeftFootIn")),
@@ -227,6 +238,15 @@ Correction::Correction (const std::string& name)
     rightFootCurrentCorrection_ (3),
     comCurrentCorrection_ (2)
 {
+  trajectoryLeftFootOut_.addDependency(trajectoryLeftFootIn_);
+  trajectoryLeftFootOut_.addDependency(offsetIn_);
+
+  trajectoryRightFootOut_.addDependency(trajectoryRightFootIn_);
+  trajectoryRightFootOut_.addDependency(offsetIn_);
+
+  trajectoryComOut_.addDependency(trajectoryComIn_);
+  trajectoryComOut_.addDependency(offsetIn_);
+
   signalRegistration
     (trajectoryLeftFootIn_ << trajectoryRightFootIn_ << trajectoryComIn_
      << offsetIn_
@@ -239,6 +259,7 @@ sot::MatrixHomogeneous&
 Correction::computeLeftFootCorrectedTrajectory (sot::MatrixHomogeneous& res,
 						int t)
 {
+  res = trajectoryLeftFootIn_ (t);
   ml::Vector leftFootCorrection = getCurrentLeftFootCorrection (t);
   // Update X
   res (0, 3) += leftFootCorrection (0);
@@ -253,6 +274,7 @@ sot::MatrixHomogeneous&
 Correction::computeRightFootCorrectedTrajectory (sot::MatrixHomogeneous& res,
 						 int t)
 {
+  res = trajectoryRightFootIn_ (t);
   ml::Vector rightFootCorrection = getCurrentRightFootCorrection (t);
   // Update X
   res (0, 3) += rightFootCorrection (0);
@@ -266,6 +288,8 @@ Correction::computeRightFootCorrectedTrajectory (sot::MatrixHomogeneous& res,
 ml::Vector&
 Correction::computeComCorrectedTrajectory (ml::Vector& res, int t)
 {
+  res = trajectoryComIn_ (t);
+
   ml::Vector comCorrection = getCurrentComCorrection (t);
   // Update X
   res (0) += comCorrection (0);
@@ -284,8 +308,8 @@ Correction::getCurrentLeftFootCorrection (int t)
       //FIXME: the offset is wrong, missing ff offset -> feet offset
       //conversion.
       leftFootCurrentCorrection_[i].updateCorrection
-	(t, stepLength_, offsetIn_ (t) (i));
-      res (0) = leftFootCurrentCorrection_[i] (t);
+	(t * timeStep, stepLength_, offsetIn_ (t) (i));
+      res (i) = leftFootCurrentCorrection_[i] (t * timeStep);
     }
   return res;
 }
@@ -299,8 +323,8 @@ Correction::getCurrentRightFootCorrection (int t)
       //FIXME: the offset is wrong, missing ff offset -> feet offset
       //conversion.
       rightFootCurrentCorrection_[i].updateCorrection
-	(t, stepLength_, offsetIn_ (t) (i));
-      res (0) = rightFootCurrentCorrection_[i] (t);
+	(t * timeStep, stepLength_, offsetIn_ (t) (i));
+      res (i) = rightFootCurrentCorrection_[i] (t * timeStep);
     }
   return res;
 }
@@ -314,8 +338,8 @@ Correction::getCurrentComCorrection (int t)
       //FIXME: the offset is wrong, missing ff offset -> com offset
       //conversion.
       comCurrentCorrection_[i].updateCorrection
-	(t, stepLength_, offsetIn_ (t) (i));
-      res (0) = comCurrentCorrection_[i] (t);
+	(t * timeStep, stepLength_, offsetIn_ (t) (i));
+      res (i) = comCurrentCorrection_[i] (t * timeStep);
     }
   return res;
 }
