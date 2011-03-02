@@ -192,13 +192,13 @@ Correction::Correction (const std::string& name)
 
     trajectoryLeftFootIn_
     (dg::nullptr,
-     MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "trajectoryLeftFoot")),
+     MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "trajectoryLeftFootIn")),
     trajectoryRightFootIn_
     (dg::nullptr,
-     MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "trajectoryRightFoot")),
+     MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "trajectoryRightFootIn")),
     trajectoryComIn_
     (dg::nullptr,
-     MAKE_SIGNAL_STRING (name, true, "Vector", "trajectoryCom")),
+     MAKE_SIGNAL_STRING (name, true, "Vector", "trajectoryComIn")),
 
 
     offsetIn_

@@ -39,12 +39,12 @@ makeSignalString (const std::string& className,
 
 
 # define INIT_SIGNAL_IN(SIGNAL_NAME, METHOD_NAME, TYPE)			\
-  boost::bind(&Localizer::METHOD_NAME, this, _1, _2),			\
+  boost::bind(&METHOD_NAME, this, _1, _2),				\
     dg::sotNOSIGNAL,							\
     MAKE_SIGNAL_STRING(name, true, TYPE, SIGNAL_NAME)
 
 # define INIT_SIGNAL_OUT(SIGNAL_NAME, METHOD_NAME, TYPE)		\
-  boost::bind(&Localizer::METHOD_NAME, this, _1, _2),			\
+  boost::bind(&METHOD_NAME, this, _1, _2),				\
     dg::sotNOSIGNAL,							\
     MAKE_SIGNAL_STRING(name, false, TYPE, SIGNAL_NAME)
 
