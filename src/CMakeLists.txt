@@ -41,6 +41,7 @@ ENDFUNCTION()
 
 
 COMPILE_PLUGIN(localizer localizer.cc Localizer)
+COMPILE_PLUGIN(correction correction.cc Correction)
 
 
 EXEC_PROGRAM(
