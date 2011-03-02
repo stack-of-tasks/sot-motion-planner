@@ -20,7 +20,6 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/bind.hpp>
 #include <boost/foreach.hpp>
-#include <boost/format.hpp>
 #include <boost/make_shared.hpp>
 
 #include <jrl/mal/boost.hh>
@@ -35,6 +34,8 @@
 #include <sot/core/vector-roll-pitch-yaw.hh>
 
 #include <dynamic-graph/command.h>
+
+#include "common.hh"
 
 
 // Python:
@@ -54,39 +55,6 @@
 namespace ml = maal::boost;
 namespace dg = dynamicgraph;
 namespace sot = dg::sot;
-
-std::string
-makeSignalString (const std::string& className,
-		  const std::string& instanceName,
-		  bool isInputSignal,
-		  const std::string& signalType,
-		  const std::string& signalName)
-{
-  boost::format fmt ("%s(%s)::%s(%s)::%s");
-  fmt % className
-    % instanceName
-    % (isInputSignal ? "input" : "output")
-    % signalType
-    % signalName;
-  return fmt.str ();
-}
-
-#define MAKE_SIGNAL_STRING(NAME, IS_INPUT, OUTPUT_TYPE, SIGNAL_NAME)	\
-  makeSignalString (typeid (*this).name (), NAME,			\
-		    IS_INPUT, OUTPUT_TYPE, SIGNAL_NAME)
-
-
-
-#define INIT_SIGNAL_IN(SIGNAL_NAME, METHOD_NAME, TYPE)			\
-  boost::bind(&Localizer::METHOD_NAME, this, _1, _2),			\
-    dg::sotNOSIGNAL,							\
-    MAKE_SIGNAL_STRING(name, true, TYPE, SIGNAL_NAME)
-
-#define INIT_SIGNAL_OUT(SIGNAL_NAME, METHOD_NAME, TYPE)			\
-  boost::bind(&Localizer::METHOD_NAME, this, _1, _2),			\
-    dg::sotNOSIGNAL,							\
-    MAKE_SIGNAL_STRING(name, false, TYPE, SIGNAL_NAME)
-
 
 class Localizer;
 
