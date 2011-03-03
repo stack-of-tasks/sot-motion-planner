@@ -19,7 +19,10 @@ from __future__ import print_function
 import numpy as np
 from math import acos, atan2, cos, sin, pi, sqrt
 
+from dynamic_graph.sot.dynamics.tools import *
+
 from dynamic_graph import plug
+from dynamic_graph.sot.core import FeatureGeneric, Task, MatrixConstant
 from dynamic_graph.sot.motion_planner import \
     Localizer, Correction, FeetFollowerFromFile
 
@@ -133,9 +136,9 @@ solver.sot.push(robot.name + '_halfSit')
 
 
 # Setup the initial error.
-correction.offset.value = (1., 2., 0.)
+correction.offset.value = (0., 0., 0.)
 
-for i in xrange(2 * (1. / 0.005)):
+for i in xrange(int(4. * (1. / 0.005))):
     robot.device.increment(timeStep)
     if clt:
         clt.updateElementConfig(
