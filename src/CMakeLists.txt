@@ -42,6 +42,7 @@ ENDFUNCTION()
 
 COMPILE_PLUGIN(localizer localizer.cc Localizer)
 COMPILE_PLUGIN(correction correction.cc Correction)
+COMPILE_PLUGIN(feet-follower feet-follower.cc FeetFollowerFromFile)
 
 
 EXEC_PROGRAM(
