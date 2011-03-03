@@ -196,7 +196,7 @@ private:
       }
     if (!comTrajFile_.good ())
       {
-	sd::cerr << "bad com" << std::endl;
+	std::cerr << "bad com" << std::endl;
 	return;
       }
 
