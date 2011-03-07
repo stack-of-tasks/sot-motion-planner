@@ -91,7 +91,7 @@ featureHS.sdes.value = featureHSdes
 taskHalfSit.add('featureHS')
 taskHalfSit.controlGain.value = 180.
 
-#plug(feetFollower.zmp, robot.device.zmp)
+plug(feetFollower.zmp, robot.device.zmp)
 
 plug(feetFollower.com, robot.featureComDes.errorIN)
 plug(feetFollower.signal('left-ankle'),
