@@ -38,6 +38,10 @@ namespace ml = ::maal::boost;
 namespace dg = ::dynamicgraph;
 namespace sot = ::dynamicgraph::sot;
 
+// FIXME: do that correctly.
+//double comZ = 0.8077098405846368;
+double comZ = 0.814;
+
 sot::MatrixHomogeneous
 transformPgFrameIntoAnkleFrame (double tx, double ty, double tz, double theta,
 				const sot::MatrixHomogeneous& feetToAnkle)
@@ -59,24 +63,6 @@ transformPgFrameIntoAnkleFrame (double tx, double ty, double tz, double theta,
   return tmp2;
 }
 
-ml::Vector
-transformPgFrameIntoAnkleFrameCom (double comx, double comy, double comz,
-				   const sot::MatrixHomogeneous& feetToAnkle)
-{
-  sot::MatrixHomogeneous tmp;
-  tmp (0, 3) = comx, tmp (1, 3) = comy, tmp (2, 3) = comz;
-  //FIXME: we suppose feetToAnkle is the same for both feet.
-
-  sot::MatrixHomogeneous tmp2;
-  tmp2 = tmp * feetToAnkle;
-
-  ml::Vector res (3);
-  for (unsigned i = 0; i < 3; ++i)
-    res (i) =  tmp2 (i, 3);
-  return res;
-}
-
-
 class FeetFollower : public dg::Entity
 {
  public:
@@ -87,9 +73,11 @@ class FeetFollower : public dg::Entity
     : Entity(name),
       t_ (),
       com_ (3),
+      zmp_ (3),
       leftAnkle_ (),
       rightAnkle_ (),
       comOut_ (INIT_SIGNAL_OUT ("com", FeetFollower::updateCoM, "Vector")),
+      zmpOut_ (INIT_SIGNAL_OUT ("zmp", FeetFollower::updateZmp, "Vector")),
       leftAnkleOut_
       (INIT_SIGNAL_OUT
        ("left-ankle", FeetFollower::updateLeftAnkle, "MatrixHomo")),
@@ -97,8 +85,9 @@ class FeetFollower : public dg::Entity
       (INIT_SIGNAL_OUT
        ("right-ankle", FeetFollower::updateRightAnkle, "MatrixHomo"))
   {
-    signalRegistration (comOut_ << leftAnkleOut_ << rightAnkleOut_);
+    signalRegistration (zmpOut_ << comOut_ << leftAnkleOut_ << rightAnkleOut_);
 
+    zmpOut_.setNeedUpdateFromAllChildren (true);
     comOut_.setNeedUpdateFromAllChildren (true);
     leftAnkleOut_.setNeedUpdateFromAllChildren (true);
     rightAnkleOut_.setNeedUpdateFromAllChildren (true);
@@ -117,6 +106,7 @@ protected:
 
   int t_;
   ml::Vector com_;
+  ml::Vector zmp_;
   sot::MatrixHomogeneous leftAnkle_;
   sot::MatrixHomogeneous rightAnkle_;
 
@@ -137,6 +127,14 @@ private:
     return res;
   }
 
+  ml::Vector& updateZmp (ml::Vector& res, int t)
+  {
+    if (t > t_)
+      update (t);
+    res = zmp_;
+    return res;
+  }
+
   sot::MatrixHomogeneous& updateLeftAnkle (sot::MatrixHomogeneous& res, int t)
   {
     if (t > t_)
@@ -154,6 +152,7 @@ private:
   }
 
   signalCoM_t comOut_;
+  signalCoM_t zmpOut_;
   signalFoot_t leftAnkleOut_;
   signalFoot_t rightAnkleOut_;
 };
@@ -168,6 +167,7 @@ public:
       leftAnkleTrajFile_ ("left-ankle.dat"),
       rightAnkleTrajFile_ ("right-ankle.dat"),
       comTrajFile_ ("com.dat"),
+      zmpTrajFile_ ("zmp.dat"),
       feetToAnkleLeft_ (dg::nullptr,
 			MAKE_SIGNAL_STRING
 			(name, true, "MatrixHomo", "feetToAnkleLeft")),
@@ -200,20 +200,33 @@ private:
 	return;
       }
 
+    if (!zmpTrajFile_.good ())
+      {
+	std::cerr << "bad zmp" << std::endl;
+	return;
+      }
+
     // X Y Z Theta?
     double left[4];
     double right[4];
 
     // X Y (Z = 0)
     double com[2];
+    double zmp[2];
 
     leftAnkleTrajFile_ >> left[0] >> left[1] >> left[2] >> left[3];
     rightAnkleTrajFile_ >> right[0] >> right[1] >> right[2] >> right[3];
     comTrajFile_ >> com[0] >> com[1];
+    zmpTrajFile_ >> zmp[0] >> zmp[1];
 
-    //FIXME: check that (comz = 0.7?).
-    com_ = transformPgFrameIntoAnkleFrameCom (com[0], com[1], 0.7,
-					      feetToAnkleLeft_ (t_));
+    com_ (0) = com[0];
+    com_ (1) = com[1];
+    com_ (2) = comZ;
+
+    zmp_ (0) = zmp[0];
+    zmp_ (1) = zmp[1];
+    zmp_ (2) = 0.;
+
     leftAnkle_ =
       transformPgFrameIntoAnkleFrame (left[0], left[1], left[2], left[3],
 				      feetToAnkleLeft_ (t_));
@@ -226,6 +239,7 @@ private:
   std::ifstream leftAnkleTrajFile_;
   std::ifstream rightAnkleTrajFile_;
   std::ifstream comTrajFile_;
+  std::ifstream zmpTrajFile_;
 
   typedef dg::SignalPtr<sot::MatrixHomogeneous,int> signalInMatrix_t;
   signalInMatrix_t feetToAnkleLeft_;
@@ -275,9 +289,8 @@ public:
 private:
   virtual void impl_update ()
   {
-    //FIXME: check that (comz = 0.7?).
     com_ = transformPgFrameIntoAnkleFrameCom
-      (steps_.comTrajX[i_], steps_.comTrajY[i_], 0.7, feetToAnkleLeft_ (t_));
+      (steps_.comTrajX[i_], steps_.comTrajY[i_], comZ, feetToAnkleLeft_ (t_));
 
     leftAnkle_ =
       transformPgFrameIntoAnkleFrame
