@@ -55,5 +55,6 @@ EXEC_PROGRAM(
 
 INSTALL(FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner/feet_follower_test.py
   DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/motion_planner
   )
