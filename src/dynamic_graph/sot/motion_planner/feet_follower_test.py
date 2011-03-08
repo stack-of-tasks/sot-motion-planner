@@ -19,109 +19,123 @@ from dynamic_graph.sot.dynamics.tools import *
 from __main__ import robot, solver
 
 from dynamic_graph.sot.core import FeatureGeneric, Task, MatrixConstant
-
 from dynamic_graph.sot.motion_planner import FeetFollowerFromFile
-
 from dynamic_graph.tracer_real_time import TracerRealTime
 
-eye = []
-for i in xrange(36):
-    tmp = []
-    for j in xrange(36):
-        if i != j:
-            tmp.append(0.)
-        else:
-            tmp.append(1.)
-    eye.append(tuple(tmp))
+
+def translationToSE3(t):
+    return ((1., 0., 0., t[0]),
+            (0., 1., 0., t[1]),
+            (0., 0., 1., t[2]),
+            (0., 0., 0., 1.  ))
+
+def oneVector(i):
+    r = [0.,] * 36
+    r[i] = 1.
+    return tuple(r)
+
+class Follower:
+    feetFollower = None
+
+    postureTask = None
+    postureFeature = None
+    postureFeatureDes = None
+
+    def __init__(self):
+        self.feetFollower = FeetFollowerFromFile('feet-follower')
+
+        # Setup feet to ankle transformation.
+        anklePosL = robot.dynamic.getAnklePositionInFootFrame()
+        anklePosR = (anklePosL[0], -anklePosL[1], anklePosL[2])
+
+        self.feetFollower.setLeftFootToAnkle(translationToSE3(anklePosL))
+        self.feetFollower.setRightFootToAnkle(translationToSE3(anklePosR))
+
+        # Setup initial robot position and com.
+        self.feetFollower.setInitialLeftFootPosition(
+            robot.dynamic.signal('left-ankle').value)
+        self.feetFollower.setInitialRightFootPosition(
+            robot.dynamic.signal('right-ankle').value)
+        self.feetFollower.setComZ(robot.dynamic.com.value[2])
+
+        # Make sure the CoM is converging toward the starting
+        # CoM of the trajectory.
+        robot.comTask.controlGain.value = 1.
+        robot.featureComDes.errorIN.value = \
+            (0., 0., robot.dynamic.com.value[2])
+        robot.featureCom.selec.value = '111'
+
+        # Plug the feet follower output signals.
+        plug(self.feetFollower.zmp, robot.device.zmp)
+
+        plug(self.feetFollower.com, robot.featureComDes.errorIN)
+        plug(self.feetFollower.signal('left-ankle'),
+             robot.features['left-ankle'].reference)
+        plug(self.feetFollower.signal('right-ankle'),
+             robot.features['right-ankle'].reference)
+
+        # Initialize the posture task.
+        self.postureTask = Task(robot.name + '_posture')
+        self.postureFeature = FeatureGeneric(robot.name + '_postureFeature')
+        self.postureFeatureDes = \
+            FeatureGeneric(robot.name + '_postureFeatureDes')
+
+        self.postureFeature.errorIN.value = self.computeError()
+        self.postureFeature.jacobianIN.value = self.computeJacobian()
+        self.postureFeatureDes.errorIN.value = self.computeDesiredValue()
+
+        self.postureFeature.sdes.value = self.postureFeatureDes
+
+        self.postureTask.add(self.postureFeature.name)
+        self.postureTask.controlGain.value = 180.
+
+        solver.sot.push(robot.comTask.name)
+        solver.sot.push(robot.tasks['left-ankle'].name)
+        solver.sot.push(robot.tasks['right-ankle'].name)
+        solver.sot.push(self.postureTask.name)
+
+    def computeError(self):
+        e = robot.device.state.value
+        e_ = [e[3], e[4], e[5]]
+        offset = 6 + 2 * 6
+        for i in xrange(len(e) - offset):
+            e_.append(e[offset + i])
+        return tuple(e_)
+
+    def computeDesiredValue(self):
+        e = robot.halfSitting
+        e_ = [e[3], e[4], e[5]]
+        offset = 6 + 2 * 6
+        for i in xrange(len(e) - offset):
+            e_.append(e[offset + i])
+        return tuple(e_)
 
 
-feetFollower = FeetFollowerFromFile('feet-follower')
+    def computeJacobian(self):
+        j = []
+
+        for i in xrange(36):
+            if i == 3 or i == 4 or i == 5 or i >= 6 + 2 * 6:
+                j.append(oneVector(i))
+        return tuple(j)
+
+    def start(self):
+        robot.comTask.controlGain.value = 180.
+        robot.tasks['left-ankle'].controlGain.value = 180.
+        robot.tasks['right-ankle'].controlGain.value = 180.
+
+        self.feetFollower.help()
+        self.feetFollower.start()
 
 
-anklePos = robot.dynamic.getAnklePositionInFootFrame()
-soleW = robot.dynamic.getSoleWidth()
-soleH = robot.dynamic.getSoleLength()
-ML = ((1, 0, 0, anklePos[0]),
-      (0, 1, 0, anklePos[1]),
-      (0, 0, 1, anklePos[2]),
-      (0, 0, 0, 1))
-MR = ((1, 0, 0, anklePos[0]),
-      (0, 1, 0, -anklePos[1]),
-      (0, 0, 1, anklePos[2]),
-      (0, 0, 0, 1))
-
-print anklePos
-
-#import numpy as np_
-#print np_.matrix(robot.dynamic.signal('left-ankle').value)
-#print np_.matrix(robot.dynamic.signal('right-ankle').value)
-
-feetFollower.signal('feetToAnkleLeft').value = ML
-feetFollower.signal('feetToAnkleRight').value = MR
-
-robot.featureCom.selec.value = '111'
-
-# com start
-# 0,0.095,0,0,-0.095,0
-
-### VERTICAL WAIST
-robot.features['waist'].reference = \
-    ((1., 0., 0., 0.),
-     (0., 1., 0., 0.),
-     (0., 0., 1., 0.),
-     (0., 0., 0., 1.))
-robot.features['waist'].selec.value = '011000'
-
-
-#### HALF SITTING #####
-taskHalfSit = Task(robot.name + '_halfSit')
-featureHS = FeatureGeneric('featureHS')
-featureHSdes = FeatureGeneric('featureHSdes')
-plug(robot.dynamic.position, featureHS.errorIN)
-#JHS = MatrixConstant('JHS')
-#JHS.resize(36, 36)
-#JHS.set(tuple(eye))
-
-featureHS.jacobianIN.value = tuple(eye)
-
-featureHSdes.errorIN.value = robot.halfSitting
-featureHS.sdes.value = featureHSdes
-
-
-taskHalfSit.add('featureHS')
-taskHalfSit.controlGain.value = 180.
-
-plug(feetFollower.zmp, robot.device.zmp)
-
-plug(feetFollower.com, robot.featureComDes.errorIN)
-plug(feetFollower.signal('left-ankle'),
-     robot.features['left-ankle'].reference)
-plug(feetFollower.signal('right-ankle'),
-     robot.features['right-ankle'].reference)
-
-robot.comTask.signal('controlGain').value = 180.
-robot.tasks['left-ankle'].signal('controlGain').value = 180.
-robot.tasks['right-ankle'].signal('controlGain').value = 180.
-
-# Push tasks
-#  Operational points tasks
-solver.sot.push(robot.name + '_task_right-ankle')
-solver.sot.push(robot.name + '_task_left-ankle')
-
-#  Center of mass
-solver.sot.push(robot.name + '_task_com')
-
-solver.sot.push(robot.name + '_task_waist')
-
-solver.sot.push(robot.name + '_halfSit')
-
+f = Follower()
 
 
 trace = TracerRealTime('trace')
 trace.setBufferSize(2**20)
 trace.open('/tmp/','feet_follower_','.dat')
 
-# Feature des input.
+# Feature sdes input.
 trace.add('feet-follower.com', 'com')
 trace.add('feet-follower.zmp', 'zmp')
 trace.add('feet-follower.left-ankle', 'left-ankle')

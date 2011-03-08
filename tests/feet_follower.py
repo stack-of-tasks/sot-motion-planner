@@ -21,11 +21,15 @@ from dynamic_graph.sot.core import FeatureGeneric, Task, MatrixConstant
 
 from dynamic_graph.sot.motion_planner.feet_follower_test import *
 
+f.start()
+
 # Main.
 #  Main loop
 t= 0
 for i in xrange(3000):
     robot.device.increment(timeStep)
+
+    f.postureFeature.errorIN.value = f.computeError()
 
     t += 1
     trace.triger.recompute(t)

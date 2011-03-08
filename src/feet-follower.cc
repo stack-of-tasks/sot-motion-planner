@@ -21,10 +21,13 @@
 #include <boost/format.hpp>
 
 #include <jrl/mal/boost.hh>
+#include <dynamic-graph/command-getter.h>
+#include <dynamic-graph/command-setter.h>
+#include <dynamic-graph/command.h>
 #include <dynamic-graph/entity.h>
 #include <dynamic-graph/factory.h>
-#include <dynamic-graph/pool.h>
 #include <dynamic-graph/null-ptr.hh>
+#include <dynamic-graph/pool.h>
 #include <dynamic-graph/signal-time-dependent.h>
 #include <sot/core/matrix-homogeneous.hh>
 #include <sot/core/matrix-rotation.hh>
@@ -32,15 +35,12 @@
 
 #include <sot-dynamic/dynamic.h>
 
+
 #include "common.hh"
 
 namespace ml = ::maal::boost;
 namespace dg = ::dynamicgraph;
 namespace sot = ::dynamicgraph::sot;
-
-// FIXME: do that correctly.
-//double comZ = 0.8077098405846368;
-double comZ = 0.814;
 
 sot::MatrixHomogeneous
 transformPgFrameIntoAnkleFrame (double tx, double ty, double tz, double theta,
@@ -63,6 +63,22 @@ transformPgFrameIntoAnkleFrame (double tx, double ty, double tz, double theta,
   return tmp2;
 }
 
+class FeetFollower;
+namespace command
+{
+  using ::dynamicgraph::command::Command;
+  using ::dynamicgraph::command::Value;
+
+  class Start : public Command
+  {
+  public:
+    Start (FeetFollower& entity, const std::string& docstring);
+    virtual Value doExecute();
+  };
+}
+
+using ::dynamicgraph::command::Setter;
+
 class FeetFollower : public dg::Entity
 {
  public:
@@ -76,6 +92,12 @@ class FeetFollower : public dg::Entity
       zmp_ (3),
       leftAnkle_ (),
       rightAnkle_ (),
+      comZ_ (0.),
+      leftFootToAnkle_ (),
+      rightFootToAnkle_ (),
+      initialLeftAnklePosition_ (),
+      initialRightAnklePosition_ (),
+      started_ (false),
       comOut_ (INIT_SIGNAL_OUT ("com", FeetFollower::updateCoM, "Vector")),
       zmpOut_ (INIT_SIGNAL_OUT ("zmp", FeetFollower::updateZmp, "Vector")),
       leftAnkleOut_
@@ -91,6 +113,26 @@ class FeetFollower : public dg::Entity
     comOut_.setNeedUpdateFromAllChildren (true);
     leftAnkleOut_.setNeedUpdateFromAllChildren (true);
     rightAnkleOut_.setNeedUpdateFromAllChildren (true);
+
+    std::string docstring;
+    addCommand ("setComZ", new Setter<FeetFollower, double>
+		(*this, &FeetFollower::setComZ, docstring));
+
+    addCommand ("setLeftFootToAnkle",
+		new Setter<FeetFollower, maal::boost::Matrix>
+		(*this, &FeetFollower::setLeftFootToAnkle, docstring));
+    addCommand ("setRightFootToAnkle",
+		new Setter<FeetFollower, maal::boost::Matrix>
+		(*this, &FeetFollower::setRightFootToAnkle, docstring));
+
+    addCommand ("setInitialLeftFootPosition",
+		new Setter<FeetFollower, maal::boost::Matrix>
+		(*this, &FeetFollower::setInitialLeftAnklePosition, docstring));
+    addCommand ("setInitialRightFootPosition",
+		new Setter<FeetFollower, maal::boost::Matrix>
+		(*this, &FeetFollower::setInitialRightAnklePosition, docstring));
+
+    addCommand ("start", new command::Start (*this, docstring));
   }
 
   virtual ~FeetFollower ()
@@ -101,6 +143,11 @@ class FeetFollower : public dg::Entity
     return CLASS_NAME;
   }
 
+  void start ()
+  {
+    started_ = true;
+  }
+
 protected:
   virtual void impl_update () = 0;
 
@@ -109,6 +156,14 @@ protected:
   ml::Vector zmp_;
   sot::MatrixHomogeneous leftAnkle_;
   sot::MatrixHomogeneous rightAnkle_;
+
+  double comZ_;
+  sot::MatrixHomogeneous leftFootToAnkle_;
+  sot::MatrixHomogeneous rightFootToAnkle_;
+  sot::MatrixHomogeneous initialLeftAnklePosition_;
+  sot::MatrixHomogeneous initialRightAnklePosition_;
+
+  bool started_;
 
 private:
   void update (int t)
@@ -151,11 +206,50 @@ private:
     return res;
   }
 
+  void setComZ(const double& v)
+  {
+    comZ_ = v;
+  }
+
+  void setLeftFootToAnkle(const maal::boost::Matrix& v)
+  {
+    leftFootToAnkle_ = v;
+  }
+
+  void setRightFootToAnkle(const maal::boost::Matrix& v)
+  {
+    rightFootToAnkle_ = v;
+  }
+
+  void setInitialLeftAnklePosition(const maal::boost::Matrix& v)
+  {
+    initialLeftAnklePosition_ = v;
+  }
+
+  void setInitialRightAnklePosition(const maal::boost::Matrix& v)
+  {
+    initialRightAnklePosition_ = v;
+  }
+
   signalCoM_t comOut_;
   signalCoM_t zmpOut_;
   signalFoot_t leftAnkleOut_;
   signalFoot_t rightAnkleOut_;
 };
+
+namespace command {
+  Start::Start (FeetFollower& entity, const std::string& docstring)
+    : Command (entity, std::vector<Value::Type> (), docstring)
+  {}
+
+  Value Start::doExecute()
+  {
+    FeetFollower& entity = static_cast<FeetFollower&>(owner ());
+    entity.start ();
+    return Value ();
+  }
+} // end of namespace command.
+
 
 class FeetFollowerFromFile : public FeetFollower
 {
@@ -164,18 +258,60 @@ public:
 
   explicit FeetFollowerFromFile (const std::string& name)
     : FeetFollower (name),
-      leftAnkleTrajFile_ ("left-ankle.dat"),
-      rightAnkleTrajFile_ ("right-ankle.dat"),
-      comTrajFile_ ("com.dat"),
-      zmpTrajFile_ ("zmp.dat"),
-      feetToAnkleLeft_ (dg::nullptr,
-			MAKE_SIGNAL_STRING
-			(name, true, "MatrixHomo", "feetToAnkleLeft")),
-      feetToAnkleRight_ (dg::nullptr,
-			 MAKE_SIGNAL_STRING
-			 (name, true, "MatrixHomo", "feetToAnkleRight"))
+      trajectory_ (),
+      index_ (0)
   {
-    signalRegistration (feetToAnkleLeft_ << feetToAnkleRight_);
+  }
+
+  void readTrajectory ()
+  {
+    std::ifstream leftAnkleTrajFile ("left-ankle.dat");
+    std::ifstream rightAnkleTrajFile ("right-ankle.dat");
+    std::ifstream comTrajFile ("com.dat");
+    std::ifstream zmpTrajFile ("zmp.dat");
+
+    while (leftAnkleTrajFile.good ()
+	   && rightAnkleTrajFile.good ()
+	   && comTrajFile.good ()
+	   && zmpTrajFile.good ())
+      {
+	// X Y Z Theta?
+	double left[4];
+	double right[4];
+
+	// X Y (Z = 0)
+	ml::Vector com (3);
+	ml::Vector zmp (3);
+
+	leftAnkleTrajFile >> left[0] >> left[1] >> left[2] >> left[3];
+	rightAnkleTrajFile >> right[0] >> right[1] >> right[2] >> right[3];
+	comTrajFile >> com (0) >> com (1);
+	zmpTrajFile >> zmp (0) >> zmp (1);
+
+	com (2) = comZ_; // comZ is fixed.
+	zmp (2) = 0.; // ZMP is in global frame.
+
+	sot::MatrixHomogeneous leftAnkle =
+	  transformPgFrameIntoAnkleFrame (left[0], left[1], left[2], left[3],
+					  leftFootToAnkle_);
+	sot::MatrixHomogeneous rightAnkle =
+	  transformPgFrameIntoAnkleFrame (right[0], right[1], right[2], right[3],
+					  rightFootToAnkle_);
+
+	trajectory_.leftAnkle.push_back (leftAnkle);
+	trajectory_.rightAnkle.push_back (rightAnkle);
+	trajectory_.com.push_back (com);
+	trajectory_.zmp.push_back (zmp);
+      }
+
+    if (leftAnkleTrajFile.good ()
+	|| rightAnkleTrajFile.good ()
+	|| comTrajFile.good ()
+	|| zmpTrajFile.good ())
+      {
+	std::cerr << "WARNING: trajectory size does not match." << std::endl;
+	return;
+      }
   }
 
   ~FeetFollowerFromFile ()
@@ -184,141 +320,35 @@ public:
 private:
   virtual void impl_update ()
   {
-    if (!leftAnkleTrajFile_.good ())
+    if (trajectory_.com.empty ())
+      readTrajectory ();
+
+    if (trajectory_.com[index_].size () != 3
+	|| trajectory_.zmp[index_].size () != 3)
       {
-	std::cerr << "bad left ankle" << std::endl;
-	return;
-      }
-    if (!rightAnkleTrajFile_.good ())
-      {
-	std::cerr << "bad right ankle" << std::endl;
-	return;
-      }
-    if (!comTrajFile_.good ())
-      {
-	std::cerr << "bad com" << std::endl;
-	return;
+	std::cerr << "bad size" << std::endl;
       }
 
-    if (!zmpTrajFile_.good ())
-      {
-	std::cerr << "bad zmp" << std::endl;
-	return;
-      }
+    leftAnkle_ = trajectory_.leftAnkle[index_];
+    rightAnkle_ = trajectory_.rightAnkle[index_];
+    com_ = trajectory_.com[index_];
+    zmp_ = trajectory_.zmp[index_];
 
-    // X Y Z Theta?
-    double left[4];
-    double right[4];
-
-    // X Y (Z = 0)
-    double com[2];
-    double zmp[2];
-
-    leftAnkleTrajFile_ >> left[0] >> left[1] >> left[2] >> left[3];
-    rightAnkleTrajFile_ >> right[0] >> right[1] >> right[2] >> right[3];
-    comTrajFile_ >> com[0] >> com[1];
-    zmpTrajFile_ >> zmp[0] >> zmp[1];
-
-    com_ (0) = com[0];
-    com_ (1) = com[1];
-    com_ (2) = comZ;
-
-    zmp_ (0) = zmp[0];
-    zmp_ (1) = zmp[1];
-    zmp_ (2) = 0.;
-
-    leftAnkle_ =
-      transformPgFrameIntoAnkleFrame (left[0], left[1], left[2], left[3],
-				      feetToAnkleLeft_ (t_));
-    rightAnkle_ =
-      transformPgFrameIntoAnkleFrame (right[0], right[1], right[2], right[3],
-				      feetToAnkleRight_ (t_));
+    if (started_ && index_ < trajectory_.leftAnkle.size () - 1)
+      ++index_;
   }
 
 private:
-  std::ifstream leftAnkleTrajFile_;
-  std::ifstream rightAnkleTrajFile_;
-  std::ifstream comTrajFile_;
-  std::ifstream zmpTrajFile_;
+  struct Trajectory
+  {
+    std::vector<sot::MatrixHomogeneous> leftAnkle;
+    std::vector<sot::MatrixHomogeneous> rightAnkle;
+    std::vector<ml::Vector> com;
+    std::vector<ml::Vector> zmp;
+  };
 
-  typedef dg::SignalPtr<sot::MatrixHomogeneous,int> signalInMatrix_t;
-  signalInMatrix_t feetToAnkleLeft_;
-  signalInMatrix_t feetToAnkleRight_;
+  Trajectory trajectory_;
+  unsigned index_;
 };
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(FeetFollowerFromFile, "FeetFollowerFromFile");
-
-
-#ifdef DISABLED_FOR_NOW
-
-class FeetFollowerOnline : public FeetFollower
-{
-public:
-  static const std::string CLASS_NAME;
-
-  explicit FeetFollowerOnline (const std::string& name)
-    : FeetFollower (name),
-      i_ (0),
-      patternGenerator_ (),
-      steps_ (),
-      feetToAnkleLeft_ (dg::nullptr,
-			MAKE_SIGNAL_STRING
-			(name, true, "MatrixHomo", "feetToAnkleLeft")),
-      feetToAnkleRight_ (dg::nullptr,
-			 MAKE_SIGNAL_STRING
-			 (name, true, "MatrixHomo", "feetToAnkleRight"))
-  {
-    signalRegistration (feetToAnkleLeft_ << feetToAnkleRight_);
-
-    double body_height = 0.814;
-    char left_or_right = 'L';
-    double t1 = 0.95;
-    double t2 = 1.05;
-    double t3 = 2.0;
-    double incrTime = 0.005;
-    double g  = 9.81;
-    std::vector<double> vect_inputs;
-
-    patternGenerator_.produceSeqSlidedHalfStepFeatures
-      (steps_, incrTime, body_height, g, t1, t2, t3, vect_inputs, left_or_right);
-  }
-
-  ~FeetFollowerOnline ()
-  {}
-
-private:
-  virtual void impl_update ()
-  {
-    com_ = transformPgFrameIntoAnkleFrameCom
-      (steps_.comTrajX[i_], steps_.comTrajY[i_], comZ, feetToAnkleLeft_ (t_));
-
-    leftAnkle_ =
-      transformPgFrameIntoAnkleFrame
-      (steps_.leftfootXtraj[i_], steps_.leftfootYtraj[i_],
-       steps_.leftfootHeight[i_], steps_.leftfootOrient[i_],
-       feetToAnkleLeft_ (t_));
-
-    rightAnkle_ =
-      transformPgFrameIntoAnkleFrame
-      (steps_.rightfootXtraj[i_], steps_.rightfootYtraj[i_],
-       steps_.rightfootHeight[i_], steps_.rightfootOrient[i_],
-       feetToAnkleRight_ (t_));
-
-    // impl_update is only called *once* per time increment, so we
-    // are sure next call will be at t+0.05.
-    i_++;
-  }
-
-private:
-  unsigned i_;
-  CnewPGstepStudy patternGenerator_;
-  StepFeatures steps_;
-
-  typedef dg::SignalPtr<sot::MatrixHomogeneous,int> signalInMatrix_t;
-  signalInMatrix_t feetToAnkleLeft_;
-  signalInMatrix_t feetToAnkleRight_;
-};
-
-DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(FeetFollowerOnline, "FeetFollowerOnline");
-
-#endif //! DISABLED_FOR_NOW
