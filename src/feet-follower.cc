@@ -351,4 +351,58 @@ private:
   unsigned index_;
 };
 
-DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(FeetFollowerFromFile, "FeetFollowerFromFile");
+DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(FeetFollowerFromFile,
+				   "FeetFollowerFromFile");
+
+
+class PostureError : public dg::Entity
+{
+ public:
+  typedef dg::SignalPtr<ml::Vector, int> signalIn_t;
+  typedef dg::SignalTimeDependent<ml::Vector, int> signalOut_t;
+
+  static const std::string CLASS_NAME;
+
+  explicit PostureError (const std::string& name)
+    : Entity(name),
+      state_
+      (dg::nullptr,
+       MAKE_SIGNAL_STRING (name, true, "Vector", "state")),
+      error_ (INIT_SIGNAL_OUT ("error", PostureError::updateError, "Vector"))
+  {
+    signalRegistration (error_ << state_);
+  }
+
+  virtual ~PostureError ()
+  {}
+
+  virtual const std::string& getClassName ()
+  {
+    return CLASS_NAME;
+  }
+
+private:
+  ml::Vector& updateError (ml::Vector& res, int t)
+  {
+    ml::Vector state = state_ (t);
+
+    int errorSize = state.size () - 12 - 3;
+    if (errorSize < 0)
+      return res;
+
+    res.resize (errorSize);
+
+    res (0) = state (3);
+    res (1) = state (4);
+    res (2) = state (5);
+
+    for (unsigned i = 0; i < errorSize - 3u; ++i)
+      res (i + 3) = state (i + 6 + 12);
+    return res;
+  }
+
+  signalIn_t state_;
+  signalOut_t error_;
+};
+
+DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(PostureError, "PostureError");

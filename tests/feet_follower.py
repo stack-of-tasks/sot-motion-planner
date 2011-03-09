@@ -26,10 +26,9 @@ f.start()
 # Main.
 #  Main loop
 t= 0
+
 for i in xrange(3000):
     robot.device.increment(timeStep)
-
-    f.postureFeature.errorIN.value = f.computeError()
 
     t += 1
     trace.triger.recompute(t)

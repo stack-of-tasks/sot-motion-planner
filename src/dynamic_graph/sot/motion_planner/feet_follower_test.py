@@ -19,7 +19,7 @@ from dynamic_graph.sot.dynamics.tools import *
 from __main__ import robot, solver
 
 from dynamic_graph.sot.core import FeatureGeneric, Task, MatrixConstant
-from dynamic_graph.sot.motion_planner import FeetFollowerFromFile
+from dynamic_graph.sot.motion_planner import FeetFollowerFromFile, PostureError
 from dynamic_graph.tracer_real_time import TracerRealTime
 
 
@@ -40,6 +40,7 @@ class Follower:
     postureTask = None
     postureFeature = None
     postureFeatureDes = None
+    postureError = None
 
     def __init__(self):
         self.feetFollower = FeetFollowerFromFile('feet-follower')
@@ -80,14 +81,17 @@ class Follower:
         self.postureFeatureDes = \
             FeatureGeneric(robot.name + '_postureFeatureDes')
 
-        self.postureFeature.errorIN.value = self.computeError()
+        self.postureError = PostureError('PostureError')
+        plug(robot.device.state, self.postureError.state)
+        plug(self.postureError.error, self.postureFeature.errorIN)
+
         self.postureFeature.jacobianIN.value = self.computeJacobian()
         self.postureFeatureDes.errorIN.value = self.computeDesiredValue()
 
         self.postureFeature.sdes.value = self.postureFeatureDes
 
         self.postureTask.add(self.postureFeature.name)
-        self.postureTask.controlGain.value = 180.
+        self.postureTask.controlGain.value = 1.
 
         solver.sot.push(robot.comTask.name)
         solver.sot.push(robot.tasks['left-ankle'].name)
@@ -123,6 +127,7 @@ class Follower:
         robot.comTask.controlGain.value = 180.
         robot.tasks['left-ankle'].controlGain.value = 180.
         robot.tasks['right-ankle'].controlGain.value = 180.
+        self.postureTask.controlGain.value = 180.
 
         self.feetFollower.help()
         self.feetFollower.start()
@@ -142,3 +147,4 @@ trace.add('feet-follower.left-ankle', 'left-ankle')
 trace.add('feet-follower.right-ankle', 'right-ankle')
 
 trace.start()
+
