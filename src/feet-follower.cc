@@ -146,12 +146,10 @@ class FeetFollower : public dg::Entity
   void start ()
   {
     started_ = true;
-    impl_start ();
   }
 
 protected:
   virtual void impl_update () = 0;
-  virtual void impl_start () = 0;
 
   int t_;
   ml::Vector com_;
@@ -297,8 +295,7 @@ public:
 	  transformPgFrameIntoAnkleFrame (left[0], left[1], left[2], left[3],
 					  leftFootToAnkle_);
 	sot::MatrixHomogeneous rightAnkle =
-	  transformPgFrameIntoAnkleFrame (right[0], right[1],
-					  right[2], right[3],
+	  transformPgFrameIntoAnkleFrame (right[0], right[1], right[2], right[3],
 					  rightFootToAnkle_);
 
 	trajectory_.leftAnkle.push_back (leftAnkle);
@@ -323,6 +320,9 @@ public:
 private:
   virtual void impl_update ()
   {
+    if (trajectory_.com.empty ())
+      readTrajectory ();
+
     if (trajectory_.com[index_].size () != 3
 	|| trajectory_.zmp[index_].size () != 3)
       {
@@ -336,11 +336,6 @@ private:
 
     if (started_ && index_ < trajectory_.leftAnkle.size () - 1)
       ++index_;
-  }
-
-  virtual void impl_start ()
-  {
-    readTrajectory ();
   }
 
 private:
