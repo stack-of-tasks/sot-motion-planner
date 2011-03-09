@@ -135,8 +135,6 @@ class Follower:
         robot.tasks['left-ankle'].controlGain.value = 180.
         robot.tasks['right-ankle'].controlGain.value = 180.
         self.postureTask.controlGain.value = 180.
-
-        self.feetFollower.help()
         self.feetFollower.start()
 
 
