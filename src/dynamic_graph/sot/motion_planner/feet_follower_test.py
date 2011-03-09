@@ -61,9 +61,13 @@ class Follower:
         #self.feetFollower.setComZ(robot.dynamic.com.value[2])
         self.feetFollower.setComZ(0.814)
 
+        # Lower the gains to reduce the initial velocity.
+        robot.comTask.controlGain.value = 0.2
+        robot.tasks['left-ankle'].controlGain.value = 0.2
+        robot.tasks['right-ankle'].controlGain.value = 0.2
+
         # Make sure the CoM is converging toward the starting
         # CoM of the trajectory.
-        robot.comTask.controlGain.value = 1.
         robot.featureComDes.errorIN.value = \
             (0., 0., robot.dynamic.com.value[2])
         robot.featureCom.selec.value = '111'
