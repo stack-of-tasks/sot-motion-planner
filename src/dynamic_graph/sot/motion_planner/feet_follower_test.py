@@ -18,7 +18,8 @@
 from dynamic_graph.sot.dynamics.tools import *
 from __main__ import robot, solver
 
-from dynamic_graph.sot.core import FeatureGeneric, Task, MatrixConstant
+from dynamic_graph.sot.core import \
+    FeatureGeneric, Task, MatrixConstant, RobotSimu
 from dynamic_graph.sot.motion_planner import FeetFollowerFromFile, PostureError
 from dynamic_graph.tracer_real_time import TracerRealTime
 
@@ -57,7 +58,8 @@ class Follower:
             robot.dynamic.signal('left-ankle').value)
         self.feetFollower.setInitialRightFootPosition(
             robot.dynamic.signal('right-ankle').value)
-        self.feetFollower.setComZ(robot.dynamic.com.value[2])
+        #self.feetFollower.setComZ(robot.dynamic.com.value[2])
+        self.feetFollower.setComZ(0.814)
 
         # Make sure the CoM is converging toward the starting
         # CoM of the trajectory.
@@ -93,9 +95,10 @@ class Follower:
         self.postureTask.add(self.postureFeature.name)
         self.postureTask.controlGain.value = 1.
 
-        solver.sot.push(robot.comTask.name)
-        solver.sot.push(robot.tasks['left-ankle'].name)
-        solver.sot.push(robot.tasks['right-ankle'].name)
+        if type(robot.device) == RobotSimu:
+            solver.sot.push(robot.comTask.name)
+            solver.sot.push(robot.tasks['left-ankle'].name)
+            solver.sot.push(robot.tasks['right-ankle'].name)
         solver.sot.push(self.postureTask.name)
 
     def computeError(self):
@@ -146,5 +149,10 @@ trace.add('feet-follower.zmp', 'zmp')
 trace.add('feet-follower.left-ankle', 'left-ankle')
 trace.add('feet-follower.right-ankle', 'right-ankle')
 
-trace.start()
+# Tasks error sdes input.
+trace.add(robot.comTask.name + '.error', 'errorCom')
+trace.add(robot.tasks['left-ankle'].name + '.error', 'errorLa')
+trace.add(robot.tasks['right-ankle'].name + '.error', 'errorRa')
+trace.add(f.postureTask.name + '.error', 'errorPosture')
 
+trace.start()

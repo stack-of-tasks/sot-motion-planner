@@ -27,8 +27,19 @@ f.start()
 #  Main loop
 t= 0
 
+logCfg = open("/tmp/cfg.dat", "w")
+
+def log():
+    s = ""
+    for i in robot.device.state.value:
+        s += str(i) + " "
+    s += "\n"
+    logCfg.write(s)
+
 for i in xrange(3000):
     robot.device.increment(timeStep)
+
+    log()
 
     t += 1
     trace.triger.recompute(t)
