@@ -371,6 +371,8 @@ class PostureError : public dg::Entity
       error_ (INIT_SIGNAL_OUT ("error", PostureError::updateError, "Vector"))
   {
     signalRegistration (error_ << state_);
+
+    error_.addDependency (state_);
   }
 
   virtual ~PostureError ()
