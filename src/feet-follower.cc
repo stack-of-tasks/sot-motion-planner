@@ -130,7 +130,8 @@ class FeetFollower : public dg::Entity
 		(*this, &FeetFollower::setInitialLeftAnklePosition, docstring));
     addCommand ("setInitialRightFootPosition",
 		new Setter<FeetFollower, maal::boost::Matrix>
-		(*this, &FeetFollower::setInitialRightAnklePosition, docstring));
+		(*this,
+		 &FeetFollower::setInitialRightAnklePosition, docstring));
 
     addCommand ("start", new command::Start (*this, docstring));
   }
@@ -270,6 +271,9 @@ public:
     std::ifstream comTrajFile ("com.dat");
     std::ifstream zmpTrajFile ("zmp.dat");
 
+    // Transform the pg global frame into the sot global frame.
+    sot::MatrixHomogeneous wMs;
+
     while (leftAnkleTrajFile.good ()
 	   && rightAnkleTrajFile.good ()
 	   && comTrajFile.good ()
@@ -280,8 +284,8 @@ public:
 	double right[4];
 
 	// X Y (Z = 0)
-	ml::Vector com (3);
-	ml::Vector zmp (3);
+	ml::Vector com (4);
+	ml::Vector zmp (4);
 
 	leftAnkleTrajFile >> left[0] >> left[1] >> left[2] >> left[3];
 	rightAnkleTrajFile >> right[0] >> right[1] >> right[2] >> right[3];
@@ -291,17 +295,40 @@ public:
 	com (2) = comZ_; // comZ is fixed.
 	zmp (2) = 0.; // ZMP is in global frame.
 
+	com (3) = 1.;
+	zmp (3) = 1.;
+
+	if (trajectory_.com.empty ())
+	  wMs = initialLeftAnklePosition_
+	    * transformPgFrameIntoAnkleFrame (left[0], left[1],
+					      left[2], left[3],
+					      leftFootToAnkle_).inverse ();
+
+	com = wMs * com;
+	zmp = wMs * zmp;
+
 	sot::MatrixHomogeneous leftAnkle =
+	  wMs *
 	  transformPgFrameIntoAnkleFrame (left[0], left[1], left[2], left[3],
 					  leftFootToAnkle_);
 	sot::MatrixHomogeneous rightAnkle =
-	  transformPgFrameIntoAnkleFrame (right[0], right[1], right[2], right[3],
+	  wMs *
+	  transformPgFrameIntoAnkleFrame (right[0], right[1],
+					  right[2], right[3],
 					  rightFootToAnkle_);
 
 	trajectory_.leftAnkle.push_back (leftAnkle);
 	trajectory_.rightAnkle.push_back (rightAnkle);
-	trajectory_.com.push_back (com);
-	trajectory_.zmp.push_back (zmp);
+
+	ml::Vector com_ (3);
+	ml::Vector zmp_ (3);
+	for (unsigned i = 0; i < 3; ++i)
+	  {
+	    com_ (i) = com (i);
+	    zmp_ (i) = zmp (i);
+	  }
+	trajectory_.com.push_back (com_);
+	trajectory_.zmp.push_back (zmp_);
       }
 
     if (leftAnkleTrajFile.good ()

@@ -62,9 +62,9 @@ class Follower:
         self.feetFollower.setComZ(0.814)
 
         # Lower the gains to reduce the initial velocity.
-        robot.comTask.controlGain.value = 0.2
-        robot.tasks['left-ankle'].controlGain.value = 0.2
-        robot.tasks['right-ankle'].controlGain.value = 0.2
+        robot.comTask.controlGain.value = 5.
+        robot.tasks['left-ankle'].controlGain.value = 5.
+        robot.tasks['right-ankle'].controlGain.value = 5.
 
         # Make sure the CoM is converging toward the starting
         # CoM of the trajectory.
@@ -130,7 +130,27 @@ class Follower:
                 j.append(oneVector(i))
         return tuple(j)
 
+    def canStart(self):
+        securityThreshold = 1e-3
+        return (robot.comTask.error.value <=
+                (securityThreshold,) * len(robot.comTask.error.value)
+
+                and robot.tasks['left-ankle'].error.value <=
+                (securityThreshold,)
+                * len(robot.tasks['left-ankle'].error.value)
+
+                and robot.tasks['right-ankle'].error.value <=
+                (securityThreshold,)
+                * len(robot.tasks['right-ankle'].error.value)
+
+                and self.postureTask.error.value <=
+                (securityThreshold,) * len(self.postureTask.error.value))
+
     def start(self):
+        if not self.canStart():
+            print("Robot has not yet converged to the initial position,"
+                  " please wait and try again.")
+            return
         robot.comTask.controlGain.value = 180.
         robot.tasks['left-ankle'].controlGain.value = 180.
         robot.tasks['right-ankle'].controlGain.value = 180.

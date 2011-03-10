@@ -15,13 +15,17 @@
 # received a copy of the GNU Lesser General Public License along with
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+import time
 from dynamic_graph.sot.dynamics.tools import *
 
 from dynamic_graph.sot.core import FeatureGeneric, Task, MatrixConstant
 
 from dynamic_graph.sot.motion_planner.feet_follower_test import *
 
+while not f.canStart():
+    robot.device.increment(timeStep)
 f.start()
+print("started")
 
 # Main.
 #  Main loop
