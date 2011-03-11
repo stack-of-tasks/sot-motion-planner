@@ -61,6 +61,9 @@ class Follower:
         #self.feetFollower.setComZ(robot.dynamic.com.value[2])
         self.feetFollower.setComZ(0.814)
 
+        self.feetFollower.readTrajectory(
+            '/home/thomas/profiles/laas/src/unstable/sot/sot-motion-planner/tests')
+
         # Lower the gains to reduce the initial velocity.
         robot.comTask.controlGain.value = 5.
         robot.tasks['left-ankle'].controlGain.value = 5.

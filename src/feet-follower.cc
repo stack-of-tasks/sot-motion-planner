@@ -19,6 +19,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
+#include <boost/filesystem.hpp>
 
 #include <jrl/mal/boost.hh>
 #include <dynamic-graph/command-getter.h>
@@ -238,7 +239,8 @@ private:
   signalFoot_t rightAnkleOut_;
 };
 
-namespace command {
+namespace command
+{
   Start::Start (FeetFollower& entity, const std::string& docstring)
     : Command (entity, std::vector<Value::Type> (), docstring)
   {}
@@ -252,6 +254,8 @@ namespace command {
 } // end of namespace command.
 
 
+
+
 class FeetFollowerFromFile : public FeetFollower
 {
 public:
@@ -262,14 +266,69 @@ public:
       trajectory_ (),
       index_ (0)
   {
+    std::string docstring = "";
+    addCommand ("readTrajectory", new Setter<FeetFollowerFromFile, std::string>
+		(*this, &FeetFollowerFromFile::readTrajectory, docstring));
+
   }
 
-  void readTrajectory ()
+  void readTrajectory (const std::string& dirname)
   {
-    std::ifstream leftAnkleTrajFile ("left-ankle.dat");
-    std::ifstream rightAnkleTrajFile ("right-ankle.dat");
-    std::ifstream comTrajFile ("com.dat");
-    std::ifstream zmpTrajFile ("zmp.dat");
+    namespace fs = boost::filesystem;
+
+    fs::path trajectoryPath (dirname);
+    fs::path trajectoryLeftAnklePath = trajectoryPath / "left-ankle.dat";
+    fs::path trajectoryRightAnklePath = trajectoryPath / "right-ankle.dat";
+    fs::path trajectoryComPath = trajectoryPath / "com.dat";
+    fs::path trajectoryZmpPath = trajectoryPath / "zmp.dat";
+
+    if (!fs::is_directory (trajectoryPath))
+      {
+	std::cerr << "invalid trajectory path" << std::endl;
+	return;
+      }
+
+    if (!fs::exists (trajectoryLeftAnklePath)
+	|| fs::is_directory (trajectoryLeftAnklePath))
+      {
+	std::cerr << "invalid left-ankle trajectory file" << std::endl;
+	return;
+      }
+
+    if (!fs::exists (trajectoryRightAnklePath)
+	|| fs::is_directory (trajectoryRightAnklePath))
+      {
+	std::cerr << "invalid right-ankle trajectory file" << std::endl;
+	return;
+      }
+
+    if (!fs::exists (trajectoryComPath)
+	|| fs::is_directory (trajectoryComPath))
+      {
+	std::cerr << "invalid COM trajectory file" << std::endl;
+	return;
+      }
+
+    if (!fs::exists (trajectoryZmpPath)
+	|| fs::is_directory (trajectoryZmpPath))
+      {
+	std::cerr << "invalid ZMP trajectory file" << std::endl;
+	return;
+      }
+
+    // Reset the movement.
+    trajectory_.leftAnkle.clear ();
+    trajectory_.rightAnkle.clear ();
+    trajectory_.com.clear ();
+    trajectory_.zmp.clear ();
+    index_ = 0;
+
+    std::ifstream leftAnkleTrajFile
+      (trajectoryLeftAnklePath.string ().c_str ());
+    std::ifstream rightAnkleTrajFile
+      (trajectoryRightAnklePath.string ().c_str ());
+    std::ifstream comTrajFile (trajectoryComPath.string ().c_str ());
+    std::ifstream zmpTrajFile (trajectoryZmpPath.string ().c_str ());
 
     // Transform the pg global frame into the sot global frame.
     sot::MatrixHomogeneous wMs;
@@ -347,8 +406,11 @@ public:
 private:
   virtual void impl_update ()
   {
-    if (trajectory_.com.empty ())
-      readTrajectory ();
+    if (trajectory_.leftAnkle.empty ()
+	|| trajectory_.rightAnkle.empty ()
+	|| trajectory_.com.empty ()
+	|| trajectory_.zmp.empty ())
+      return;
 
     if (trajectory_.com[index_].size () != 3
 	|| trajectory_.zmp[index_].size () != 3)
