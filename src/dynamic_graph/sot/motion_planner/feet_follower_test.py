@@ -177,4 +177,7 @@ trace.add(robot.tasks['left-ankle'].name + '.error', 'errorLa')
 trace.add(robot.tasks['right-ankle'].name + '.error', 'errorRa')
 trace.add(f.postureTask.name + '.error', 'errorPosture')
 
+# Recompute trace.triger at each iteration to enable tracing.
+robot.device.after.addSignal('trace.triger')
+
 trace.start()

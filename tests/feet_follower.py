@@ -29,8 +29,6 @@ print("started")
 
 # Main.
 #  Main loop
-t= 0
-
 logCfg = open("/tmp/cfg.dat", "w")
 
 def log():
@@ -44,9 +42,6 @@ for i in xrange(3000):
     robot.device.increment(timeStep)
 
     log()
-
-    t += 1
-    trace.triger.recompute(t)
 
     if clt:
         clt.updateElementConfig(
