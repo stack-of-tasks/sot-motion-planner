@@ -62,7 +62,7 @@ class Follower:
         self.feetFollower.setComZ(0.814)
 
         self.feetFollower.readTrajectory(
-            '/home/thomas/profiles/laas/src/unstable/sot/sot-motion-planner/tests')
+            '/home/thomas/profiles/laas/src/unstable/sot/sot-motion-planner/tests/simple_trajectory')
 
         # Lower the gains to reduce the initial velocity.
         robot.comTask.controlGain.value = 5.
