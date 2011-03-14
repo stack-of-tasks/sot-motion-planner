@@ -20,7 +20,6 @@
 
 #include <boost/assign/list_of.hpp>
 #include <boost/bind.hpp>
-#include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 
 #include <jrl/mal/boost.hh>
@@ -31,10 +30,6 @@
 #include <dynamic-graph/signal-time-dependent.h>
 #include <dynamic-graph/signal-ptr.h>
 #include <sot/core/matrix-homogeneous.hh>
-#include <sot/core/matrix-rotation.hh>
-#include <sot/core/vector-roll-pitch-yaw.hh>
-
-#include <dynamic-graph/command.h>
 
 #include "common.hh"
 

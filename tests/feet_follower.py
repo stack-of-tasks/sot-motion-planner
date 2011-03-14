@@ -38,7 +38,7 @@ def log():
     s += "\n"
     logCfg.write(s)
 
-for i in xrange(3000):
+for i in xrange(4000):
     robot.device.increment(timeStep)
 
     log()

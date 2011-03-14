@@ -24,6 +24,7 @@ FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} dynamic-graph)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mal)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} sot-core)
+  PKG_CONFIG_USE_DEPENDENCY(${NAME} roboptim-core)
 
   INSTALL(TARGETS ${NAME} DESTINATION lib/plugin)
 
@@ -43,7 +44,9 @@ ENDFUNCTION()
 
 COMPILE_PLUGIN(localizer localizer.cc Localizer)
 COMPILE_PLUGIN(correction correction.cc Correction)
-COMPILE_PLUGIN(feet-follower feet-follower.cc FeetFollowerFromFile)
+COMPILE_PLUGIN(feet-follower
+  "discretized-trajectory.cc;error-trajectory.cc;feet-follower.cc;feet-follower-from-file.cc;posture-error.cc"
+  FeetFollowerFromFile)
 
 
 EXEC_PROGRAM(

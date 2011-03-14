@@ -14,6 +14,7 @@
 // sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 #ifndef SOT_MOTION_PLANNER_COMMON_HH
 # define SOT_MOTION_PLANNER_COMMON_HH
+# include <boost/bind.hpp>
 # include <boost/format.hpp>
 
 inline std::string
