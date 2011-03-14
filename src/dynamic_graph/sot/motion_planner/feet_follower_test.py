@@ -20,7 +20,8 @@ from __main__ import robot, solver
 
 from dynamic_graph.sot.core import \
     FeatureGeneric, Task, MatrixConstant, RobotSimu
-from dynamic_graph.sot.motion_planner import FeetFollowerFromFile, PostureError
+from dynamic_graph.sot.motion_planner import \
+    FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError
 from dynamic_graph.tracer_real_time import TracerRealTime
 
 
@@ -44,7 +45,8 @@ class Follower:
     postureError = None
 
     def __init__(self):
-        self.feetFollower = FeetFollowerFromFile('feet-follower')
+        #self.feetFollower = FeetFollowerFromFile('feet-follower')
+        self.feetFollower = FeetFollowerAnalyticalPg('feet-follower')
 
         # Setup feet to ankle transformation.
         anklePosL = robot.dynamic.getAnklePositionInFootFrame()
@@ -61,8 +63,15 @@ class Follower:
         #self.feetFollower.setComZ(robot.dynamic.com.value[2])
         self.feetFollower.setComZ(0.814)
 
-        self.feetFollower.readTrajectory(
-            '/home/thomas/profiles/laas/src/unstable/sot/sot-motion-planner/tests/simple_trajectory')
+        #self.feetFollower.readTrajectory(
+        #'/home/thomas/profiles/laas/src/unstable/sot/sot-motion-planner/tests/simple_trajectory')
+
+        self.feetFollower.pushStep((0.15, 0.24, -0.19, 0.))
+        self.feetFollower.pushStep((0.15, 0.24,  0.19, 0.))
+        self.feetFollower.pushStep((0.15, 0.24, -0.19, 0.))
+        self.feetFollower.pushStep((0.15, 0.24,  0.19, 0.))
+
+        self.feetFollower.generateTrajectory()
 
         # Lower the gains to reduce the initial velocity.
         robot.comTask.controlGain.value = 5.

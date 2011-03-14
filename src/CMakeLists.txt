@@ -44,9 +44,18 @@ ENDFUNCTION()
 
 COMPILE_PLUGIN(localizer localizer.cc Localizer)
 COMPILE_PLUGIN(correction correction.cc Correction)
-COMPILE_PLUGIN(feet-follower
-  "discretized-trajectory.cc;error-trajectory.cc;feet-follower.cc;feet-follower-from-file.cc;posture-error.cc"
-  FeetFollowerFromFile)
+
+SET(FEET_FOLLOWER_SOURCES
+  discretized-trajectory.cc
+  error-trajectory.cc
+
+  feet-follower.cc
+  feet-follower-from-file.cc
+  feet-follower-analytical-pg.cc analytical-pg/newPGstepStudy.cpp
+
+  posture-error.cc)
+
+COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
 
 
 EXEC_PROGRAM(
