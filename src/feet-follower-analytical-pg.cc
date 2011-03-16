@@ -126,13 +126,18 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 
   leftOrRightFootStable_ = true;
 
+  sot::MatrixHomogeneous initialLeftFeet =
+    leftFootToAnkle_ * initialLeftAnklePosition_;
+  sot::MatrixHomogeneous initialRightFeet =
+    rightFootToAnkle_ * initialRightAnklePosition_;
+
   ml::Vector initialStep (6);
-  initialStep (0) = 0.;
-  initialStep (1) = 0.095;
-  initialStep (2) = 0.;
-  initialStep (3) = 0.;
-  initialStep (4) = -0.095;
-  initialStep (5) = 0.;
+  initialStep (0) = initialLeftFeet (0, 3);
+  initialStep (1) = initialLeftFeet (1, 3);
+  initialStep (2) = atan2(initialLeftFeet (1,0), initialLeftFeet (0,0));
+  initialStep (3) = initialRightFeet (0, 3);
+  initialStep (4) = initialRightFeet (1, 3);
+  initialStep (5) = atan2(initialRightFeet (1,0), initialRightFeet (0,0));
 
   std::vector<double> steps;
   for (unsigned i = 0; i < 6; ++i)
