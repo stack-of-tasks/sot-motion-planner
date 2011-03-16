@@ -60,16 +60,20 @@ class Follower:
             robot.dynamic.signal('left-ankle').value)
         self.feetFollower.setInitialRightFootPosition(
             robot.dynamic.signal('right-ankle').value)
-        #self.feetFollower.setComZ(robot.dynamic.com.value[2])
-        self.feetFollower.setComZ(0.814)
+        self.feetFollower.setComZ(robot.dynamic.com.value[2])
+        #self.feetFollower.setComZ(0.814)
 
         #self.feetFollower.readTrajectory(
         #'/home/thomas/profiles/laas/src/unstable/sot/sot-motion-planner/tests/simple_trajectory')
 
-        self.feetFollower.pushStep((0.15, 0.24, -0.19, 0.))
-        self.feetFollower.pushStep((0.15, 0.24,  0.19, 0.))
-        self.feetFollower.pushStep((0.15, 0.24, -0.19, 0.))
-        self.feetFollower.pushStep((0.15, 0.24,  0.19, 0.))
+        self.feetFollower.pushStep((0.1, 0.1, -0.19, 0.))
+        self.feetFollower.pushStep((0.1, 0.1, 0.19, 0.))
+        self.feetFollower.pushStep((0.1, 0.1, -0.19, 0.))
+        self.feetFollower.pushStep((0.1, 0.1, 0.19, 0.))
+        #self.feetFollower.pushStep((0.05, 0.24, -0.19, 0.))
+        #self.feetFollower.pushStep((0.05, 0.24,  0.19, 0.))
+        #self.feetFollower.pushStep((0.05, 0.24, -0.19, 0.))
+        #self.feetFollower.pushStep((0.05, 0.24,  0.19, 0.))
 
         self.feetFollower.generateTrajectory()
 
