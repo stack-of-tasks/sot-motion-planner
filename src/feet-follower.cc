@@ -61,7 +61,7 @@ transformPgFrameIntoAnkleFrame (double tx, double ty, double tz, double theta,
   sot::MatrixHomogeneous tmp;
   tmp.buildFrom (R, t);
   sot::MatrixHomogeneous tmp2;
-  tmp2 = tmp * feetToAnkle;
+  tmp2 = feetToAnkle * tmp;
   return tmp2;
 }
 
@@ -108,10 +108,10 @@ FeetFollower::FeetFollower (const std::string& name)
 	      new Setter<FeetFollower, maal::boost::Matrix>
 	      (*this, &FeetFollower::setRightFootToAnkle, docstring));
 
-  addCommand ("setInitialLeftFootPosition",
+  addCommand ("setInitialLeftAnklePosition",
 	      new Setter<FeetFollower, maal::boost::Matrix>
 	      (*this, &FeetFollower::setInitialLeftAnklePosition, docstring));
-  addCommand ("setInitialRightFootPosition",
+  addCommand ("setInitialRightAnklePosition",
 	      new Setter<FeetFollower, maal::boost::Matrix>
 	      (*this,
 	       &FeetFollower::setInitialRightAnklePosition, docstring));

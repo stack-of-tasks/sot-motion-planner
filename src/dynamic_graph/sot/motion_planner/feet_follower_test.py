@@ -56,10 +56,16 @@ class Follower:
         self.feetFollower.setRightFootToAnkle(translationToSE3(anklePosR))
 
         # Setup initial robot position and com.
-        self.feetFollower.setInitialLeftFootPosition(
-            robot.dynamic.signal('left-ankle').value)
-        self.feetFollower.setInitialRightFootPosition(
-            robot.dynamic.signal('right-ankle').value)
+        #self.feetFollower.setInitialLeftAnklePosition(
+        #robot.dynamic.signal('left-ankle').value)
+        #self.feetFollower.setInitialRightAnklePosition(
+        #robot.dynamic.signal('right-ankle').value)
+
+        self.feetFollower.setInitialLeftAnklePosition(
+            robot.features['left-ankle'].reference.value)
+        self.feetFollower.setInitialRightAnklePosition(
+            robot.features['right-ankle'].reference.value)
+
         self.feetFollower.setComZ(robot.dynamic.com.value[2])
         #self.feetFollower.setComZ(0.814)
 
