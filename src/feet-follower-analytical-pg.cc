@@ -133,11 +133,18 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
     rightFootToAnkle_.inverse () * initialRightAnklePosition_;
 
   ml::Vector initialStep (6);
-  initialStep (0) = initialLeftFeet (0, 3);
-  initialStep (1) = initialLeftFeet (1, 3);
+
+  // As leftPosition_x = -rightPosition_x, leftPosition_y = -rightPosition_y,
+  // we center the movement in (0, 0) and shift it back using wMs.
+
+  initialStep (0) =
+    std::fabs (initialLeftFeet (0, 3) - initialRightFeet (0, 3)) / 2.;
+  initialStep (1) =
+    std::fabs (initialLeftFeet (1, 3) - initialRightFeet (1, 3)) / 2.;
   initialStep (2) = atan2(initialLeftFeet (1,0), initialLeftFeet (0,0));
-  initialStep (3) = initialRightFeet (0, 3);
-  initialStep (4) = initialRightFeet (1, 3);
+
+  initialStep (3) = -initialStep (0);
+  initialStep (4) = -initialStep (1);
   initialStep (5) = atan2(initialRightFeet (1,0), initialRightFeet (0,0));
 
   std::vector<double> steps;
@@ -208,6 +215,10 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
      sot::DiscretizedTrajectory (range, zmpData, "zmp"),
      wMs);
 
+  this->comOut_.recompute (0);
+  this->zmpOut_.recompute (0);
+  this->leftAnkleOut_.recompute (0);
+  this->rightAnkleOut_.recompute (0);
 }
 
 void

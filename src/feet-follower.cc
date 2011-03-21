@@ -14,6 +14,7 @@
 // received a copy of the GNU Lesser General Public License along with
 // dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+#include <limits>
 #include <string>
 
 #include <boost/format.hpp>
@@ -70,7 +71,7 @@ using ::dynamicgraph::command::Setter;
 
 FeetFollower::FeetFollower (const std::string& name)
   : Entity(name),
-    t_ (),
+    t_ (std::numeric_limits<int>::min ()),
     com_ (3),
     zmp_ (3),
     leftAnkle_ (),

@@ -85,6 +85,14 @@ class FeetFollower : public dg::Entity
   }
 
 protected:
+  void update (int t)
+  {
+     if (t <= t_)
+       return;
+    t_ = t;
+    impl_update ();
+  }
+
   virtual void impl_update () = 0;
 
   int t_;
@@ -101,15 +109,13 @@ protected:
 
   bool started_;
 
-private:
-  void update (int t)
-  {
-     if (t <= t_)
-       return;
-    t_ = t;
-    impl_update ();
-  }
+  signalCoM_t comOut_;
+  signalCoM_t zmpOut_;
+  signalFoot_t leftAnkleOut_;
+  signalFoot_t rightAnkleOut_;
 
+
+private:
   ml::Vector& updateCoM (ml::Vector& res, int t)
   {
     if (t > t_)
@@ -166,11 +172,6 @@ private:
   {
     initialRightAnklePosition_ = v;
   }
-
-  signalCoM_t comOut_;
-  signalCoM_t zmpOut_;
-  signalFoot_t leftAnkleOut_;
-  signalFoot_t rightAnkleOut_;
 };
 
 #endif //! SOT_MOTION_PLANNER_FEET_FOLLOWER_HH
