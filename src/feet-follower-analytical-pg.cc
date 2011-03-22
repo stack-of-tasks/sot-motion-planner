@@ -20,18 +20,6 @@
 
 const double FeetFollowerAnalyticalPg::STEP = 0.005;
 
-TrajectoriesAnalyticalPg::TrajectoriesAnalyticalPg
-(const sot::DiscretizedTrajectory& leftFoot,
- const sot::DiscretizedTrajectory& rightFoot,
- const sot::DiscretizedTrajectory& com,
- const sot::DiscretizedTrajectory& zmp,
- const sot::MatrixHomogeneous& wMs)
-  : leftFoot (leftFoot),
-    rightFoot (rightFoot),
-    com (com),
-    zmp (zmp),
-    wMs (wMs)
-{}
 
 FeetFollowerAnalyticalPg::FeetFollowerAnalyticalPg (const std::string& name)
   : FeetFollower (name),
@@ -208,7 +196,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 
   discreteInterval_t range (0., stepFeatures.size * STEP, STEP);
 
-  trajectories_ = TrajectoriesAnalyticalPg
+  trajectories_ = WalkMovement
     (sot::DiscretizedTrajectory (range, leftFootData, "left-foot"),
      sot::DiscretizedTrajectory (range, rightFootData, "right-foot"),
      sot::DiscretizedTrajectory (range, comData, "com"),

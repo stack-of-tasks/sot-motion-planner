@@ -59,24 +59,6 @@ namespace command
   };
 } // end of namespace command.
 
-struct TrajectoriesAnalyticalPg
-{
-  TrajectoriesAnalyticalPg (const sot::DiscretizedTrajectory& leftFoot,
-			    const sot::DiscretizedTrajectory& rightFoot,
-			    const sot::DiscretizedTrajectory& com,
-			    const sot::DiscretizedTrajectory& zmp,
-			    const sot::MatrixHomogeneous& wMs);
-
-  sot::DiscretizedTrajectory leftFoot;
-  sot::DiscretizedTrajectory rightFoot;
-  sot::DiscretizedTrajectory com;
-  sot::DiscretizedTrajectory zmp;
-
-  // Transform the pg global frame into the sot global frame.
-  sot::MatrixHomogeneous wMs;
-};
-
-
 class FeetFollowerAnalyticalPg : public FeetFollower
 {
 public:
@@ -101,7 +83,7 @@ private:
   std::vector<ml::Vector> steps_;
   bool leftOrRightFootStable_;
 
-  boost::optional<TrajectoriesAnalyticalPg> trajectories_;
+  boost::optional<WalkMovement> trajectories_;
   unsigned index_;
 };
 

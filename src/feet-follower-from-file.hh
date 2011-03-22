@@ -27,22 +27,6 @@
 
 namespace fs = boost::filesystem;
 
-struct Trajectories
-{
-  Trajectories (const fs::path& LeftFootPath,
-		const fs::path& RightFootPath,
-		const fs::path& ComPath,
-		const fs::path& ZmpPath,
-		const double& step);
-  sot::DiscretizedTrajectory leftFoot;
-  sot::DiscretizedTrajectory rightFoot;
-  sot::DiscretizedTrajectory com;
-  sot::DiscretizedTrajectory zmp;
-
-  // Transform the pg global frame into the sot global frame.
-  sot::MatrixHomogeneous wMs;
-};
-
 class FeetFollowerFromFile : public FeetFollower
 {
 public:
@@ -59,7 +43,7 @@ private:
   virtual void impl_update ();
 
 private:
-  boost::optional<Trajectories> trajectories_;
+  boost::optional<WalkMovement> trajectories_;
   unsigned index_;
 };
 

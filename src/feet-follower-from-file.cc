@@ -46,21 +46,23 @@
 
 const double FeetFollowerFromFile::STEP = 0.005;
 
-Trajectories::Trajectories (const fs::path& LeftFootPath,
+WalkMovement loadFromFile(const fs::path& LeftFootPath,
 			    const fs::path& RightFootPath,
 			    const fs::path& ComPath,
 			    const fs::path& ZmpPath,
 			    const double& step)
-  : leftFoot (sot::DiscretizedTrajectory::loadTrajectoryFromFile
-	      (LeftFootPath, step, "left-ankle")),
-    rightFoot (sot::DiscretizedTrajectory::loadTrajectoryFromFile
-	       (RightFootPath, step, "right-ankle")),
-    com (sot::DiscretizedTrajectory::loadTrajectoryFromFile
-	 (ComPath, step, "com")),
-    zmp (sot::DiscretizedTrajectory::loadTrajectoryFromFile
-	 (ZmpPath, step, "zmp")),
-    wMs ()
-{}
+{
+  return WalkMovement
+    (sot::DiscretizedTrajectory::loadTrajectoryFromFile
+     (LeftFootPath, step, "left-ankle"),
+     sot::DiscretizedTrajectory::loadTrajectoryFromFile
+     (RightFootPath, step, "right-ankle"),
+     sot::DiscretizedTrajectory::loadTrajectoryFromFile
+     (ComPath, step, "com"),
+     sot::DiscretizedTrajectory::loadTrajectoryFromFile
+     (ZmpPath, step, "zmp"),
+     sot::MatrixHomogeneous ());
+}
 
 using ::dynamicgraph::command::Setter;
 
@@ -120,7 +122,7 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
       return;
     }
 
-  trajectories_ = Trajectories (trajectoryLeftFootPath,
+  trajectories_ = loadFromFile (trajectoryLeftFootPath,
 				trajectoryRightFootPath,
 				trajectoryComPath,
 				trajectoryZmpPath,

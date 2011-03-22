@@ -66,6 +66,18 @@ transformPgFrameIntoAnkleFrame (double tx, double ty, double tz, double theta,
   return tmp2;
 }
 
+WalkMovement::WalkMovement
+(const sot::DiscretizedTrajectory& leftFoot,
+ const sot::DiscretizedTrajectory& rightFoot,
+ const sot::DiscretizedTrajectory& com,
+ const sot::DiscretizedTrajectory& zmp,
+ const sot::MatrixHomogeneous& wMs)
+  : leftFoot (leftFoot),
+    rightFoot (rightFoot),
+    com (com),
+    zmp (zmp),
+    wMs (wMs)
+{}
 
 using ::dynamicgraph::command::Setter;
 

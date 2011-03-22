@@ -43,7 +43,6 @@ ENDFUNCTION()
 
 
 COMPILE_PLUGIN(localizer localizer.cc Localizer)
-COMPILE_PLUGIN(correction correction.cc Correction)
 
 SET(FEET_FOLLOWER_SOURCES
   discretized-trajectory.cc
@@ -52,6 +51,7 @@ SET(FEET_FOLLOWER_SOURCES
   feet-follower.cc
   feet-follower-from-file.cc
   feet-follower-analytical-pg.cc analytical-pg/newPGstepStudy.cpp
+  feet-follower-with-correction.cc
 
   posture-error.cc)
 
