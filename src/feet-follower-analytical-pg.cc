@@ -104,11 +104,9 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   CnewPGstepStudy pg;
 
   static const double g = 9.81;
-  static const double t1 = 0.40;
-  static const double t2 = 0.42;
-  static const double t3 = 1.20;
-  static const double t4 = 1.22;
-  static const double t5 = 1.60;
+  static const double t1 = 0.95;
+  static const double t2 = 1.05;
+  static const double t3 = 2.;
 
   StepFeatures stepFeatures;
 
@@ -121,6 +119,10 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
     rightFootToAnkle_.inverse () * initialRightAnklePosition_;
 
   ml::Vector initialStep (6);
+
+
+  // The first six parameters are feet position w.r.t center of mass
+  // position.
 
   // As leftPosition_x = -rightPosition_x, leftPosition_y = -rightPosition_y,
   // we center the movement in (0, 0) and shift it back using wMs.
@@ -140,11 +142,14 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
     steps.push_back (initialStep (i));
 
   for (unsigned i = 0; i < steps_.size (); ++i)
-    for (unsigned j = 0; j < 4; ++j)
-      steps.push_back (steps_[i] (j));
+    for (unsigned j = 0; j < steps_[i].size (); ++j)
+      {
+	assert (steps_[i].size () == 7);
+	steps.push_back (steps_[i] (j));
+      }
 
-  pg.produceSeqStepFeatures
-    (stepFeatures, STEP, comZ_, g, t1, t2, t3, t4, t5, steps,
+  pg.produceSeqSlidedHalfStepFeatures
+    (stepFeatures, STEP, comZ_, g, t1, t2, t3, steps,
      leftOrRightFootStable_ ? 'L' : 'R');
 
   std::vector<vector_t> leftFootData;
@@ -203,6 +208,22 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
      sot::DiscretizedTrajectory (range, zmpData, "zmp"),
      wMs);
 
+  trajectories_->supportFoot.push_back
+    (std::make_pair (0, WalkMovement::SUPPORT_FOOT_DOUBLE));
+
+  bool isLeft = leftOrRightFootStable_;
+  static const double SL = 1.; //FIXME:
+  for (unsigned i = 0; i < steps_.size (); ++i)
+    {
+      trajectories_->supportFoot.push_back
+	(std::make_pair
+	 (i * SL,
+	  isLeft ? WalkMovement::SUPPORT_FOOT_LEFT
+	  : WalkMovement::SUPPORT_FOOT_RIGHT));
+      isLeft = !isLeft;
+    }
+
+
   this->comOut_.recompute (0);
   this->zmpOut_.recompute (0);
   this->leftAnkleOut_.recompute (0);
@@ -212,7 +233,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 void
 FeetFollowerAnalyticalPg::pushStep (const ml::Vector& step)
 {
-  if (step.size () != 4)
+  if (step.size () != 7)
     {
       std::cerr << "invalid step" << std::endl;
       return;

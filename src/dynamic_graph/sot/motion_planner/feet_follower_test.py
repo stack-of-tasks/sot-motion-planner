@@ -72,14 +72,24 @@ class Follower:
         #self.feetFollower.readTrajectory(
         #'/home/thomas/profiles/laas/src/unstable/sot/sot-motion-planner/tests/simple_trajectory')
 
-        self.feetFollower.pushStep((0.1, 0.1, -0.19, 0.))
-        self.feetFollower.pushStep((0.1, 0.1, 0.19, 0.))
-        self.feetFollower.pushStep((0.1, 0.1, -0.19, 0.))
-        self.feetFollower.pushStep((0.1, 0.1, 0.19, 0.))
-        #self.feetFollower.pushStep((0.05, 0.24, -0.19, 0.))
-        #self.feetFollower.pushStep((0.05, 0.24,  0.19, 0.))
-        #self.feetFollower.pushStep((0.05, 0.24, -0.19, 0.))
-        #self.feetFollower.pushStep((0.05, 0.24,  0.19, 0.))
+        # Parameters are:
+        # - first slide
+        # - horizontal distance
+        # - maximum feet height
+        # - second slide
+        # - x
+        # - y
+        # - theta
+        self.feetFollower.pushStep((0.,    0.31, 0.32, -0.62, 0.31,-0.00, 0.))
+        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.))
+        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.))
+        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.))
+        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.))
+        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.))
+        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.))
+        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.))
+        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.))
+        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.0,  0.19, 0.))
 
         self.feetFollower.generateTrajectory()
 
