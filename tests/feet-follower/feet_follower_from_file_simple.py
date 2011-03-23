@@ -15,40 +15,12 @@
 # received a copy of the GNU Lesser General Public License along with
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
-import time
 from dynamic_graph.sot.dynamics.tools import *
+from dynamic_graph.sot.motion_planner. \
+    test.feet_follower_from_file_simple import *
+from common import play
 
-from dynamic_graph.sot.core import FeatureGeneric, Task, MatrixConstant
-
-from dynamic_graph.sot.motion_planner.feet_follower_test import *
-
-while not f.canStart():
-    robot.device.increment(timeStep)
-f.start()
-print("started")
-
-# Main.
-#  Main loop
-logCfg = open("/tmp/cfg.dat", "w")
-
-def log():
-    s = ""
-    for i in robot.device.state.value:
-        s += str(i) + " "
-    s += "\n"
-    logCfg.write(s)
-
-for i in xrange(4000):
-    robot.device.increment(timeStep)
-
-    log()
-
-    if clt:
-        clt.updateElementConfig(
-            'hrp', robot.smallToFull(robot.device.state.value))
-
-trace.dump()
-
+play(f)
 
 finalPosition = (
     -0.015361, -0.0049075500000000001, -0.00047065200000000001, -0.0172946,
@@ -62,7 +34,4 @@ finalPosition = (
      -0.56908000000000003, 0.00296262, 0.19108900000000001, 0.100088,
      0.23896800000000001, 0.21485599999999999, -0.18973400000000001,
      -0.49457699999999999, 0.040646799999999997, 0.16970299999999999, 0.100067)
-
 checkFinalConfiguration(robot.device.state.value, finalPosition)
-print "Exiting."
-

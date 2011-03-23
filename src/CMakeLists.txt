@@ -65,8 +65,28 @@ EXEC_PROGRAM(
   OUTPUT_VARIABLE PYTHON_SITELIB
   )
 
+
+
+SET(TRAJECTORY_PATH "${CMAKE_SOURCE_DIR}/tests")
+CONFIG_FILES(dynamic_graph/sot/motion_planner/feet_follower_graph.py)
+
+SET(PYTHON_MODULE_DIR
+  ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner)
+SET(PYTHON_MODULE_BUILD_DIR
+  ${CMAKE_CURRENT_BINARY_DIR}/dynamic_graph/sot/motion_planner)
+
 INSTALL(FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner/__init__.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner/feet_follower_test.py
+  ${PYTHON_MODULE_DIR}/__init__.py
+  ${PYTHON_MODULE_BUILD_DIR}/feet_follower_graph.py
   DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/motion_planner
+  )
+
+SET(PYTHON_TEST_DIR
+  ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner/test)
+INSTALL(FILES
+  ${PYTHON_TEST_DIR}/feet_follower_analytical_pg_walk_on_a_thread.py
+  ${PYTHON_TEST_DIR}/feet_follower_from_file_simple.py
+  ${PYTHON_TEST_DIR}/feet_follower_from_file_walk_on_a_thread.py
+  ${PYTHON_TEST_DIR}/__init__.py
+  DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/motion_planner/test
   )

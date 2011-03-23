@@ -17,13 +17,10 @@
 
 from dynamic_graph.sot.dynamics.tools import *
 from __main__ import robot, solver
-
-from dynamic_graph.sot.core import \
-    FeatureGeneric, Task, MatrixConstant, RobotSimu
+from dynamic_graph.sot.core import FeatureGeneric, Task, RobotSimu
 from dynamic_graph.sot.motion_planner import \
     FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError
 from dynamic_graph.tracer_real_time import TracerRealTime
-
 
 def translationToSE3(t):
     return ((1., 0., 0., t[0]),
@@ -36,18 +33,23 @@ def oneVector(i):
     r[i] = 1.
     return tuple(r)
 
-class Follower:
+class FeetFollowerGraph:
     feetFollower = None
 
     postureTask = None
     postureFeature = None
     postureFeatureDes = None
     postureError = None
+    trace = None
 
     def __init__(self):
-        #self.feetFollower = FeetFollowerFromFile('feet-follower')
-        self.feetFollower = FeetFollowerAnalyticalPg('feet-follower')
+        pass
 
+    def __del__(self):
+        if self.trace:
+            self.trace.dump()
+
+    def setAnklePosition(self):
         # Setup feet to ankle transformation.
         anklePosL = robot.dynamic.getAnklePositionInFootFrame()
         anklePosR = (anklePosL[0], -anklePosL[1], anklePosL[2])
@@ -55,44 +57,13 @@ class Follower:
         self.feetFollower.setLeftFootToAnkle(translationToSE3(anklePosL))
         self.feetFollower.setRightFootToAnkle(translationToSE3(anklePosR))
 
-        # Setup initial robot position and com.
-        #self.feetFollower.setInitialLeftAnklePosition(
-        #robot.dynamic.signal('left-ankle').value)
-        #self.feetFollower.setInitialRightAnklePosition(
-        #robot.dynamic.signal('right-ankle').value)
-
+    def setInitialFeetPosition(self):
         self.feetFollower.setInitialLeftAnklePosition(
             robot.features['left-ankle'].reference.value)
         self.feetFollower.setInitialRightAnklePosition(
             robot.features['right-ankle'].reference.value)
 
-        self.feetFollower.setComZ(robot.dynamic.com.value[2])
-        #self.feetFollower.setComZ(0.814)
-
-        #self.feetFollower.readTrajectory(
-        #'/home/thomas/profiles/laas/src/unstable/sot/sot-motion-planner/tests/simple_trajectory')
-
-        # Parameters are:
-        # - first slide
-        # - horizontal distance
-        # - maximum feet height
-        # - second slide
-        # - x
-        # - y
-        # - theta
-        self.feetFollower.pushStep((0.,    0.31, 0.32, -0.62, 0.31,-0.00, 0.))
-        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.))
-        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.))
-        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.))
-        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.))
-        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.))
-        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.))
-        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.))
-        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.))
-        self.feetFollower.pushStep((-1.95, 0.39, 0.40, -0.62, 0.0,  0.19, 0.))
-
-        self.feetFollower.generateTrajectory()
-
+    def setup(self):
         # Lower the gains to reduce the initial velocity.
         robot.comTask.controlGain.value = 5.
         robot.tasks['left-ankle'].controlGain.value = 5.
@@ -136,6 +107,31 @@ class Follower:
             solver.sot.push(robot.tasks['left-ankle'].name)
             solver.sot.push(robot.tasks['right-ankle'].name)
         solver.sot.push(self.postureTask.name)
+
+        self.setupTrace()
+
+    def setupTrace(self):
+        self.trace = TracerRealTime('trace')
+        self.trace.setBufferSize(2**20)
+        self.trace.open('/tmp/','feet_follower_','.dat')
+
+        # Feature sdes input.
+        self.trace.add('feet-follower.com', 'com')
+        self.trace.add('feet-follower.zmp', 'zmp')
+        self.trace.add('feet-follower.left-ankle', 'left-ankle')
+        self.trace.add('feet-follower.right-ankle', 'right-ankle')
+
+        # Tasks error sdes input.
+        self.trace.add(robot.comTask.name + '.error', 'errorCom')
+        self.trace.add(robot.tasks['left-ankle'].name + '.error', 'errorLa')
+        self.trace.add(robot.tasks['right-ankle'].name + '.error', 'errorRa')
+        self.trace.add(self.postureTask.name + '.error', 'errorPosture')
+
+        # Recompute trace.triger at each iteration to enable tracing.
+        robot.device.after.addSignal(self.trace.name +'.triger')
+
+        # Start tracing.
+        self.trace.start()
 
     def computeError(self):
         e = robot.device.state.value
@@ -189,27 +185,54 @@ class Follower:
         self.postureTask.controlGain.value = 180.
         self.feetFollower.start()
 
+class FeetFollowerFromFileGraph(FeetFollowerGraph):
+    defaultTrajectoryDirectory = '@TRAJECTORY_PATH@'
 
-f = Follower()
+    # Slow trajectory.
+    defaultTrajectoryPath = defaultTrajectoryDirectory + '/simple_trajectory'
+
+    def __init__(self, trajectoryPath = defaultTrajectoryPath):
+        FeetFollowerGraph.__init__(self)
+        self.feetFollower = FeetFollowerFromFile('feet-follower')
+        self.setAnklePosition()
+        self.setInitialFeetPosition()
+        self.feetFollower.setComZ(0.814)
+        self.feetFollower.readTrajectory(trajectoryPath)
+        self.setup()
 
 
-trace = TracerRealTime('trace')
-trace.setBufferSize(2**20)
-trace.open('/tmp/','feet_follower_','.dat')
+class FeetFollowerAnalyticalPgGraph(FeetFollowerGraph):
+    # Parameters are:
+    # - first slide
+    # - horizontal distance
+    # - maximum feet height
+    # - second slide
+    # - x
+    # - y
+    # - theta
 
-# Feature sdes input.
-trace.add('feet-follower.com', 'com')
-trace.add('feet-follower.zmp', 'zmp')
-trace.add('feet-follower.left-ankle', 'left-ankle')
-trace.add('feet-follower.right-ankle', 'right-ankle')
+    # Robot will walk "on a thread".
+    defaultSteps = [
+        (0.,    0.31, 0.32, -0.62, 0.31,-0.00, 0.),
+        (-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.),
+        (-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.),
+        (-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.),
+        (-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.),
+        (-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.),
+        (-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.),
+        (-1.95, 0.39, 0.40, -0.62, 0.31, 0.00, 0.),
+        (-1.95, 0.39, 0.40, -0.62, 0.31,-0.00, 0.),
+        (-1.95, 0.39, 0.40, -0.62, 0.0,  0.19, 0.),
 
-# Tasks error sdes input.
-trace.add(robot.comTask.name + '.error', 'errorCom')
-trace.add(robot.tasks['left-ankle'].name + '.error', 'errorLa')
-trace.add(robot.tasks['right-ankle'].name + '.error', 'errorRa')
-trace.add(f.postureTask.name + '.error', 'errorPosture')
+        ]
 
-# Recompute trace.triger at each iteration to enable tracing.
-robot.device.after.addSignal('trace.triger')
-
-trace.start()
+    def __init__(self, steps = defaultSteps):
+        FeetFollowerGraph.__init__(self)
+        self.feetFollower = FeetFollowerAnalyticalPg('feet-follower')
+        self.setAnklePosition()
+        self.setInitialFeetPosition()
+        self.feetFollower.setComZ(robot.dynamic.com.value[2])
+        for step in steps:
+            self.feetFollower.pushStep(step)
+        self.feetFollower.generateTrajectory()
+        self.setup()
