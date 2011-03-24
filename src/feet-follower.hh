@@ -148,6 +148,7 @@ class FeetFollower : public dg::Entity
   void start ()
   {
     started_ = true;
+    impl_start ();
   }
 
   void update (int t)
@@ -189,6 +190,16 @@ class FeetFollower : public dg::Entity
     res = rightAnkle_;
     return res;
   }
+
+  double getTime ()
+  {
+    return t_ * 0.005; //FIXME:
+  }
+
+  virtual boost::optional<const WalkMovement&> walkMovement () const = 0;
+
+  virtual void impl_start ()
+  {}
 
 protected:
   virtual void impl_update () = 0;

@@ -104,9 +104,9 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   CnewPGstepStudy pg;
 
   static const double g = 9.81;
-  static const double t1 = 0.95;
-  static const double t2 = 1.05;
-  static const double t3 = 2.;
+  static const double timeBeforeZmpShift = 0.95;
+  static const double timeAfterZmpShift = 1.05;
+  static const double halfStepLength = 2.;
 
   StepFeatures stepFeatures;
 
@@ -149,7 +149,8 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
       }
 
   pg.produceSeqSlidedHalfStepFeatures
-    (stepFeatures, STEP, comZ_, g, t1, t2, t3, steps,
+    (stepFeatures, STEP, comZ_, g,
+     timeBeforeZmpShift, timeAfterZmpShift, halfStepLength, steps,
      leftOrRightFootStable_ ? 'L' : 'R');
 
   std::vector<vector_t> leftFootData;
@@ -208,21 +209,42 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
      sot::DiscretizedTrajectory (range, zmpData, "zmp"),
      wMs);
 
+
+  //FIXME: for now compute walk phases by looking at foot height.
+  // It would probably better to recompute from timing parameters.
   trajectories_->supportFoot.push_back
     (std::make_pair (0, WalkMovement::SUPPORT_FOOT_DOUBLE));
-
-  bool isLeft = leftOrRightFootStable_;
-  static const double SL = 1.; //FIXME:
-  for (unsigned i = 0; i < steps_.size (); ++i)
+  WalkMovement::SupportFoot oldPhase = WalkMovement::SUPPORT_FOOT_DOUBLE;
+  for (unsigned i = 0; i < stepFeatures.size; ++i)
     {
-      trajectories_->supportFoot.push_back
-	(std::make_pair
-	 (i * SL,
-	  isLeft ? WalkMovement::SUPPORT_FOOT_LEFT
-	  : WalkMovement::SUPPORT_FOOT_RIGHT));
-      isLeft = !isLeft;
-    }
+      WalkMovement::SupportFoot phase = WalkMovement::SUPPORT_FOOT_DOUBLE;
 
+      if (stepFeatures.leftfootHeight[i] < 1e-3)
+	{
+	  if (stepFeatures.rightfootHeight[i] < 1e-3)
+	    // both feet on the floor
+	    phase = WalkMovement::SUPPORT_FOOT_DOUBLE;
+	  else
+	    // left foot on the floor only
+	    phase = WalkMovement::SUPPORT_FOOT_LEFT;
+	}
+      else
+	{
+	  if (stepFeatures.rightfootHeight[i] < 1e-3)
+	    // right foot on the floor only
+	    phase = WalkMovement::SUPPORT_FOOT_RIGHT;
+	  else
+	    // no foot on the floor !?
+	    assert (0);
+	}
+
+      if (phase != oldPhase)
+	{
+	  oldPhase = phase;
+	  trajectories_->supportFoot.push_back
+	    (std::make_pair (i * STEP, phase));
+	}
+    }
 
   this->comOut_.recompute (0);
   this->zmpOut_.recompute (0);

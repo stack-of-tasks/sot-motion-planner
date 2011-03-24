@@ -39,6 +39,13 @@ public:
 
   void readTrajectory (const std::string& dirname);
 
+  virtual boost::optional<const WalkMovement&> walkMovement () const
+  {
+    if (!trajectories_)
+      return boost::optional<const WalkMovement&> ();
+    return *trajectories_;
+  }
+
 private:
   virtual void impl_update ();
 

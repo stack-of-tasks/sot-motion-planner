@@ -17,10 +17,44 @@
 # define SOT_MOTION_PLANNER_CORRECTION_HH
 # include <string>
 
+# include <dynamic-graph/command.h>
 # include <sot/core/matrix-homogeneous.hh>
 
+# include "error-trajectory.hh"
 # include "feet-follower.hh"
 
+struct Correction
+{
+  explicit Correction
+  (const sot::ErrorTrajectory::interval_t& leftAnkleCorrectionInterval,
+   const sot::ErrorTrajectory::interval_t& rightAnkleCorrectionInterval,
+   const sot::ErrorTrajectory::interval_t& comCorrectionInterval,
+   const sot::ErrorTrajectory::vector_t& error)
+    : leftAnkleCorrection
+      (leftAnkleCorrectionInterval,
+       error, "left-ankle correction"),
+
+      rightAnkleCorrection
+      (rightAnkleCorrectionInterval,
+       error, "right-ankle correction"),
+
+      comCorrection
+      (comCorrectionInterval,
+       error, "com correction")
+  {}
+
+  sot::MatrixHomogeneous positionError;
+
+  sot::ErrorTrajectory leftAnkleCorrection;
+  sot::ErrorTrajectory rightAnkleCorrection;
+  sot::ErrorTrajectory comCorrection;
+};
+
+
+/// \brief Decorator providing walking trajectory correction w.r.t an
+///        estimation of the robot position.
+///
+/// FIXME: document.
 class FeetFollowerWithCorrection : public FeetFollower
 {
 public:
@@ -37,15 +71,47 @@ public:
     return CLASS_NAME;
   }
 
+  virtual boost::optional<const WalkMovement&> walkMovement () const
+  {
+    if (!referenceTrajectory_)
+      return boost::optional<const WalkMovement&> ();
+    return referenceTrajectory_->walkMovement ();
+  }
+
+  void setReferenceTrajectory (FeetFollower* ptr)
+  {
+    referenceTrajectory_ = ptr;
+  }
+
+  virtual void impl_start ();
 protected:
   virtual void impl_update ();
   void updateCorrection ();
 
 private:
   FeetFollower* referenceTrajectory_;
-
   signalInVector_t offsetIn_;
-  sot::MatrixHomogeneous correction_;
+
+  sot::MatrixHomogeneous correctionLeftAnkle_;
+  sot::MatrixHomogeneous correctionRightAnkle_;
+  sot::MatrixHomogeneous correctionCom_;
+
+  std::vector<boost::shared_ptr<Correction> > corrections_;
 };
+
+namespace command
+{
+  using ::dynamicgraph::command::Command;
+  using ::dynamicgraph::command::Value;
+
+  class SetReferenceTrajectory : public Command
+  {
+  public:
+    SetReferenceTrajectory (FeetFollowerWithCorrection& entity,
+			    const std::string& docstring);
+    virtual Value doExecute ();
+  };
+} // end of namespace command.
+
 
 #endif //! SOT_MOTION_PLANNER_CORRECTION_HH

@@ -77,6 +77,13 @@ public:
   {
     steps_.clear ();
   }
+
+  virtual boost::optional<const WalkMovement&> walkMovement () const
+  {
+    if (!trajectories_)
+      return boost::optional<const WalkMovement&> ();
+    return *trajectories_;
+  }
 private:
   virtual void impl_update ();
 

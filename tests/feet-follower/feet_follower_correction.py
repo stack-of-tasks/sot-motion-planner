@@ -19,11 +19,33 @@ from __future__ import print_function
 import numpy as np
 from math import acos, atan2, cos, sin, pi, sqrt
 
+from dynamic_graph.sot.dynamics.tools import *
+
 from dynamic_graph import plug
 from dynamic_graph.sot.motion_planner import Localizer, FeetFollowerWithCorrection
+from dynamic_graph.sot.motion_planner.feet_follower_graph \
+    import FeetFollowerAnalyticalPgGraph
 
 from dynamic_graph.sot.dynamics.hrp2 import Hrp2Laas
 
-correction = FeetFollowerWithCorrection('correction')
 
-correction.offset.value = (1., 2., 0.)
+f = FeetFollowerAnalyticalPgGraph()
+
+f.referenceTrajectory = f.feetFollower
+f.feetFollower = FeetFollowerWithCorrection('correction')
+
+# Set the reference trajectory.
+f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
+
+# Make up some error value.
+f.feetFollower.offset.value = (1., 2., 0.)
+
+# Replug.
+plug(f.feetFollower.zmp, robot.device.zmp)
+plug(f.feetFollower.com, robot.featureComDes.errorIN)
+plug(f.feetFollower.signal('left-ankle'),
+     robot.features['left-ankle'].reference)
+plug(f.feetFollower.signal('right-ankle'),
+     robot.features['right-ankle'].reference)
+
+from common import play; play(f)
