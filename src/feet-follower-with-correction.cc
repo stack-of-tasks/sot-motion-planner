@@ -123,15 +123,12 @@ FeetFollowerWithCorrection::impl_update ()
   if (!referenceTrajectory_)
     return;
 
-  if (started_)
-    referenceTrajectory_->start ();
-
-  updateCorrection ();
-
   referenceTrajectory_->updateLeftAnkle (leftAnkle_, t_);
   referenceTrajectory_->updateRightAnkle (rightAnkle_, t_);
   referenceTrajectory_->updateCoM (com_, t_);
   referenceTrajectory_->updateZmp (zmp_, t_);
+
+  updateCorrection ();
 
   ml::Vector comH (4);
   ml::Vector zmpH (4);
@@ -180,68 +177,131 @@ namespace
   {
     return phaseStart (movement, t, WalkMovement::SUPPORT_FOOT_DOUBLE);
   }
+  
+  bool contain (const double& t, const sot::ErrorTrajectory& trajectory)
+  {
+    return (t >= trajectory.getLowerBound (trajectory.getRange ())
+	    && t <= trajectory.getUpperBound (trajectory.getRange ()));
+  }
+
+  bool
+  correctionIsFinished
+  (const std::vector<boost::shared_ptr<Correction> >& corrections,
+   const double& t)
+  {
+    if (corrections.empty ())
+      return true;
+    const Correction& correction = *corrections.back ();
+
+    return t > sot::ErrorTrajectory::getUpperBound
+      (correction.leftAnkleCorrection.getRange ())
+      && t > sot::ErrorTrajectory::getUpperBound
+      (correction.rightAnkleCorrection.getRange ())
+      && t > sot::ErrorTrajectory::getUpperBound
+      (correction.comCorrection.getRange ());
+  }
+
+  WalkMovement::supportFoot_t::const_iterator
+  findIter (const WalkMovement::supportFoot_t& supportFoot, const double& time)
+  {
+    WalkMovement::supportFoot_t::const_iterator iter = supportFoot.begin ();
+    for (; iter != supportFoot.end (); ++iter)
+      {
+	if (iter->first == time)
+	  return iter;
+      }
+    return supportFoot.end ();
+  }
 } // end of anonymous namespace.
 
 void
 FeetFollowerWithCorrection::updateCorrection ()
 {
-  if (!referenceTrajectory_)
+  if (!referenceTrajectory_ || !started_)
     return;
 
   const double& time = referenceTrajectory_->getTime ();
 
-  if (isDoubleSupportStart (*referenceTrajectory_->walkMovement (), time))
+  if (isDoubleSupportStart (*referenceTrajectory_->walkMovement (), time)
+      && correctionIsFinished (corrections_, time))
     {
-      double phase1 = -1.;
-      double phase2 = -1.;
-      bool leftFirst = true;
+      const WalkMovement::supportFoot_t& supportFoot =
+	referenceTrajectory_->walkMovement ()->supportFoot;
 
-      typedef std::pair<double, WalkMovement::SupportFoot> iter_t;
-      BOOST_FOREACH (const iter_t& e,
-		     referenceTrajectory_->walkMovement ()->supportFoot)
+      // Now - double support
+      WalkMovement::supportFoot_t::const_iterator t = supportFoot.end ();
+      // left or right
+      WalkMovement::supportFoot_t::const_iterator t1 = supportFoot.end ();
+      // double support
+      WalkMovement::supportFoot_t::const_iterator t2 = supportFoot.end ();
+      // left or right (opposite foot)
+      WalkMovement::supportFoot_t::const_iterator t3 = supportFoot.end ();
+      // double support
+      WalkMovement::supportFoot_t::const_iterator t4 = supportFoot.end ();
+
+      // Find next steps.
+      t = findIter (supportFoot, time);
+      if (t != supportFoot.end ())
 	{
-	  if (e.first > time)
+	  t1 = t;
+	  ++t1;
+	  if (t1 != supportFoot.end ())
 	    {
-	      if (phase1 < 0.)
+	      t2 = t1;
+	      ++t2;
+	      if (t2 != supportFoot.end ())
 		{
-		  phase1 = e.first;
-		  if (e.second == WalkMovement::SUPPORT_FOOT_LEFT)
-		    leftFirst = true;
-		  else if (e.second == WalkMovement::SUPPORT_FOOT_RIGHT)
-		    leftFirst = false;
-		  else
-		    // It is forbidden to have two consecutive foot
-		    // support phases.
-		    assert (0.);
+		  t3 = t2;
+		  ++t3;
+		  if (t3 != supportFoot.end ())
+		    {
+		      t4 = t3;
+		      ++t4;
+		    }
 		}
-	      else if (phase2 < 0.)
-		phase2 = e.first;
 	    }
-	  if (phase1 >= 0. && phase2 >= 0.)
-	    break;
 	}
 
-      if (phase1 < 0. || phase2 < 0.)
-	// Robot will not do two more steps in the future so no
-	// complete correction is possible anymore.
+      if (t == supportFoot.end () || t1 == supportFoot.end ()
+	  || t2 == supportFoot.end () || t3 == supportFoot.end ()
+	  || t4 == supportFoot.end ())
 	return;
 
+      assert (t->second == WalkMovement::SUPPORT_FOOT_DOUBLE);
+      assert (t1->second == WalkMovement::SUPPORT_FOOT_LEFT
+	      || t1->second == WalkMovement::SUPPORT_FOOT_RIGHT);
+      assert (t2->second == WalkMovement::SUPPORT_FOOT_DOUBLE);
+      assert (t3->second == WalkMovement::SUPPORT_FOOT_LEFT
+	      || t3->second == WalkMovement::SUPPORT_FOOT_RIGHT);
+      assert (t4->second == WalkMovement::SUPPORT_FOOT_DOUBLE);
+
+      bool leftFirst = t1->second == WalkMovement::SUPPORT_FOOT_RIGHT;
 
       sot::ErrorTrajectory::interval_t firstInterval =
 	sot::ErrorTrajectory::makeInterval
-	(time, phase1);
+	(t1->first, t2->first);
       sot::ErrorTrajectory::interval_t secondInterval =
 	sot::ErrorTrajectory::makeInterval
-	(phase1, phase2);
+	(t3->first, t4->first);
       sot::ErrorTrajectory::interval_t comCorrectionInterval =
 	sot::ErrorTrajectory::makeInterval
-	(time, phase2);
+	(t1->first, t4->first);
 
-      sot::ErrorTrajectory::vector_t error = offsetIn_ (t_).accessToMotherLib ();
+      ml::Vector tmp = offsetIn_;
+      sot::ErrorTrajectory::vector_t error = tmp.accessToMotherLib ();
+
+      sot::MatrixHomogeneous previousCorrection;
+      sot::MatrixHomogeneous positionError;
+
+      if (corrections_.size () > 1 && corrections_[corrections_.size () - 1])
+	previousCorrection =
+	  corrections_[corrections_.size () - 1]->positionError;
+      positionError = previousCorrection * XYThetaToMatrixHomogeneous (error);
 
       corrections_.push_back
 	(boost::make_shared<Correction>
-	 (leftFirst ? firstInterval  : secondInterval,
+	 (positionError,
+	  leftFirst ? firstInterval  : secondInterval,
 	  leftFirst ? secondInterval : firstInterval,
 	  comCorrectionInterval, error));
     }
@@ -254,10 +314,18 @@ FeetFollowerWithCorrection::updateCorrection ()
   // Compute corrections.
   const Correction& currentCorrection = *(corrections_.back ());
 
-  correctionLeftAnkle_ = XYThetaToMatrixHomogeneous
-    (currentCorrection.leftAnkleCorrection (time));
-  correctionRightAnkle_ = XYThetaToMatrixHomogeneous
-    (currentCorrection.rightAnkleCorrection (time));
-  correctionCom_ = XYThetaToMatrixHomogeneous
-    (currentCorrection.comCorrection (time));
+  sot::MatrixHomogeneous previousCorrection;
+
+  if (corrections_.size () > 1 && corrections_[corrections_.size () - 1])
+    previousCorrection = corrections_[corrections_.size () - 1]->positionError;
+
+  if (contain (time, currentCorrection.leftAnkleCorrection))
+    correctionLeftAnkle_ = previousCorrection * XYThetaToMatrixHomogeneous
+      (currentCorrection.leftAnkleCorrection (time));
+  if (contain (time, currentCorrection.rightAnkleCorrection))
+    correctionRightAnkle_ = previousCorrection * XYThetaToMatrixHomogeneous
+      (currentCorrection.rightAnkleCorrection (time));
+  if (contain (time, currentCorrection.comCorrection))
+    correctionCom_ = previousCorrection * XYThetaToMatrixHomogeneous
+      (currentCorrection.comCorrection (time));
 }

@@ -26,11 +26,14 @@
 struct Correction
 {
   explicit Correction
-  (const sot::ErrorTrajectory::interval_t& leftAnkleCorrectionInterval,
+  (const sot::MatrixHomogeneous& positionError,
+   const sot::ErrorTrajectory::interval_t& leftAnkleCorrectionInterval,
    const sot::ErrorTrajectory::interval_t& rightAnkleCorrectionInterval,
    const sot::ErrorTrajectory::interval_t& comCorrectionInterval,
    const sot::ErrorTrajectory::vector_t& error)
-    : leftAnkleCorrection
+    : positionError (positionError),
+
+      leftAnkleCorrection
       (leftAnkleCorrectionInterval,
        error, "left-ankle correction"),
 

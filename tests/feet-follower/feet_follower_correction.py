@@ -38,7 +38,7 @@ f.feetFollower = FeetFollowerWithCorrection('correction')
 f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
 
 # Make up some error value.
-f.feetFollower.offset.value = (1., 2., 0.)
+f.feetFollower.offset.value = (0., 0.1, 0.)
 
 # Replug.
 plug(f.feetFollower.zmp, robot.device.zmp)

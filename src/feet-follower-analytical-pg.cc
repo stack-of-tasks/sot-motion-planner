@@ -213,7 +213,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   //FIXME: for now compute walk phases by looking at foot height.
   // It would probably better to recompute from timing parameters.
   trajectories_->supportFoot.push_back
-    (std::make_pair (0, WalkMovement::SUPPORT_FOOT_DOUBLE));
+    (std::make_pair (0., WalkMovement::SUPPORT_FOOT_DOUBLE));
   WalkMovement::SupportFoot oldPhase = WalkMovement::SUPPORT_FOOT_DOUBLE;
   for (unsigned i = 0; i < stepFeatures.size; ++i)
     {

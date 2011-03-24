@@ -32,6 +32,10 @@ namespace sot
 
     virtual ~ErrorTrajectory () throw ();
 
+    virtual const interval_t& getRange () const
+    {
+      return range_;
+    }
   private:
     virtual void impl_compute (result_t& result, const value_type& t)
       const throw ();

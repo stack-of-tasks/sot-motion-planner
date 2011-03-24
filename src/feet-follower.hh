@@ -84,6 +84,7 @@ struct WalkMovement
       /// \brief Enum maximum value, do not describe a valid phase.
       SUPPORT_FOOT_SIZE
     };
+  typedef std::vector<std::pair<double, SupportFoot> > supportFoot_t;
 
   explicit WalkMovement (const sot::DiscretizedTrajectory& leftFoot,
 			 const sot::DiscretizedTrajectory& rightFoot,
@@ -128,7 +129,7 @@ struct WalkMovement
   /// using left foot as support foot, then at t=3 switch to single
   /// support using right foot as support foot and finally starting at
   /// t=5. double support.
-  std::vector<std::pair<double, SupportFoot> > supportFoot;
+  supportFoot_t supportFoot;
 };
 
 class FeetFollower : public dg::Entity
