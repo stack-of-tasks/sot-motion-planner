@@ -108,18 +108,16 @@ class FeetFollowerGraph:
             solver.sot.push(robot.tasks['right-ankle'].name)
         solver.sot.push(self.postureTask.name)
 
-        self.setupTrace()
-
     def setupTrace(self):
         self.trace = TracerRealTime('trace')
         self.trace.setBufferSize(2**20)
         self.trace.open('/tmp/','feet_follower_','.dat')
 
         # Feature sdes input.
-        self.trace.add('feet-follower.com', 'com')
-        self.trace.add('feet-follower.zmp', 'zmp')
-        self.trace.add('feet-follower.left-ankle', 'left-ankle')
-        self.trace.add('feet-follower.right-ankle', 'right-ankle')
+        self.trace.add(self.feetFollower.name + '.com', 'com')
+        self.trace.add(self.feetFollower.name + '.zmp', 'zmp')
+        self.trace.add(self.feetFollower.name + '.left-ankle', 'left-ankle')
+        self.trace.add(self.feetFollower.name + '.right-ankle', 'right-ankle')
 
         # Tasks error sdes input.
         self.trace.add(robot.comTask.name + '.error', 'errorCom')
@@ -183,6 +181,7 @@ class FeetFollowerGraph:
         robot.tasks['left-ankle'].controlGain.value = 180.
         robot.tasks['right-ankle'].controlGain.value = 180.
         self.postureTask.controlGain.value = 180.
+        self.setupTrace()
         self.feetFollower.start()
 
 class FeetFollowerFromFileGraph(FeetFollowerGraph):

@@ -313,7 +313,7 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     (t3->first, t4->first);
   sot::ErrorTrajectory::interval_t comCorrectionInterval =
     sot::ErrorTrajectory::makeInterval
-    (t1->first, t4->first);
+    (t1->first, t2->first);
 
   ml::Vector tmp = offsetIn_;
   sot::ErrorTrajectory::vector_t error = tmp.accessToMotherLib ();
