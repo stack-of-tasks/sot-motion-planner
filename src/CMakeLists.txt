@@ -52,10 +52,10 @@ SET(FEET_FOLLOWER_SOURCES
   feet-follower-from-file.cc
   feet-follower-analytical-pg.cc analytical-pg/newPGstepStudy.cpp
   feet-follower-with-correction.cc
-
   posture-error.cc)
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
+COMPILE_PLUGIN(waist-position-estimator   waist-position-estimator.cc WaistPositionEstimator)
 
 
 EXEC_PROGRAM(

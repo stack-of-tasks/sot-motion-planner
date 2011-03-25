@@ -20,9 +20,10 @@ from __main__ import robot, solver
 
 from dynamic_graph.sot.core import \
     FeatureGeneric, Task, MatrixConstant, RobotSimu
-from dynamic_graph.sot.motion_planner import \
-    FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError
+from dynamic_graph.sot.motion_planner import FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError, WaistPositionEstimator
 from dynamic_graph.tracer_real_time import TracerRealTime
+from dynamic_graph.sot.dynamics.hrp2 import Hrp2Laas, Hrp2Jrl
+from dynamic_graph.sot.dynamics.dynamic_hrp2 import DynamicHrp2
 
 
 def translationToSE3(t):
@@ -45,8 +46,8 @@ class Follower:
     postureError = None
 
     def __init__(self):
-        #self.feetFollower = FeetFollowerFromFile('feet-follower')
-        self.feetFollower = FeetFollowerAnalyticalPg('feet-follower')
+        self.feetFollower = FeetFollowerFromFile('feet-follower')
+        #self.feetFollower = FeetFollowerAnalyticalPg('feet-follower')
 
         # Setup feet to ankle transformation.
         anklePosL = robot.dynamic.getAnklePositionInFootFrame()
@@ -69,19 +70,22 @@ class Follower:
         self.feetFollower.setComZ(robot.dynamic.com.value[2])
         #self.feetFollower.setComZ(0.814)
 
-        #self.feetFollower.readTrajectory(
+        self.feetFollower.readTrajectory(
+            # '/tmp'
+            "/home/nddang/src/sotpy/sot-motion-planner/tests/local_stepper_test"
+            )
         #'/home/thomas/profiles/laas/src/unstable/sot/sot-motion-planner/tests/simple_trajectory')
 
-        self.feetFollower.pushStep((0.1, 0.1, -0.19, 0.))
-        self.feetFollower.pushStep((0.1, 0.1, 0.19, 0.))
-        self.feetFollower.pushStep((0.1, 0.1, -0.19, 0.))
-        self.feetFollower.pushStep((0.1, 0.1, 0.19, 0.))
+        #self.feetFollower.pushStep((0.1, 0.1, -0.19, 0.))
+        #self.feetFollower.pushStep((0.1, 0.1, 0.19, 0.))
+        #self.feetFollower.pushStep((0.1, 0.1, -0.19, 0.))
+        #self.feetFollower.pushStep((0.1, 0.1, 0.19, 0.))
         #self.feetFollower.pushStep((0.05, 0.24, -0.19, 0.))
         #self.feetFollower.pushStep((0.05, 0.24,  0.19, 0.))
         #self.feetFollower.pushStep((0.05, 0.24, -0.19, 0.))
         #self.feetFollower.pushStep((0.05, 0.24,  0.19, 0.))
 
-        self.feetFollower.generateTrajectory()
+        #self.feetFollower.generateTrajectory()
 
         # Lower the gains to reduce the initial velocity.
         robot.comTask.controlGain.value = 5.
@@ -182,10 +186,36 @@ class Follower:
 
 f = Follower()
 
+dyn2 =  DynamicHrp2('dyn2')
+modelDir ='/local/nddang/profiles/sotpy/install/unstable/share/hrp2_14'
+xmlDir = '/local/nddang/profiles/sotpy/install/unstable/share/hrp2_14'
+modelName = 'HRP2JRLmainsmall.wrl'
+specificitiesPath = xmlDir + '/HRP2SpecificitiesSmall.xml'
+jointRankPath = xmlDir + '/HRP2LinkJointRankSmall.xml'
+dyn2.setFiles(modelDir, modelName,
+              specificitiesPath, jointRankPath)
+
+dyn2.parse()
+plug(robot.device.sensorState, dyn2.position)
+dyn2.createOpPoint('left-ankle','left-ankle')
+dyn2.createOpPoint('right-ankle','right-ankle')
+dimension = dyn2.getDimension()
+dyn2.velocity.value = dimension*(0.,)
+dyn2.acceleration.value = dimension*(0.,)
+
 
 trace = TracerRealTime('trace')
 trace.setBufferSize(2**20)
 trace.open('/tmp/','feet_follower_','.dat')
+
+estimator = WaistPositionEstimator("estimator")
+plug(dyn2.signal('left-ankle') ,estimator.leftAnkle)
+plug(dyn2.signal('right-ankle'),estimator.rightAnkle)
+plug(robot.device.forceRLEG     ,estimator.forceRleg)
+plug(robot.device.forceLLEG     ,estimator.forceLleg)
+plug(robot.device.state, estimator.stateIn)
+robot.dynamic.position.unplug()
+plug(estimator.stateOut, robot.dynamic.position)
 
 # Feature sdes input.
 trace.add('feet-follower.com', 'com')
@@ -193,13 +223,29 @@ trace.add('feet-follower.zmp', 'zmp')
 trace.add('feet-follower.left-ankle', 'left-ankle')
 trace.add('feet-follower.right-ankle', 'right-ankle')
 
+trace.add('dyn2.left-ankle', 'left-ankle-dyn2')
+trace.add('dyn2.right-ankle', 'right-ankle-dyn2')
+trace.add('robot_dynamic.position', 'position')
+trace.add('estimator.stateOut', 'stateOut')
+
 # Tasks error sdes input.
 trace.add(robot.comTask.name + '.error', 'errorCom')
 trace.add(robot.tasks['left-ankle'].name + '.error', 'errorLa')
 trace.add(robot.tasks['right-ankle'].name + '.error', 'errorRa')
 trace.add(f.postureTask.name + '.error', 'errorPosture')
+trace.add(robot.device.name + ".state", 'state')
+trace.add(robot.device.name + ".sensorState", 'sensorState')
+trace.add(robot.device.name + ".forceRLEG", 'forceRLEG')
+trace.add(robot.device.name + ".forceLLEG", 'forceLLEG')
+trace.add(robot.device.name + ".forceRARM", 'forceRARM')
+trace.add(robot.device.name + ".forceLARM", 'forceLARM')
+trace.add("estimator.z","z")
+
 
 # Recompute trace.triger at each iteration to enable tracing.
 robot.device.after.addSignal('trace.triger')
+robot.device.after.addSignal('dyn2.left-ankle')
+robot.device.after.addSignal('dyn2.right-ankle')
+robot.device.after.addSignal('estimator.z')
 
 trace.start()

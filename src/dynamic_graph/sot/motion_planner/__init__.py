@@ -20,3 +20,5 @@ from localizer import Localizer
 from feet_follower import \
     FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError, \
     FeetFollowerWithCorrection
+from waist_position_estimator import WaistPositionEstimator
+
