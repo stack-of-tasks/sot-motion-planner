@@ -91,6 +91,8 @@ protected:
   virtual void impl_update ();
   void updateCorrection ();
 
+  void computeNewCorrection ();
+
 private:
   FeetFollower* referenceTrajectory_;
   signalInVector_t offsetIn_;
