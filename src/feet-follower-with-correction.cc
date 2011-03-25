@@ -68,6 +68,29 @@ namespace command
     entity.setReferenceTrajectory (referenceTrajectory);
     return Value ();
   }
+
+  SetSafetyLimits::SetSafetyLimits
+  (FeetFollowerWithCorrection& entity, const std::string& docstring)
+    : Command
+      (entity,
+       boost::assign::list_of (Value::DOUBLE) (Value::DOUBLE) (Value::DOUBLE),
+       docstring)
+  {}
+
+  Value SetSafetyLimits::doExecute ()
+  {
+    FeetFollowerWithCorrection& entity =
+      static_cast<FeetFollowerWithCorrection&> (owner ());
+
+    std::vector<Value> values = getParameterValues ();
+    double maxErrorX = values[0].value ();
+    double maxErrorY = values[1].value ();
+    double maxErrorTheta = values[2].value ();
+
+    entity.setSafetyLimits (maxErrorX, maxErrorY, maxErrorTheta);
+    return Value ();
+  }
+
 } // end of namespace command.
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(FeetFollowerWithCorrection,
@@ -100,7 +123,11 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
     correctionLeftAnkle_ (),
     correctionRightAnkle_ (),
     correctionCom_ (),
-    corrections_ ()
+    corrections_ (),
+    maxErrorX_ (0.1),
+    maxErrorY_ (0.1),
+    maxErrorTheta_ (3.14 / 12.)
+
 {
   leftAnkleOut_.addDependency (offsetIn_);
   rightAnkleOut_.addDependency (offsetIn_);
@@ -112,6 +139,9 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
   std::string docstring = "";
   addCommand ("setReferenceTrajectory",
 	      new command::SetReferenceTrajectory (*this, docstring));
+
+  addCommand ("setSafetyLimits",
+	      new command::SetSafetyLimits (*this, docstring));
 }
 
 FeetFollowerWithCorrection::~FeetFollowerWithCorrection ()
@@ -288,25 +318,20 @@ FeetFollowerWithCorrection::computeNewCorrection ()
   ml::Vector tmp = offsetIn_;
   sot::ErrorTrajectory::vector_t error = tmp.accessToMotherLib ();
 
-  // Security limits.
-  static const double maxErrorX = 0.1;
-  static const double maxErrorY = 0.1;
-  static const double maxErrorTheta = 3.14/12.;
-
   if (error[0] > 0.)
-    error[0] = std::min (error[0], maxErrorX);
+    error[0] = std::min (error[0], maxErrorX_);
   else
-    error[0] = -std::min (-error[0], maxErrorX);
+    error[0] = -std::min (-error[0], maxErrorX_);
 
   if (error[1] > 0.)
-    error[1] = std::min (error[1], maxErrorY);
+    error[1] = std::min (error[1], maxErrorY_);
   else
-    error[1] = -std::min (-error[1], maxErrorY);
+    error[1] = -std::min (-error[1], maxErrorY_);
 
   if (error[2] > 0.)
-    error[2] = std::min (error[2], maxErrorTheta);
+    error[2] = std::min (error[2], maxErrorTheta_);
   else
-    error[2] = -std::min (-error[2], maxErrorTheta);
+    error[2] = -std::min (-error[2], maxErrorTheta_);
 
   // If the correction goes toward left, do it with left foot first,
   // otherwise do it with right foot first.

@@ -86,6 +86,15 @@ public:
     referenceTrajectory_ = ptr;
   }
 
+  void setSafetyLimits (const double& maxErrorX,
+			const double& maxErrorY,
+			const double& maxErrorTheta)
+  {
+    maxErrorX_ = maxErrorX;
+    maxErrorY_ = maxErrorY;
+    maxErrorTheta_ = maxErrorTheta;
+  }
+
   virtual void impl_start ();
 protected:
   virtual void impl_update ();
@@ -102,6 +111,11 @@ private:
   sot::MatrixHomogeneous correctionCom_;
 
   std::vector<boost::shared_ptr<Correction> > corrections_;
+
+  // Security limits.
+  double maxErrorX_;
+  double maxErrorY_;
+  double maxErrorTheta_;
 };
 
 namespace command
@@ -116,6 +130,15 @@ namespace command
 			    const std::string& docstring);
     virtual Value doExecute ();
   };
+
+  class SetSafetyLimits : public Command
+  {
+  public:
+    SetSafetyLimits (FeetFollowerWithCorrection& entity,
+		     const std::string& docstring);
+    virtual Value doExecute ();
+  };
+
 } // end of namespace command.
 
 

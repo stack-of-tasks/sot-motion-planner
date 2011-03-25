@@ -29,7 +29,22 @@ from dynamic_graph.sot.motion_planner.feet_follower_graph \
 from dynamic_graph.sot.dynamics.hrp2 import Hrp2Laas
 
 
-f = FeetFollowerAnalyticalPgGraph()
+# first slide # hor distance # max feet height # second slide # x # y # theta #
+steps = [
+    (0.,    0.19, 0.32, -0.62, 0.31,-0.19, 0.),
+    (-1.95, 0.19, 0.40, -0.62, 0.31, 0.19, 0.),
+    (-1.95, 0.19, 0.40, -0.62, 0.31,-0.19, 0.),
+    (-1.95, 0.19, 0.40, -0.62, 0.31, 0.19, 0.),
+    (-1.95, 0.19, 0.40, -0.62, 0.31,-0.19, 0.),
+    (-1.95, 0.19, 0.40, -0.62, 0.31, 0.19, 0.),
+    (-1.95, 0.19, 0.40, -0.62, 0.31,-0.19, 0.),
+    (-1.95, 0.19, 0.40, -0.62, 0.31, 0.19, 0.),
+    (-1.95, 0.19, 0.40, -0.62, 0.31,-0.19, 0.),
+    (-1.95, 0.19, 0.40, -0.62, 0.0,  0.19, 0.),
+    ]
+
+
+f = FeetFollowerAnalyticalPgGraph(steps)
 
 f.referenceTrajectory = f.feetFollower
 f.feetFollower = FeetFollowerWithCorrection('correction')
@@ -37,8 +52,11 @@ f.feetFollower = FeetFollowerWithCorrection('correction')
 # Set the reference trajectory.
 f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
 
+# Set the safety limits.
+f.feetFollower.setSafetyLimits(0.01, 0.01, 0.01)
+
 # Make up some error value.
-f.feetFollower.offset.value = (0., 0.1, 0.)
+f.feetFollower.offset.value = (0., -0.05, 0.)
 
 # Replug.
 plug(f.feetFollower.zmp, robot.device.zmp)
