@@ -193,11 +193,11 @@ namespace
       return true;
     const Correction& correction = *corrections.back ();
 
-    return t > sot::ErrorTrajectory::getUpperBound
+    return t >= sot::ErrorTrajectory::getUpperBound
       (correction.leftAnkleCorrection.getRange ())
-      && t > sot::ErrorTrajectory::getUpperBound
+      && t >= sot::ErrorTrajectory::getUpperBound
       (correction.rightAnkleCorrection.getRange ())
-      && t > sot::ErrorTrajectory::getUpperBound
+      && t >= sot::ErrorTrajectory::getUpperBound
       (correction.comCorrection.getRange ());
   }
 
