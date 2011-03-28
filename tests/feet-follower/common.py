@@ -36,6 +36,7 @@ def play(f, maxIter = 4000):
 
     for i in xrange(maxIter):
         robot.device.increment(timeStep)
+
         #log(logCfg)
         if clt:
             clt.updateElementConfig(

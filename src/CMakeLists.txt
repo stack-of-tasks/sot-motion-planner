@@ -87,6 +87,7 @@ INSTALL(FILES
   ${PYTHON_TEST_DIR}/feet_follower_analytical_pg_walk_on_a_thread.py
   ${PYTHON_TEST_DIR}/feet_follower_from_file_simple.py
   ${PYTHON_TEST_DIR}/feet_follower_from_file_walk_on_a_thread.py
+  ${PYTHON_TEST_DIR}/feet_follower_analytical_pg_correction.py
   ${PYTHON_TEST_DIR}/__init__.py
   DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/motion_planner/test
   )
