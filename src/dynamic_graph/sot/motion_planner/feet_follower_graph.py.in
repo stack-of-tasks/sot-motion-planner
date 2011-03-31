@@ -114,10 +114,14 @@ class FeetFollowerGraph:
         self.trace.open('/tmp/','feet_follower_','.dat')
 
         # Feature sdes input.
-        self.trace.add(self.feetFollower.name + '.com', 'com')
-        self.trace.add(self.feetFollower.name + '.zmp', 'zmp')
-        self.trace.add(self.feetFollower.name + '.left-ankle', 'left-ankle')
-        self.trace.add(self.feetFollower.name + '.right-ankle', 'right-ankle')
+        self.trace.add(self.feetFollower.name + '.com',
+                       self.feetFollower.name + '-com')
+        self.trace.add(self.feetFollower.name + '.zmp',
+                       self.feetFollower.name + '-zmp')
+        self.trace.add(self.feetFollower.name + '.left-ankle',
+                       self.feetFollower.name + '-left-ankle')
+        self.trace.add(self.feetFollower.name + '.right-ankle',
+                       self.feetFollower.name + '-right-ankle')
 
         # Tasks error sdes input.
         self.trace.add(robot.comTask.name + '.error', 'errorCom')

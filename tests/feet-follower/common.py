@@ -24,11 +24,13 @@ def log(logCfg):
     s += "\n"
     logCfg.write(s)
 
-def play(f, maxIter = 4000):
+def play(f, maxIter = 4000, afterStart = None):
     while not f.canStart():
         robot.device.increment(timeStep)
     f.start()
     print("started")
+    if afterStart:
+        afterStart()
 
     # Main.
     #  Main loop

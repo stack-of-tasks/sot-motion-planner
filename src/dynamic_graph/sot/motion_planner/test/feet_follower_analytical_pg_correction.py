@@ -41,7 +41,6 @@ steps = [
 
 
 f = FeetFollowerAnalyticalPgGraph(steps)
-
 f.referenceTrajectory = f.feetFollower
 f.feetFollower = FeetFollowerWithCorrection('correction')
 
@@ -49,10 +48,16 @@ f.feetFollower = FeetFollowerWithCorrection('correction')
 f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
 
 # Set the safety limits.
-f.feetFollower.setSafetyLimits(0.05, 0.05, 0.01)
+maxX = robot.dynamic.getSoleLength () / 4.
+maxY = robot.dynamic.getSoleWidth () / 4.
+maxTheta = 0.01
+f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
+print "Safe limits: %f %f %f" % (maxX, maxY, maxTheta)
 
 # Make up some error value.
-f.feetFollower.offset.value = (0., 0.05, 0.)
+offset = (maxX, maxY, 0.)
+f.feetFollower.offset.value = offset
+print "Offset: %f %f %f" % offset
 
 # Replug.
 plug(f.feetFollower.zmp, robot.device.zmp)
@@ -61,3 +66,14 @@ plug(f.feetFollower.signal('left-ankle'),
      robot.features['left-ankle'].reference)
 plug(f.feetFollower.signal('right-ankle'),
      robot.features['right-ankle'].reference)
+
+# Trace
+def logRef():
+    f.trace.add(f.referenceTrajectory.name + '.com',
+                f.referenceTrajectory.name + '-com')
+    f.trace.add(f.referenceTrajectory.name + '.zmp',
+                f.referenceTrajectory.name + '-zmp')
+    f.trace.add(f.referenceTrajectory.name + '.left-ankle',
+                f.referenceTrajectory.name + '-left-ankle')
+    f.trace.add(f.referenceTrajectory.name + '.right-ankle',
+                f.referenceTrajectory.name + '-right-ankle')

@@ -305,15 +305,26 @@ FeetFollowerWithCorrection::computeNewCorrection ()
 
   bool leftFirst = t1->second == WalkMovement::SUPPORT_FOOT_RIGHT;
 
+  // Feet trajectories intervals.
+  //
+  // The correction must happen *in the air*, so to avoid troubles,
+  // correction should not start exactly at the beginning of the
+  // intervals (and should not stop at the end either).
+
+  // 10%           - 80%        - 10%
+  // no correction - correction - no correction
+  double firstEpsilon = 0.1 * (t2->first - t1->first);
+  double secondEpsilon = 0.1 * (t3->first - t4->first);
+
   sot::ErrorTrajectory::interval_t firstInterval =
     sot::ErrorTrajectory::makeInterval
-    (t1->first, t2->first);
+    (t1->first + firstEpsilon, t2->first - firstEpsilon);
   sot::ErrorTrajectory::interval_t secondInterval =
     sot::ErrorTrajectory::makeInterval
-    (t3->first, t4->first);
+    (t3->first + secondEpsilon, t4->first - secondEpsilon);
   sot::ErrorTrajectory::interval_t comCorrectionInterval =
     sot::ErrorTrajectory::makeInterval
-    (t1->first, t2->first);
+    (t1->first + firstEpsilon * 4., t2->first - firstEpsilon * 4.);
 
   ml::Vector tmp = offsetIn_;
   sot::ErrorTrajectory::vector_t error = tmp.accessToMotherLib ();
