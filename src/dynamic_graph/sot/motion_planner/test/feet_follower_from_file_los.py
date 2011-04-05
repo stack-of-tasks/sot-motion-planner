@@ -20,6 +20,7 @@ from dynamic_graph.sot.motion_planner.feet_follower_graph import *
 from __main__ import robot, solver
 
 
-f = FeetFollowerFromFileGraph("/tmp"
-#    FeetFollowerFromFileGraph.defaultTrajectoryDirectory + '/local_stepper_test'
+f = FeetFollowerFromFileGraph(
+    FeetFollowerFromFileGraph.defaultTrajectoryDirectory
+    + '/local_stepper_test'
     )
