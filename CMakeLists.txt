@@ -31,6 +31,8 @@ SET(PKG_CONFIG_ADDITIONAL_VARIABLES
   plugindir
   )
 
+SET(CXX_DISABLE_WERROR 1)
+
 SETUP_PROJECT()
 
 # Search for dependencies.

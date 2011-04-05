@@ -43,11 +43,13 @@ namespace sot
     assert (getStep (range_) > 0.);
     assert (getUpperBound (range) >= getLowerBound (range));
 
+#ifndef NDEBUG
     double l = getUpperBound (range) - getLowerBound (range);
     assert (l / getStep (range_) == trunc (l / getStep (range_)));
 
     unsigned n = Double2Unsigned::convert (l / getStep (range_));
     assert (n == data.size ());
+#endif //! NDEBUG
   }
 
   DiscretizedTrajectory::DiscretizedTrajectory

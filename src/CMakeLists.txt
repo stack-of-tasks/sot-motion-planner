@@ -85,6 +85,8 @@ SET(PYTHON_TEST_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner/test)
 INSTALL(FILES
   ${PYTHON_TEST_DIR}/feet_follower_analytical_pg_walk_on_a_thread.py
+  ${PYTHON_TEST_DIR}/feet_follower_analytical_pg_step1.py
+  ${PYTHON_TEST_DIR}/feet_follower_analytical_pg_step2.py
   ${PYTHON_TEST_DIR}/feet_follower_from_file_simple.py
   ${PYTHON_TEST_DIR}/feet_follower_from_file_los.py
   ${PYTHON_TEST_DIR}/feet_follower_from_file_walk_on_a_thread.py
