@@ -19,4 +19,18 @@ from dynamic_graph.sot.dynamics.tools import *
 from dynamic_graph.sot.motion_planner.feet_follower_graph import *
 from __main__ import robot, solver
 
-f = FeetFollowerAnalyticalPgGraph()
+# Robot will walk "on a thread".
+steps = [
+    (-1.00, 0.24, 0.25,-0.32, 0.31,-0.00, 0.),
+    (-1.00, 0.24, 0.25, -0.32, 0.31, 0.00, 0.),
+    (-1.00, 0.24, 0.25, -0.32, 0.31,-0.00, 0.),
+    (-1.00, 0.24, 0.25, -0.32, 0.31, 0.00, 0.),
+    (-1.00, 0.24, 0.25, -0.32, 0.31,-0.00, 0.),
+    (-1.00, 0.24, 0.25, -0.32, 0.31, 0.00, 0.),
+    (-1.00, 0.24, 0.25, -0.32, 0.31,-0.00, 0.),
+    (-1.00, 0.24, 0.25, -0.32, 0.31, 0.00, 0.),
+    (-1.00, 0.24, 0.25, -0.32, 0.31,-0.00, 0.),
+    (-1.00, 0.24, 0.25, -0.32, 0.0,  0.19, 0.),
+    ]
+
+f = FeetFollowerAnalyticalPgGraph(steps, robot.dynamic.com.value[2] - 0.02)

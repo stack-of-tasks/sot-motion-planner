@@ -19,6 +19,10 @@ from dynamic_graph.sot.dynamics.tools import *
 from dynamic_graph.sot.motion_planner.feet_follower_graph import *
 from __main__ import robot, solver
 
+from dynamic_graph.corba_server import CorbaServer
+
+corba = CorbaServer('corba')
+
 # first slide # hor distance # max feet height # second slide # x # y # theta
 steps = [
     (0.,    0.31, 0.15, -0.76, 0.25,-0.19, 0.),
@@ -48,3 +52,13 @@ steps = [
 
 
 f = FeetFollowerAnalyticalPgGraph(steps)
+
+def logWaistPos():
+    f.trace.add(corba.name + '.waistPosition',
+                corba.name + '-waistPosition')
+    robot.device.after.addSignal(corba.name + '.waistPosition')
+
+def logWaistPosInteractive():
+    print "Press enter after starting evart-to-corba."
+    raw_input()
+    logWaistPos()

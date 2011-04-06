@@ -180,7 +180,7 @@ class FeetFollowerGraph:
                 and self.postureTask.error.value <=
                 (securityThreshold,) * len(self.postureTask.error.value))
 
-    def start(self):
+    def start(self, beforeStart=None):
         if not self.canStart():
             print("Robot has not yet converged to the initial position,"
                   " please wait and try again.")
@@ -190,6 +190,8 @@ class FeetFollowerGraph:
         robot.tasks['right-ankle'].controlGain.value = 180.
         self.postureTask.controlGain.value = 180.
         self.setupTrace()
+        if beforeStart:
+            beforeStart()
         self.feetFollower.start()
 
 class FeetFollowerFromFileGraph(FeetFollowerGraph):
@@ -218,27 +220,19 @@ class FeetFollowerAnalyticalPgGraph(FeetFollowerGraph):
     # - y
     # - theta
 
-    # Robot will walk "on a thread".
     defaultSteps = [
-        (0.,    0.31, 0.32, -0.76, 0.31,-0.00, 0.),
-        (-1.52, 0.39, 0.40, -0.76, 0.31, 0.00, 0.),
-        (-1.52, 0.39, 0.40, -0.76, 0.31,-0.00, 0.),
-        (-1.52, 0.39, 0.40, -0.76, 0.31, 0.00, 0.),
-        (-1.52, 0.39, 0.40, -0.76, 0.31,-0.00, 0.),
-        (-1.52, 0.39, 0.40, -0.76, 0.31, 0.00, 0.),
-        (-1.52, 0.39, 0.40, -0.76, 0.31,-0.00, 0.),
-        (-1.52, 0.39, 0.40, -0.76, 0.31, 0.00, 0.),
-        (-1.52, 0.39, 0.40, -0.76, 0.31,-0.00, 0.),
-        (-1.52, 0.39, 0.40, -0.76, 0.0,  0.19, 0.),
-
+        (-0.,  0.24, 0.25,-0., 0.31,-0.00, 0.),
         ]
 
-    def __init__(self, steps = defaultSteps):
+    def __init__(self, steps = defaultSteps, comZ = None):
         FeetFollowerGraph.__init__(self)
         self.feetFollower = FeetFollowerAnalyticalPg('feet-follower')
         self.setAnklePosition()
         self.setInitialFeetPosition()
-        self.feetFollower.setComZ(robot.dynamic.com.value[2])
+        if comZ:
+            self.feetFollower.setComZ(comZ)
+        else:
+            self.feetFollower.setComZ(robot.dynamic.com.value[2])
         for step in steps:
             self.feetFollower.pushStep(step)
         self.feetFollower.generateTrajectory()
