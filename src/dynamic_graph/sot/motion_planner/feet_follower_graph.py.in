@@ -144,7 +144,11 @@ class FeetFollowerGraph:
         return tuple(e_)
 
     def computeDesiredValue(self):
-        e = robot.halfSitting
+        e = list(robot.halfSitting)
+        e[23] -= 1.
+        e[25] -= 1.
+        e[30] += 1.
+        e[32] -= 1.
         e_ = [e[3], e[4], e[5]]
         offset = 6 + 2 * 6
         for i in xrange(len(e) - offset):
