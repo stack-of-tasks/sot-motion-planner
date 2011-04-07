@@ -326,8 +326,15 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     sot::ErrorTrajectory::makeInterval
     (t1->first + firstEpsilon * 4., t2->first - firstEpsilon * 4.);
 
-  ml::Vector tmp = offsetIn_;
-  sot::ErrorTrajectory::vector_t error = tmp.accessToMotherLib ();
+  ml::Vector tmp = offsetIn_.accessCopy ();
+  sot::ErrorTrajectory::vector_t error;
+  if (tmp.size () == 3)
+    error = tmp.accessToMotherLib ();
+  else
+    {
+      error.resize (3);
+      error.clear ();
+    }
 
   if (error[0] > 0.)
     error[0] = std::min (error[0], maxErrorX_);

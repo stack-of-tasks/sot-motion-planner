@@ -78,7 +78,3 @@ def logRef():
 
         robot.device.after.addSignal(f.referenceTrajectory.name + '.' + s)
         robot.device.after.addSignal(f.feetFollower.name + '.' + s)
-
-    f.trace.add(f.feetFollower.name + '.offset',
-                f.feetFollower.name + '-offset')
-    robot.device.after.addSignal(f.feetFollower.name + '.offset')
