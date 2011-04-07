@@ -81,10 +81,7 @@ public:
     return referenceTrajectory_->walkMovement ();
   }
 
-  void setReferenceTrajectory (FeetFollower* ptr)
-  {
-    referenceTrajectory_ = ptr;
-  }
+  void setReferenceTrajectory (FeetFollower* ptr);
 
   void setSafetyLimits (const double& maxErrorX,
 			const double& maxErrorY,

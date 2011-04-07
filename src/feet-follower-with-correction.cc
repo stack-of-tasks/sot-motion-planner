@@ -404,3 +404,9 @@ FeetFollowerWithCorrection::updateCorrection ()
     correctionCom_ = previousCorrection * XYThetaToMatrixHomogeneous
       (currentCorrection.comCorrection (time));
 }
+
+void
+FeetFollowerWithCorrection::setReferenceTrajectory (FeetFollower* ptr)
+{
+  referenceTrajectory_ = ptr;
+}

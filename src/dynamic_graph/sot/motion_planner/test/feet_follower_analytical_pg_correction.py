@@ -27,17 +27,19 @@ from dynamic_graph.sot.motion_planner.feet_follower_graph \
 
 # first slide # hor distance # max feet height # second slide # x # y # theta
 steps = [
-    (0.,    0.19, 0.10, -0.62, 0.0,-0.19, 0.),
-    (-1.95, 0.19, 0.10, -0.62, 0.0, 0.19, 0.),
-    (-1.95, 0.19, 0.10, -0.62, 0.0,-0.19, 0.),
-    (-1.95, 0.19, 0.10, -0.62, 0.0, 0.19, 0.),
-    (-1.95, 0.19, 0.10, -0.62, 0.0,-0.19, 0.),
-    (-1.95, 0.19, 0.10, -0.62, 0.0, 0.19, 0.),
-    (-1.95, 0.19, 0.10, -0.62, 0.0,-0.19, 0.),
-    (-1.95, 0.19, 0.10, -0.62, 0.0, 0.19, 0.),
-    (-1.95, 0.19, 0.10, -0.62, 0.0,-0.19, 0.),
-    (-1.95, 0.19, 0.10, -0.62, 0.0,  0.19, 0.),
+    (0.,    0.31, 0.15, -0.76, 0.20,-0.19, 0.),
+    (-1.52, 0.31, 0.15, -0.76, 0.20, 0.15, 0.),
+    (-1.52, 0.31, 0.15, -0.76, 0.20,-0.15, 0.),
+    (-1.52, 0.31, 0.15, -0.76, 0.20, 0.15, 0.),
+    (-1.52, 0.31, 0.15, -0.76, 0.20,-0.15, 0.),
+    (-1.52, 0.31, 0.15, -0.76, 0.20, 0.15, 0.),
+    (-1.52, 0.31, 0.15, -0.76, 0.20,-0.15, 0.),
+    (-1.52, 0.31, 0.15, -0.76, 0.20, 0.15, 0.),
+    (-1.52, 0.31, 0.15, -0.76, 0.20,-0.15, 0.),
+    (-1.52, 0.31, 0.15, -0.76, 0.0,  0.19, 0.),
     ]
+
+
 
 
 f = FeetFollowerAnalyticalPgGraph(steps)
@@ -55,7 +57,7 @@ f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
 print "Safe limits: %f %f %f" % (maxX, maxY, maxTheta)
 
 # Make up some error value.
-offset = (maxX, maxY, 0.)
+offset = (maxX, 0., 0.)
 f.feetFollower.offset.value = offset
 print "Offset: %f %f %f" % offset
 
@@ -69,11 +71,14 @@ plug(f.feetFollower.signal('right-ankle'),
 
 # Trace
 def logRef():
-    f.trace.add(f.referenceTrajectory.name + '.com',
-                f.referenceTrajectory.name + '-com')
-    f.trace.add(f.referenceTrajectory.name + '.zmp',
-                f.referenceTrajectory.name + '-zmp')
-    f.trace.add(f.referenceTrajectory.name + '.left-ankle',
-                f.referenceTrajectory.name + '-left-ankle')
-    f.trace.add(f.referenceTrajectory.name + '.right-ankle',
-                f.referenceTrajectory.name + '-right-ankle')
+    signals = ['com', 'zmp', 'left-ankle', 'right-ankle']
+    for s in signals:
+        f.trace.add(f.referenceTrajectory.name + '.' + s,
+                    f.referenceTrajectory.name + '-' + s)
+
+        robot.device.after.addSignal(f.referenceTrajectory.name + '.' + s)
+        robot.device.after.addSignal(f.feetFollower.name + '.' + s)
+
+    f.trace.add(f.feetFollower.name + '.offset',
+                f.feetFollower.name + '-offset')
+    robot.device.after.addSignal(f.feetFollower.name + '.offset')

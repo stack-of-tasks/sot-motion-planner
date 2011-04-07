@@ -64,10 +64,12 @@ class FeetFollowerGraph:
             robot.features['right-ankle'].reference.value)
 
     def setup(self):
+        initialGain = 1.
+
         # Lower the gains to reduce the initial velocity.
-        robot.comTask.controlGain.value = 5.
-        robot.tasks['left-ankle'].controlGain.value = 5.
-        robot.tasks['right-ankle'].controlGain.value = 5.
+        robot.comTask.controlGain.value = initialGain
+        robot.tasks['left-ankle'].controlGain.value = initialGain
+        robot.tasks['right-ankle'].controlGain.value = initialGain
 
         # Make sure the CoM is converging toward the starting
         # CoM of the trajectory.
@@ -100,7 +102,7 @@ class FeetFollowerGraph:
         self.postureFeature.sdes.value = self.postureFeatureDes
 
         self.postureTask.add(self.postureFeature.name)
-        self.postureTask.controlGain.value = 1.
+        self.postureTask.controlGain.value = initialGain
 
         if type(robot.device) == RobotSimu:
             solver.sot.push(robot.comTask.name)

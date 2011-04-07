@@ -202,6 +202,26 @@ class FeetFollower : public dg::Entity
   virtual void impl_start ()
   {}
 
+  signalCoM_t& comOut ()
+  {
+    return comOut_;
+  }
+
+  signalCoM_t& zmpOut ()
+  {
+    return zmpOut_;
+  }
+
+  signalFoot_t& leftAnkleOut ()
+  {
+    return leftAnkleOut_;
+  }
+
+  signalFoot_t& rightAnkleOut ()
+  {
+    return rightAnkleOut_;
+  }
+
 protected:
   virtual void impl_update () = 0;
 
