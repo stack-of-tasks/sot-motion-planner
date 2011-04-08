@@ -193,11 +193,12 @@ namespace
 		   WalkMovement::SupportFoot supportFoot)
   {
     typedef std::pair<double, WalkMovement::SupportFoot> iter_t;
+
     BOOST_FOREACH (const iter_t& e, movement.supportFoot)
       {
 	if (e.first > t)
 	  return false;
-	if (e.first == t)
+	if (std::fabs (e.first - t) < 1e-3)
 	  return e.second == supportFoot;
       }
     return false;
@@ -247,7 +248,7 @@ namespace
 void
 FeetFollowerWithCorrection::computeNewCorrection ()
 {
-  const double& time = referenceTrajectory_->getTime ();
+  const double time = referenceTrajectory_->getTrajectoryTime ();
 
   if (!isDoubleSupportStart (*referenceTrajectory_->walkMovement (), time)
       || !correctionIsFinished (corrections_, time))
@@ -376,6 +377,7 @@ FeetFollowerWithCorrection::computeNewCorrection ()
       leftFirst ? firstInterval  : secondInterval,
       leftFirst ? secondInterval : firstInterval,
       comCorrectionInterval, error));
+  //std::cout << "Adding new correction, offset = " << tmp << std::endl;
 }
 
 void
@@ -384,7 +386,7 @@ FeetFollowerWithCorrection::updateCorrection ()
   if (!referenceTrajectory_ || !started_)
     return;
 
-  const double& time = referenceTrajectory_->getTime ();
+  const double time = referenceTrajectory_->getTrajectoryTime ();
 
   computeNewCorrection ();
 

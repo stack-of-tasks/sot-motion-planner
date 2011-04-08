@@ -40,6 +40,8 @@
 namespace ml = ::maal::boost;
 namespace dg = ::dynamicgraph;
 
+static const double STEP = 0.005; //FIXME:
+
 namespace sot
 {
   using namespace ::dynamicgraph::sot;
@@ -94,6 +96,7 @@ FeetFollower::FeetFollower (const std::string& name)
     initialLeftAnklePosition_ (),
     initialRightAnklePosition_ (),
     started_ (false),
+    startTime_ (-1.),
     comOut_ (INIT_SIGNAL_OUT ("com", FeetFollower::updateCoM, "Vector")),
     zmpOut_ (INIT_SIGNAL_OUT ("zmp", FeetFollower::updateZmp, "Vector")),
     leftAnkleOut_
@@ -134,6 +137,81 @@ FeetFollower::FeetFollower (const std::string& name)
 
 FeetFollower::~FeetFollower ()
 {}
+
+void
+FeetFollower::start ()
+{
+  started_ = true;
+  startTime_ = t_ * STEP;
+  impl_start ();
+}
+
+void
+FeetFollower::update (int t)
+{
+  if (t <= t_)
+    return;
+  t_ = t;
+  impl_update ();
+}
+
+ml::Vector&
+FeetFollower::updateCoM (ml::Vector& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = com_;
+  return res;
+}
+
+ml::Vector&
+FeetFollower::updateZmp (ml::Vector& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = zmp_;
+  return res;
+}
+
+sot::MatrixHomogeneous&
+FeetFollower::updateLeftAnkle (sot::MatrixHomogeneous& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = leftAnkle_;
+  return res;
+}
+
+sot::MatrixHomogeneous&
+FeetFollower::updateRightAnkle (sot::MatrixHomogeneous& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = rightAnkle_;
+  return res;
+}
+
+double
+FeetFollower::getTime () const
+{
+  return t_ * STEP;
+}
+
+double
+FeetFollower::getTrajectoryTime () const
+{
+  if (!started_)
+    return 0.;
+  return getTime () - startTime_;
+}
+
+double
+FeetFollower::startTime () const
+{
+  return startTime_;
+}
+
+
 
 namespace command
 {

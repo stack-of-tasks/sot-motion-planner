@@ -146,56 +146,17 @@ class FeetFollower : public dg::Entity
     return CLASS_NAME;
   }
 
-  void start ()
-  {
-    started_ = true;
-    impl_start ();
-  }
+  void start ();
+  void update (int t);
+  ml::Vector& updateCoM (ml::Vector& res, int t);
+  ml::Vector& updateZmp (ml::Vector& res, int t);
+  sot::MatrixHomogeneous& updateLeftAnkle (sot::MatrixHomogeneous& res, int t);
+  sot::MatrixHomogeneous& updateRightAnkle (sot::MatrixHomogeneous& res, int t);
+  double getTime () const;
 
-  void update (int t)
-  {
-     if (t <= t_)
-       return;
-    t_ = t;
-    impl_update ();
-  }
-
-  ml::Vector& updateCoM (ml::Vector& res, int t)
-  {
-    if (t > t_)
-      update (t);
-    res = com_;
-    return res;
-  }
-
-  ml::Vector& updateZmp (ml::Vector& res, int t)
-  {
-    if (t > t_)
-      update (t);
-    res = zmp_;
-    return res;
-  }
-
-  sot::MatrixHomogeneous& updateLeftAnkle (sot::MatrixHomogeneous& res, int t)
-  {
-    if (t > t_)
-      update (t);
-    res = leftAnkle_;
-    return res;
-  }
-
-  sot::MatrixHomogeneous& updateRightAnkle (sot::MatrixHomogeneous& res, int t)
-  {
-     if (t > t_)
-      update (t);
-    res = rightAnkle_;
-    return res;
-  }
-
-  double getTime ()
-  {
-    return t_ * 0.005; //FIXME:
-  }
+  /// \brief Returns the current time index on the trajectory.
+  /// I.e. time - startTime (0 means the trajectory replay just began)
+  double getTrajectoryTime () const;
 
   virtual boost::optional<const WalkMovement&> walkMovement () const = 0;
 
@@ -222,6 +183,8 @@ class FeetFollower : public dg::Entity
     return rightAnkleOut_;
   }
 
+  double startTime () const;
+
 protected:
   virtual void impl_update () = 0;
 
@@ -238,6 +201,7 @@ protected:
   sot::MatrixHomogeneous initialRightAnklePosition_;
 
   bool started_;
+  double startTime_;
 
   signalCoM_t comOut_;
   signalCoM_t zmpOut_;
