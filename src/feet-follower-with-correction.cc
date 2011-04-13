@@ -369,7 +369,7 @@ FeetFollowerWithCorrection::computeNewCorrection ()
   if (corrections_.size () > 1 && corrections_[corrections_.size () - 1])
     previousCorrection =
       corrections_[corrections_.size () - 1]->positionError;
-  positionError = previousCorrection * XYThetaToMatrixHomogeneous (error);
+  positionError = XYThetaToMatrixHomogeneous (error) * previousCorrection;
 
   corrections_.push_back
     (boost::make_shared<Correction>
@@ -404,14 +404,15 @@ FeetFollowerWithCorrection::updateCorrection ()
     previousCorrection = corrections_[corrections_.size () - 1]->positionError;
 
   if (contain (time, currentCorrection.leftAnkleCorrection))
-    correctionLeftAnkle_ = previousCorrection * XYThetaToMatrixHomogeneous
-      (currentCorrection.leftAnkleCorrection (time));
+    correctionLeftAnkle_ = XYThetaToMatrixHomogeneous
+      (currentCorrection.leftAnkleCorrection (time)) * previousCorrection;
   if (contain (time, currentCorrection.rightAnkleCorrection))
-    correctionRightAnkle_ = previousCorrection * XYThetaToMatrixHomogeneous
-      (currentCorrection.rightAnkleCorrection (time));
+    correctionRightAnkle_ = XYThetaToMatrixHomogeneous
+      (currentCorrection.rightAnkleCorrection (time)) * previousCorrection;
   if (contain (time, currentCorrection.comCorrection))
-    correctionCom_ = previousCorrection * XYThetaToMatrixHomogeneous
-      (currentCorrection.comCorrection (time));
+    correctionCom_ = XYThetaToMatrixHomogeneous
+      (currentCorrection.comCorrection (time)) * previousCorrection;
+
 }
 
 void
