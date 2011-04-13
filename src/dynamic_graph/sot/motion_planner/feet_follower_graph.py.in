@@ -151,7 +151,7 @@ class FeetFollowerGraph:
         e[25] -= 1.
         e[30] += 1.
         e[32] -= 1.
-        e_ = [e[3], e[4], e[5]]
+        e_ = [e[3], e[4]]
         offset = 6 + 2 * 6
         for i in xrange(len(e) - offset):
             e_.append(e[offset + i])
@@ -162,7 +162,7 @@ class FeetFollowerGraph:
         j = []
 
         for i in xrange(36):
-            if i == 3 or i == 4 or i == 5 or i >= 6 + 2 * 6:
+            if i == 3 or i == 4 or i >= 6 + 2 * 6:
                 j.append(oneVector(i))
         return tuple(j)
 
