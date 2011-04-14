@@ -215,6 +215,16 @@ namespace
 	    && t <= trajectory.getUpperBound (trajectory.getRange ()));
   }
 
+  bool before (const double& t, const sot::ErrorTrajectory& trajectory)
+  {
+    return t < trajectory.getLowerBound (trajectory.getRange ());
+  }
+
+  bool after (const double& t, const sot::ErrorTrajectory& trajectory)
+  {
+    return t > trajectory.getUpperBound (trajectory.getRange ());
+  }
+
   bool
   correctionIsFinished
   (const std::vector<boost::shared_ptr<Correction> >& corrections,
@@ -366,9 +376,13 @@ FeetFollowerWithCorrection::computeNewCorrection ()
   sot::MatrixHomogeneous previousCorrection;
   sot::MatrixHomogeneous positionError;
 
-  if (corrections_.size () > 1 && corrections_[corrections_.size () - 1])
+  previousCorrection.setIdentity ();
+  positionError.setIdentity ();
+
+  if (!corrections_.empty () && corrections_[corrections_.size () - 1])
     previousCorrection =
       corrections_[corrections_.size () - 1]->positionError;
+
   positionError = XYThetaToMatrixHomogeneous (error) * previousCorrection;
 
   corrections_.push_back
@@ -377,12 +391,17 @@ FeetFollowerWithCorrection::computeNewCorrection ()
       leftFirst ? firstInterval  : secondInterval,
       leftFirst ? secondInterval : firstInterval,
       comCorrectionInterval, error));
-  //std::cout << "Adding new correction, offset = " << tmp << std::endl;
+
+  std::cout << "Adding new correction, offset = " << tmp << std::endl;
 }
 
 void
 FeetFollowerWithCorrection::updateCorrection ()
 {
+  correctionLeftAnkle_.setIdentity ();
+  correctionRightAnkle_.setIdentity ();
+  correctionCom_.setIdentity ();
+
   if (!referenceTrajectory_ || !started_)
     return;
 
@@ -400,19 +419,23 @@ FeetFollowerWithCorrection::updateCorrection ()
 
   sot::MatrixHomogeneous previousCorrection;
 
-  if (corrections_.size () > 1 && corrections_[corrections_.size () - 1])
-    previousCorrection = corrections_[corrections_.size () - 1]->positionError;
+  if (corrections_.size () > 1 && corrections_[corrections_.size () - 2])
+    previousCorrection = corrections_[corrections_.size () - 2]->positionError;
 
-  if (contain (time, currentCorrection.leftAnkleCorrection))
+  if (before (time, currentCorrection.leftAnkleCorrection))
+    correctionLeftAnkle_ = previousCorrection;
+  else if (contain (time, currentCorrection.leftAnkleCorrection))
     correctionLeftAnkle_ = XYThetaToMatrixHomogeneous
       (currentCorrection.leftAnkleCorrection (time)) * previousCorrection;
+  else if (after (time, currentCorrection.leftAnkleCorrection))
+    correctionLeftAnkle_ = currentCorrection.positionError;
+
   if (contain (time, currentCorrection.rightAnkleCorrection))
     correctionRightAnkle_ = XYThetaToMatrixHomogeneous
       (currentCorrection.rightAnkleCorrection (time)) * previousCorrection;
   if (contain (time, currentCorrection.comCorrection))
     correctionCom_ = XYThetaToMatrixHomogeneous
       (currentCorrection.comCorrection (time)) * previousCorrection;
-
 }
 
 void
