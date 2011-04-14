@@ -142,11 +142,18 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
     steps.push_back (initialStep (i));
 
   for (unsigned i = 0; i < steps_.size (); ++i)
-    for (unsigned j = 0; j < steps_[i].size (); ++j)
-      {
-	assert (steps_[i].size () == 7);
+    {
+      assert (steps_[i].size () == 7);
+
+      // Make sure that slides coefficients are valid.
+      if (steps_[0] < -1.52 || steps_[0] > 0.)
+	raise "invalid first slide";
+      if (steps_[3] < -0.76 || steps_[3] > 0.)
+	raise "invalid second slide";
+
+      for (unsigned j = 0; j < steps_[i].size (); ++j)
 	steps.push_back (steps_[i] (j));
-      }
+    }
 
   pg.produceSeqSlidedHalfStepFeatures
     (stepFeatures, STEP, comZ_, g,
