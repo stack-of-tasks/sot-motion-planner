@@ -53,6 +53,8 @@ SET(FEET_FOLLOWER_SOURCES
   feet-follower-analytical-pg.cc analytical-pg/newPGstepStudy.cpp
   feet-follower-with-correction.cc
 
+  randomizer.cc randomizer.hh
+
   posture-error.cc)
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
