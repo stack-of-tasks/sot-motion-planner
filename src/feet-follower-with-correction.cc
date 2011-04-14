@@ -184,6 +184,8 @@ FeetFollowerWithCorrection::impl_start ()
   if (!referenceTrajectory_)
     return;
   referenceTrajectory_->start ();
+
+  computeNewCorrection ();
 }
 
 namespace
@@ -260,8 +262,9 @@ FeetFollowerWithCorrection::computeNewCorrection ()
 {
   const double time = referenceTrajectory_->getTrajectoryTime ();
 
-  if (!isDoubleSupportStart (*referenceTrajectory_->walkMovement (), time)
-      || !correctionIsFinished (corrections_, time))
+  if (time > 0.
+      && (!isDoubleSupportStart (*referenceTrajectory_->walkMovement (), time)
+	  || !correctionIsFinished (corrections_, time)))
     return;
 
   const WalkMovement::supportFoot_t& supportFoot =
@@ -337,7 +340,11 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     sot::ErrorTrajectory::makeInterval
     (t1->first + firstEpsilon, t2->first - firstEpsilon);
 
-  ml::Vector tmp = offsetIn_.access (t_);
+  ml::Vector tmp (3);
+  tmp.setZero ();
+  if (offsetIn_.access (t_).size () == 3)
+    tmp = offsetIn_.access (t_);
+
   sot::ErrorTrajectory::vector_t error;
   if (tmp.size () == 3)
     error = tmp.accessToMotherLib ();
@@ -369,9 +376,15 @@ FeetFollowerWithCorrection::computeNewCorrection ()
   // end of the next step, it leftFirst is true, next time it will
   // be false.
   if (leftFirst && error[1] < 0.)
-    return;
+    {
+      std::cout << "Delaying correction (dx < 0) at t = " << t_ << std::endl;
+      return;
+    }
   if (!leftFirst && error[1] > 0.)
-    return;
+    {
+      std::cout << "Delaying correction (dx > 0) at t = " << t_ << std::endl;
+      return;
+    }
 
   sot::MatrixHomogeneous previousCorrection;
   sot::MatrixHomogeneous positionError;
@@ -392,7 +405,9 @@ FeetFollowerWithCorrection::computeNewCorrection ()
       leftFirst ? secondInterval : firstInterval,
       comCorrectionInterval, error));
 
-  std::cout << "Adding new correction, offset = " << tmp << std::endl;
+  std::cout
+    << "Adding new correction, offset = " << tmp
+    << ", t = " << t_ << std::endl;
 }
 
 void
@@ -430,12 +445,21 @@ FeetFollowerWithCorrection::updateCorrection ()
   else if (after (time, currentCorrection.leftAnkleCorrection))
     correctionLeftAnkle_ = currentCorrection.positionError;
 
-  if (contain (time, currentCorrection.rightAnkleCorrection))
+  if (before (time, currentCorrection.rightAnkleCorrection))
+    correctionRightAnkle_ = previousCorrection;
+  else if (contain (time, currentCorrection.rightAnkleCorrection))
     correctionRightAnkle_ = XYThetaToMatrixHomogeneous
       (currentCorrection.rightAnkleCorrection (time)) * previousCorrection;
-  if (contain (time, currentCorrection.comCorrection))
+  else
+    correctionRightAnkle_ = currentCorrection.positionError;
+
+  if (before (time, currentCorrection.comCorrection))
+    correctionCom_ = previousCorrection;
+  else if (contain (time, currentCorrection.comCorrection))
     correctionCom_ = XYThetaToMatrixHomogeneous
       (currentCorrection.comCorrection (time)) * previousCorrection;
+  else
+    correctionCom_ = currentCorrection.positionError;
 }
 
 void
