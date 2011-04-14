@@ -327,7 +327,7 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     sot::ErrorTrajectory::makeInterval
     (t1->first + firstEpsilon * 4., t2->first - firstEpsilon * 4.);
 
-  ml::Vector tmp = offsetIn_.accessCopy ();
+  ml::Vector tmp = offsetIn_.access (t_);
   sot::ErrorTrajectory::vector_t error;
   if (tmp.size () == 3)
     error = tmp.accessToMotherLib ();

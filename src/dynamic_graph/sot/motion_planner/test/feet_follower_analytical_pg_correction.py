@@ -21,7 +21,7 @@ from __main__ import robot, solver
 
 from dynamic_graph import plug
 from dynamic_graph.sot.motion_planner \
-    import Localizer, FeetFollowerWithCorrection
+    import Localizer, FeetFollowerWithCorrection, Randomizer
 from dynamic_graph.sot.motion_planner.feet_follower_graph \
     import FeetFollowerAnalyticalPgGraph
 
@@ -50,16 +50,16 @@ f.feetFollower = FeetFollowerWithCorrection('correction')
 f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
 
 # Set the safety limits.
-maxX = robot.dynamic.getSoleLength () / 4.
-maxY = robot.dynamic.getSoleWidth () / 4.
-maxTheta = 0.01
+#   Checked safety limits.
+(maxX, maxY, maxTheta) = (.1, .05, .01)
+
 f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
 print "Safe limits: %f %f %f" % (maxX, maxY, maxTheta)
 
 # Make up some error value.
-offset = (maxX, 0., 0.)
-f.feetFollower.offset.value = offset
-print "Offset: %f %f %f" % offset
+r = Randomizer('r')
+r.addSignal('offset', 3)
+plug (r.offset, f.feetFollower.offset)
 
 # Replug.
 plug(f.feetFollower.zmp, robot.device.zmp)
