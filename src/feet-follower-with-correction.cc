@@ -324,8 +324,8 @@ FeetFollowerWithCorrection::computeNewCorrection ()
 
   // 10%           - 80%        - 10%
   // no correction - correction - no correction
-  double firstEpsilon = 0.1 * (t2->first - t1->first);
-  double secondEpsilon = 0.1 * (t3->first - t4->first);
+  double firstEpsilon = 0. * (t2->first - t1->first);
+  double secondEpsilon = 0. * (t3->first - t4->first);
 
   sot::ErrorTrajectory::interval_t firstInterval =
     sot::ErrorTrajectory::makeInterval
@@ -335,7 +335,7 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     (t3->first + secondEpsilon, t4->first - secondEpsilon);
   sot::ErrorTrajectory::interval_t comCorrectionInterval =
     sot::ErrorTrajectory::makeInterval
-    (t1->first + firstEpsilon * 4., t2->first - firstEpsilon * 4.);
+    (t1->first + firstEpsilon, t2->first - firstEpsilon);
 
   ml::Vector tmp = offsetIn_.access (t_);
   sot::ErrorTrajectory::vector_t error;
