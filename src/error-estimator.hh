@@ -19,6 +19,7 @@
 # include <string>
 # include <utility>
 
+# include <boost/date_time/posix_time/posix_time_types.hpp>
 # include <boost/shared_ptr.hpp>
 
 # include <jrl/mal/boost.hh>
@@ -50,6 +51,8 @@ class FeetFollower;
 class ErrorEstimator : public dg::Entity
 {
  public:
+  typedef boost::posix_time::ptime ptime_t;
+
   static const std::string CLASS_NAME;
 
   typedef dg::SignalPtr<ml::Vector, int> signalVectorIn_t;
@@ -69,6 +72,8 @@ class ErrorEstimator : public dg::Entity
   ml::Vector& updateError (ml::Vector& res, int);
 
 protected:
+  size_t timestampToIndex (const ml::Vector& timestamp);
+
   void worldTransformation (const ml::Matrix& wt)
   {
     worldTransformation_ = wt;
@@ -88,7 +93,7 @@ protected:
 
   FeetFollower* referenceTrajectory_;
 
-  std::vector<sot::MatrixHomogeneous> waistPositions_;
+  std::vector<std::pair<ptime_t, sot::MatrixHomogeneous> > waistPositions_;
   bool started_;
 };
 

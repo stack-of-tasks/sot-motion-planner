@@ -85,7 +85,7 @@ if enableMocap:
     plug(corba.waistPositionTimestamp, f.errorEstimator.positionTimestamp)
 else:
     f.errorEstimator.position.value = (0., 0., 0.)
-    f.errorEstimator.positionTimestamp.value = (0.,)
+    f.errorEstimator.positionTimestamp.value = (0., 0.)
 
 # Replug.
 plug(f.feetFollower.zmp, robot.device.zmp)

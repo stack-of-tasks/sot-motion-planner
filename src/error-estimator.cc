@@ -14,11 +14,18 @@
 // received a copy of the GNU Lesser General Public License along with
 // sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
+#include <boost/numeric/conversion/converter.hpp>
+#include <boost/date_time/date.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/foreach.hpp>
+
 #include <dynamic-graph/command-setter.h>
 
 #include "common.hh"
 #include "error-estimator.hh"
 #include "set-reference-trajectory.hh"
+
+static const int STEPS_PER_SECOND = 200;
 
 ErrorEstimator::ErrorEstimator (const std::string& name)
   : dg::Entity (name),
@@ -51,14 +58,35 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
 ErrorEstimator::~ErrorEstimator ()
 {}
 
-namespace
+// FIXME: don't use the current one but synchronize to take
+// into account the delay in packet transmission.
+size_t
+ErrorEstimator::timestampToIndex (const ml::Vector& timestamp)
 {
-  // FIXME: don't use the current one but synchronize to take
-  // into account the delay in packet transmission.
-  size_t timestampToIndex (const double& timestamp)
-  {
-    return 0;
-  }
+  using namespace boost::gregorian;
+  using namespace boost::posix_time;
+
+  typedef boost::numeric::converter<long int, double> Double2Long;
+
+  long int sec = Double2Long::convert (timestamp (0));
+  long int usec = Double2Long::convert (timestamp (1));
+  ptime_t time (date(1970,1,1), seconds (sec) + microseconds (usec));
+
+  typedef boost::numeric::converter<size_t, int64_t> Int64_t2Size_t;
+
+  typedef std::pair<ptime_t, sot::MatrixHomogeneous> pair_t;
+
+  BOOST_FOREACH (const pair_t& e, waistPositions_)
+    {
+      if (e.first >= time)
+	{
+	  int64_t idx =
+	    time_duration::ticks_per_second () /
+	    ((e.first - time).ticks () * STEPS_PER_SECOND);
+	  return Int64_t2Size_t::convert (idx);
+	}
+    }
+  return 0;
 }
 
 ml::Vector&
@@ -83,16 +111,18 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
 
   //FIXME: here we suppose implicit sync between feet follower and
   //error estimation.
-  waistPositions_.push_back (waist_ (t));
+  waistPositions_.push_back
+    (std::make_pair (boost::posix_time::microsec_clock::universal_time (),
+		     waist_ (t)));
 
-  if (positionTimestamp_ (t).size () != 1)
+  if (positionTimestamp_ (t).size () != 2)
     return res;
-  size_t index = timestampToIndex (positionTimestamp_ (t) (0));
+  size_t index = timestampToIndex (positionTimestamp_ (t));
 
   if (index >= waistPositions_.size ())
     return res;
 
-  sot::MatrixHomogeneous planned = waistPositions_[index];
+  sot::MatrixHomogeneous planned = waistPositions_[index].second;
   sot::MatrixHomogeneous estimated = worldTransformation_ *
     XYThetaToMatrixHomogeneous (position_ (t));
 
