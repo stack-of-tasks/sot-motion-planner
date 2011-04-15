@@ -31,6 +31,8 @@
 # include <dynamic-graph/signal-time-dependent.h>
 # include <dynamic-graph/signal-ptr.h>
 
+# include <sot/core/matrix-homogeneous.hh>
+
 # include "common.hh"
 # include "discretized-trajectory.hh"
 # include "feet-follower.hh"
@@ -64,7 +66,15 @@ class ErrorEstimator : public dg::Entity
   void setReferenceTrajectory (FeetFollower* ptr);
 
   ml::Vector& updateError (ml::Vector& res, int);
+
 protected:
+  void worldTransformation (const ml::Matrix& wt)
+  {
+    worldTransformation_ = wt;
+  }
+
+  sot::MatrixHomogeneous worldTransformation_;
+
   /// \brief Robot position (X, Y, theta)
   signalVectorIn_t position_;
   /// \brief Planned robot position in the real robot frame.

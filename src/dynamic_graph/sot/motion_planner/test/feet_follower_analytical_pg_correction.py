@@ -21,9 +21,19 @@ from __main__ import robot, solver
 
 from dynamic_graph import plug
 from dynamic_graph.sot.motion_planner \
-    import Localizer, FeetFollowerWithCorrection, Randomizer
+    import Localizer, FeetFollowerWithCorrection, Randomizer, ErrorEstimator
 from dynamic_graph.sot.motion_planner.feet_follower_graph \
     import FeetFollowerAnalyticalPgGraph
+
+from dynamic_graph.corba_server import CorbaServer
+
+enableMocap=False
+
+# Launch corba server.
+corba = CorbaServer('corba')
+
+if enableMocap:
+    raw_input("Start evart-to-client, please.")
 
 # first slide # hor distance # max feet height # second slide # x # y # theta
 steps = [
@@ -57,9 +67,22 @@ f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
 print "Safe limits: %f %f %f" % (maxX, maxY, maxTheta)
 
 # Make up some error value.
-r = Randomizer('r')
-r.addSignal('offset', 3)
-plug (r.offset, f.feetFollower.offset)
+f.randomizer = Randomizer('r')
+f.randomizer.addSignal('offset', 3)
+plug (f.randomizer.offset, f.feetFollower.offset)
+
+f.errorEstimator = ErrorEstimator('error_estimator')
+f.errorEstimator.setReferenceTrajectory(f.referenceTrajectory.name)
+#plug(f.errorEstimator.error, f.feetFollower.offset)
+
+# Motion capture
+if enableMocap:
+    #FIXME: here we are supposing that the dg world frame matches
+    # the tile frame.
+    f.errorEstimator.setWorldTransformation(corba.tilePosition.value)
+    plug(corba.waistPosition, f.errorEstimator.position)
+else:
+    f.errorEstimator.position.value = (0., 0., 0.)
 
 # Replug.
 plug(f.feetFollower.zmp, robot.device.zmp)
@@ -81,3 +104,6 @@ def logRef():
 
     f.trace.add(f.feetFollower.name + '.' + 'offset',
                 f.feetFollower.name + '-' + 'offset')
+
+    f.trace.add(f.errorEstimator.name + '.' + 'error',
+                f.errorEstimator.name + '-' + 'error')

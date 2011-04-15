@@ -14,21 +14,32 @@
 // received a copy of the GNU Lesser General Public License along with
 // sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
+#include <dynamic-graph/command-setter.h>
+
 #include "common.hh"
 #include "error-estimator.hh"
 #include "set-reference-trajectory.hh"
 
 ErrorEstimator::ErrorEstimator (const std::string& name)
   : dg::Entity (name),
+    worldTransformation_ (),
     position_ (dg::nullptr,
 	       MAKE_SIGNAL_STRING (name, true, "Vector", "position")),
     error_ (INIT_SIGNAL_OUT ("error", ErrorEstimator::updateError, "Vector")),
-    referenceTrajectory_ ()
+    referenceTrajectory_ (dg::nullptr)
 {
+  signalRegistration (position_ << error_);
+
+  error_.setNeedUpdateFromAllChildren (true);
+
   std::string docstring;
   addCommand ("setReferenceTrajectory",
 	      new command::SetReferenceTrajectory<ErrorEstimator>
 	      (*this, docstring));
+
+  addCommand ("setWorldTransformation",
+	      new dg::command::Setter<ErrorEstimator, ml::Matrix>
+	      (*this, &ErrorEstimator::worldTransformation, docstring));
 }
 
 ErrorEstimator::~ErrorEstimator ()
@@ -46,17 +57,18 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
 
   referenceTrajectory_->update (t);
   
-  sot::MatrixHomogeneous la = referenceTrajectory_->leftAnkleOut ();
+  ml::Vector com_ = referenceTrajectory_->comOut ();
+  sot::MatrixHomogeneous com = XYThetaToMatrixHomogeneous (com_);
 
   // FIXME: waist position here.
-  sot::MatrixHomogeneous planned = la;
+  sot::MatrixHomogeneous planned = com;
 
   // FIXME: don't use the current one but synchronize to take
   // into account the delay in packet transmision.
-  sot::MatrixHomogeneous estimated =
+  sot::MatrixHomogeneous estimated = worldTransformation_ *
     XYThetaToMatrixHomogeneous (position_ (t));
 
-  sot::MatrixHomogeneous error = estimated * planned.inverse ();
+  sot::MatrixHomogeneous error = planned * estimated.inverse ();
   res = MatrixHomogeneousToXYTheta (error);
   return res;
 }
