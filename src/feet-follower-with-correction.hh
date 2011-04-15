@@ -96,6 +96,15 @@ public:
   }
 
   virtual void impl_start ();
+
+  virtual boost::optional<int>
+  trajectorySize () const
+  {
+    if (!referenceTrajectory_)
+      return boost::optional<int> ();
+    return referenceTrajectory_->trajectorySize ();
+  }
+
 protected:
   virtual void impl_update ();
   void updateCorrection ();

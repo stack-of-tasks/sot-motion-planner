@@ -46,6 +46,14 @@ public:
     return *trajectories_;
   }
 
+  virtual boost::optional<int>
+  trajectorySize () const
+  {
+    if (!trajectories_)
+      return boost::optional<int> ();
+    return trajectories_->leftFoot.trajectorySize ();
+  }
+
 private:
   virtual void impl_update ();
 

@@ -53,6 +53,7 @@ class ErrorEstimator : public dg::Entity
   static const std::string CLASS_NAME;
 
   typedef dg::SignalPtr<ml::Vector, int> signalVectorIn_t;
+  typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalMatrixHomoIn_t;
   typedef dg::SignalTimeDependent<ml::Vector, int> signalVectorOut_t;
 
   explicit ErrorEstimator (const std::string& name);
@@ -77,10 +78,18 @@ protected:
 
   /// \brief Robot position (X, Y, theta)
   signalVectorIn_t position_;
+  /// \brief Robot position timestamp (time)
+  signalVectorIn_t positionTimestamp_;
+
+  /// \brief Current waist position.
+  signalMatrixHomoIn_t waist_;
   /// \brief Planned robot position in the real robot frame.
   signalVectorOut_t error_;
 
   FeetFollower* referenceTrajectory_;
+
+  std::vector<sot::MatrixHomogeneous> waistPositions_;
+  bool started_;
 };
 
 #endif //! SOT_MOTION_PLANNER_ERROR_ESTIMATOR_HH

@@ -73,6 +73,7 @@ plug (f.randomizer.offset, f.feetFollower.offset)
 
 f.errorEstimator = ErrorEstimator('error_estimator')
 f.errorEstimator.setReferenceTrajectory(f.referenceTrajectory.name)
+plug(robot.dynamic.waist, f.errorEstimator.waist)
 #plug(f.errorEstimator.error, f.feetFollower.offset)
 
 # Motion capture
@@ -81,8 +82,10 @@ if enableMocap:
     # the tile frame.
     f.errorEstimator.setWorldTransformation(corba.tilePosition.value)
     plug(corba.waistPosition, f.errorEstimator.position)
+    plug(corba.waistPositionTimestamp, f.errorEstimator.positionTimestamp)
 else:
     f.errorEstimator.position.value = (0., 0., 0.)
+    f.errorEstimator.positionTimestamp.value = (0.,)
 
 # Replug.
 plug(f.feetFollower.zmp, robot.device.zmp)

@@ -46,6 +46,11 @@ namespace sot
       return range_;
     }
 
+    size_t trajectorySize () const
+    {
+      return discretizedData_.size ();
+    }
+
   private:
     virtual void impl_compute (result_t& result, const value_type& t)
       const throw ();

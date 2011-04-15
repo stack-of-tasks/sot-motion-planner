@@ -25,11 +25,17 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
     worldTransformation_ (),
     position_ (dg::nullptr,
 	       MAKE_SIGNAL_STRING (name, true, "Vector", "position")),
+    positionTimestamp_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING (name, true, "Vector", "positionTimestamp")),
+    waist_ (dg::nullptr,
+	    MAKE_SIGNAL_STRING (name, true, "Vector", "waist")),
     error_ (INIT_SIGNAL_OUT ("error", ErrorEstimator::updateError, "Vector")),
-    referenceTrajectory_ (dg::nullptr)
+    referenceTrajectory_ (dg::nullptr),
+    waistPositions_ (),
+    started_ (false)
 {
-  signalRegistration (position_ << error_);
-
+  signalRegistration (position_ << positionTimestamp_ << waist_ << error_);
   error_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
@@ -45,6 +51,16 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
 ErrorEstimator::~ErrorEstimator ()
 {}
 
+namespace
+{
+  // FIXME: don't use the current one but synchronize to take
+  // into account the delay in packet transmission.
+  size_t timestampToIndex (const double& timestamp)
+  {
+    return 0;
+  }
+}
+
 ml::Vector&
 ErrorEstimator::updateError (ml::Vector& res, int t)
 {
@@ -56,15 +72,27 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
     return res;
 
   referenceTrajectory_->update (t);
-  
-  ml::Vector com_ = referenceTrajectory_->comOut ();
-  sot::MatrixHomogeneous com = XYThetaToMatrixHomogeneous (com_);
 
-  // FIXME: waist position here.
-  sot::MatrixHomogeneous planned = com;
+  if (referenceTrajectory_->started () && !started_)
+    {
+      boost::optional<int> size = referenceTrajectory_->trajectorySize ();
+      assert (size);
+      waistPositions_.reserve (*size);
+      started_ = true;
+    }
 
-  // FIXME: don't use the current one but synchronize to take
-  // into account the delay in packet transmision.
+  //FIXME: here we suppose implicit sync between feet follower and
+  //error estimation.
+  waistPositions_.push_back (waist_ (t));
+
+  if (positionTimestamp_ (t).size () != 1)
+    return res;
+  size_t index = timestampToIndex (positionTimestamp_ (t) (0));
+
+  if (index >= waistPositions_.size ())
+    return res;
+
+  sot::MatrixHomogeneous planned = waistPositions_[index];
   sot::MatrixHomogeneous estimated = worldTransformation_ *
     XYThetaToMatrixHomogeneous (position_ (t));
 
@@ -77,6 +105,7 @@ void
 ErrorEstimator::setReferenceTrajectory (FeetFollower* ptr)
 {
   referenceTrajectory_ = ptr;
+  started_ = false;
 }
 
 

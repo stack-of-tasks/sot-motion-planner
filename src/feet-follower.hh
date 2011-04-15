@@ -190,6 +190,9 @@ class FeetFollower : public dg::Entity
 
   double startTime () const;
 
+  /// \brief Number of steps (positions) in the trajectory.
+  virtual boost::optional<int> trajectorySize () const = 0;
+
 protected:
   virtual void impl_update () = 0;
 
