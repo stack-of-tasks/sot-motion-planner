@@ -30,9 +30,6 @@
 #include <dynamic-graph/null-ptr.hh>
 #include <dynamic-graph/signal-time-dependent.h>
 #include <dynamic-graph/signal-ptr.h>
-#include <sot/core/matrix-homogeneous.hh>
-#include <sot/core/matrix-rotation.hh>
-#include <sot/core/vector-roll-pitch-yaw.hh>
 
 #include "common.hh"
 #include "feet-follower-with-correction.hh"
@@ -41,34 +38,6 @@ namespace ublas = boost::numeric::ublas;
 
 namespace command
 {
-  SetReferenceTrajectory::SetReferenceTrajectory
-  (FeetFollowerWithCorrection& entity, const std::string& docstring)
-    : Command (entity, boost::assign::list_of (Value::STRING), docstring)
-  {}
-
-  Value SetReferenceTrajectory::doExecute ()
-  {
-    FeetFollowerWithCorrection& entity =
-      static_cast<FeetFollowerWithCorrection&> (owner ());
-
-    std::vector<Value> values = getParameterValues ();
-    std::string name = values[0].value ();
-
-    FeetFollower* referenceTrajectory = 0;
-    if (dynamicgraph::g_pool.existEntity (name))
-      {
-	referenceTrajectory =
-	  dynamic_cast<FeetFollower*> (&dynamicgraph::g_pool.getEntity (name));
-	if (!referenceTrajectory)
-	  std::cerr << "entity is not a FeetFollower" << std::endl;
-      }
-    else
-      std::cerr << "invalid entity name" << std::endl;
-
-    entity.setReferenceTrajectory (referenceTrajectory);
-    return Value ();
-  }
-
   SetSafetyLimits::SetSafetyLimits
   (FeetFollowerWithCorrection& entity, const std::string& docstring)
     : Command
@@ -96,25 +65,6 @@ namespace command
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(FeetFollowerWithCorrection,
 				   "FeetFollowerWithCorrection");
 
-sot::MatrixHomogeneous
-XYThetaToMatrixHomogeneous (const sot::ErrorTrajectory::vector_t& xytheta)
-{
-  assert (xytheta.size () == 3);
-  ml::Vector t (3);
-  t (0) = xytheta[0];
-  t (1) = xytheta[1];
-  t (2) = 0.;
-
-  sot::VectorRollPitchYaw vR;
-  vR (2) = xytheta[2];
-  sot::MatrixRotation R;
-  vR.toMatrix (R);
-  sot::MatrixHomogeneous res;
-  res.buildFrom (R, t);
-  return res;
-}
-
-
 FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
   : FeetFollower (name),
     referenceTrajectory_ (),
@@ -138,7 +88,8 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
 
   std::string docstring = "";
   addCommand ("setReferenceTrajectory",
-	      new command::SetReferenceTrajectory (*this, docstring));
+	      new command::SetReferenceTrajectory<FeetFollowerWithCorrection>
+	      (*this, docstring));
 
   addCommand ("setSafetyLimits",
 	      new command::SetSafetyLimits (*this, docstring));

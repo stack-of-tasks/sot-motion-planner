@@ -48,6 +48,8 @@ SET(FEET_FOLLOWER_SOURCES
   discretized-trajectory.cc
   error-trajectory.cc
 
+  error-estimator.cc
+
   feet-follower.cc
   feet-follower-from-file.cc
   feet-follower-analytical-pg.cc analytical-pg/newPGstepStudy.cpp

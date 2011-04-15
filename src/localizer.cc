@@ -51,11 +51,6 @@
 //
 //
 //
-
-namespace ml = maal::boost;
-namespace dg = dynamicgraph;
-namespace sot = dg::sot;
-
 class Localizer;
 
 namespace command

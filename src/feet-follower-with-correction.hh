@@ -18,10 +18,13 @@
 # include <string>
 
 # include <dynamic-graph/command.h>
+# include <dynamic-graph/signal-ptr.h>
 # include <sot/core/matrix-homogeneous.hh>
 
 # include "error-trajectory.hh"
 # include "feet-follower.hh"
+
+# include "set-reference-trajectory.hh"
 
 struct Correction
 {
@@ -120,14 +123,6 @@ namespace command
   using ::dynamicgraph::command::Command;
   using ::dynamicgraph::command::Value;
 
-  class SetReferenceTrajectory : public Command
-  {
-  public:
-    SetReferenceTrajectory (FeetFollowerWithCorrection& entity,
-			    const std::string& docstring);
-    virtual Value doExecute ();
-  };
-
   class SetSafetyLimits : public Command
   {
   public:
@@ -135,7 +130,6 @@ namespace command
 		     const std::string& docstring);
     virtual Value doExecute ();
   };
-
 } // end of namespace command.
 
 

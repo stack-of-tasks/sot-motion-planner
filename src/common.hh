@@ -17,6 +17,10 @@
 # include <boost/bind.hpp>
 # include <boost/format.hpp>
 
+# include <sot/core/matrix-homogeneous.hh>
+# include <sot/core/matrix-rotation.hh>
+# include <sot/core/vector-roll-pitch-yaw.hh>
+
 inline std::string
 makeSignalString (const std::string& className,
 		  const std::string& instanceName,
@@ -48,5 +52,63 @@ makeSignalString (const std::string& className,
   boost::bind(&METHOD_NAME, this, _1, _2),				\
     dg::sotNOSIGNAL,							\
     MAKE_SIGNAL_STRING(name, false, TYPE, SIGNAL_NAME)
+
+
+namespace ml = ::maal::boost;
+namespace dg = ::dynamicgraph;
+
+namespace sot
+{
+  using namespace ::dynamicgraph::sot;
+}
+
+inline sot::MatrixHomogeneous
+XYThetaToMatrixHomogeneous (const ml::Vector& xytheta)
+{
+  assert (xytheta.size () == 3);
+  ml::Vector t (3);
+  t (0) = xytheta (0);
+  t (1) = xytheta (1);
+  t (2) = 0.;
+
+  sot::VectorRollPitchYaw vR;
+  vR (2) = xytheta (2);
+  sot::MatrixRotation R;
+  vR.toMatrix (R);
+  sot::MatrixHomogeneous res;
+  res.buildFrom (R, t);
+  return res;
+}
+
+template <typename T>
+sot::MatrixHomogeneous
+XYThetaToMatrixHomogeneous (const T& xytheta)
+{
+  assert (xytheta.size () == 3);
+  ml::Vector t (3);
+  t (0) = xytheta[0];
+  t (1) = xytheta[1];
+  t (2) = 0.;
+
+  sot::VectorRollPitchYaw vR;
+  vR (2) = xytheta[2];
+  sot::MatrixRotation R;
+  vR.toMatrix (R);
+  sot::MatrixHomogeneous res;
+  res.buildFrom (R, t);
+  return res;
+}
+
+template <typename T>
+ml::Vector
+MatrixHomogeneousToXYTheta (const T& M)
+{
+  ml::Vector res (3);
+  res (0) = M (0, 3);
+  res (1) = M (1, 3);
+  res (2) = atan2 (M (1, 0), M (0, 0));
+  return res;
+}
+
 
 #endif //! SOT_MOTION_PLANNER_COMMON_HH

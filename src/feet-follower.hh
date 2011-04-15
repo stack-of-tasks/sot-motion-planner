@@ -183,6 +183,11 @@ class FeetFollower : public dg::Entity
     return rightAnkleOut_;
   }
 
+  bool started () const
+  {
+    return started_;
+  }
+
   double startTime () const;
 
 protected:
