@@ -70,6 +70,8 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
     referenceTrajectory_ (),
     offsetIn_
     (dg::nullptr, MAKE_SIGNAL_STRING (name, true, "Vector", "offset")),
+    waistIn_
+    (dg::nullptr, MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "waist")),
     correctionLeftAnkle_ (),
     correctionRightAnkle_ (),
     correctionCom_ (),
@@ -84,7 +86,7 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
   comOut_.addDependency (offsetIn_);
   zmpOut_.addDependency (offsetIn_);
 
-  signalRegistration (offsetIn_);
+  signalRegistration (offsetIn_ << waistIn_);
 
   std::string docstring = "";
   addCommand ("setReferenceTrajectory",
@@ -289,7 +291,7 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     (t3->first + secondEpsilon, t4->first - secondEpsilon);
   sot::ErrorTrajectory::interval_t comCorrectionInterval =
     sot::ErrorTrajectory::makeInterval
-    (t1->first + firstEpsilon, t2->first - firstEpsilon);
+    (t1->first + 0.15 + 0.95, t1->first + 0.15 + 1.05);
 
   ml::Vector tmp (3);
   tmp.setZero ();
@@ -337,6 +339,12 @@ FeetFollowerWithCorrection::computeNewCorrection ()
       return;
     }
 
+  sot::ErrorTrajectory::vector_t errorW =
+    MatrixHomogeneousToXYTheta
+    (waistIn_ (t_)
+     * XYThetaToMatrixHomogeneous (error)
+     * waistIn_ (t_).inverse ()).accessToMotherLib ();
+
   sot::MatrixHomogeneous previousCorrection;
   sot::MatrixHomogeneous positionError;
 
@@ -347,17 +355,17 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     previousCorrection =
       corrections_[corrections_.size () - 1]->positionError;
 
-  positionError = XYThetaToMatrixHomogeneous (error) * previousCorrection;
+  positionError = XYThetaToMatrixHomogeneous (errorW) * previousCorrection;
 
   corrections_.push_back
     (boost::make_shared<Correction>
      (positionError,
       leftFirst ? firstInterval  : secondInterval,
       leftFirst ? secondInterval : firstInterval,
-      comCorrectionInterval, error));
+      comCorrectionInterval, errorW));
 
   std::cout
-    << "Adding new correction, offset = " << tmp
+    << "Adding new correction, offset = " << errorW
     << ", t = " << t_ << std::endl;
 }
 
@@ -387,6 +395,8 @@ FeetFollowerWithCorrection::updateCorrection ()
 
   if (corrections_.size () > 1 && corrections_[corrections_.size () - 2])
     previousCorrection = corrections_[corrections_.size () - 2]->positionError;
+  else
+    previousCorrection.setIdentity ();
 
   if (before (time, currentCorrection.leftAnkleCorrection))
     correctionLeftAnkle_ = previousCorrection;

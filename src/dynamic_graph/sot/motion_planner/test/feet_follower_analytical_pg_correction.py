@@ -59,9 +59,11 @@ f.feetFollower = FeetFollowerWithCorrection('correction')
 # Set the reference trajectory.
 f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
 
+plug(robot.dynamic.waist, f.feetFollower.waist)
+
 # Set the safety limits.
 #   Checked safety limits.
-(maxX, maxY, maxTheta) = (.1, .05, .01)
+(maxX, maxY, maxTheta) = (.08, .05, .2)
 
 f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
 print "Safe limits: %f %f %f" % (maxX, maxY, maxTheta)

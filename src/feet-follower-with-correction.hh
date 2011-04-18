@@ -65,7 +65,9 @@ class FeetFollowerWithCorrection : public FeetFollower
 {
 public:
   /// \brief Vector input signal.
-  typedef dg::SignalPtr<ml::Vector, int> signalInVector_t;
+  typedef dg::SignalPtr<ml::Vector, int> signalVectorIn_t;
+
+  typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalMatrixHomoIn_t;
 
   static const std::string CLASS_NAME;
 
@@ -113,7 +115,9 @@ protected:
 
 private:
   FeetFollower* referenceTrajectory_;
-  signalInVector_t offsetIn_;
+
+  signalVectorIn_t offsetIn_;
+  signalMatrixHomoIn_t waistIn_;
 
   sot::MatrixHomogeneous correctionLeftAnkle_;
   sot::MatrixHomogeneous correctionRightAnkle_;

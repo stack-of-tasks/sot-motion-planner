@@ -190,6 +190,16 @@ class FeetFollower : public dg::Entity
 
   double startTime () const;
 
+  const sot::MatrixHomogeneous& leftFootToAnkle () const
+  {
+    return leftFootToAnkle_;
+  }
+
+  const sot::MatrixHomogeneous& rightFootToAnkle () const
+  {
+    return rightFootToAnkle_;
+  }
+
   /// \brief Number of steps (positions) in the trajectory.
   virtual boost::optional<int> trajectorySize () const = 0;
 
