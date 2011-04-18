@@ -62,8 +62,8 @@ f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
 plug(robot.dynamic.waist, f.feetFollower.waist)
 
 # Set the safety limits.
-#   Checked safety limits.
-(maxX, maxY, maxTheta) = (.08, .05, .2)
+# Max rotation alone: 3.14/8.
+(maxX, maxY, maxTheta) = (0.1, 0.1, 3.14/10.)
 
 f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
 print "Safe limits: %f %f %f" % (maxX, maxY, maxTheta)

@@ -208,6 +208,56 @@ namespace
       }
     return supportFoot.end ();
   }
+
+  // If the correction goes toward left, do it with left foot first,
+  // otherwise do it with right foot first.
+  //
+  // Here we abandon current correction and will retry at the
+  // end of the next step, it leftFirst is true, next time it will
+  // be false.
+  bool shouldDelayCorrection (bool leftFirst,
+			      boost::shared_ptr<Correction> correction,
+			      const sot::MatrixHomogeneous& previousCorrection,
+			      const FeetFollower* referenceTrajectory,
+			      const double& t)
+  {
+    double nextStepTime = leftFirst ?
+      correction->leftAnkleCorrection.getRange ().second
+      : correction->rightAnkleCorrection.getRange ().second;
+
+    const sot::Trajectory::vector_t& foot =
+      leftFirst ?
+      referenceTrajectory->walkMovement ()->leftFoot (nextStepTime)
+      : referenceTrajectory->walkMovement ()->rightFoot (nextStepTime);
+
+    sot::MatrixHomogeneous ankle =
+      referenceTrajectory->walkMovement ()->wMs *
+      transformPgFrameIntoAnkleFrame
+      (foot[0], foot[1], foot[2], foot[3],
+       leftFirst ?
+       referenceTrajectory->leftFootToAnkle ()
+       : referenceTrajectory->rightFootToAnkle ());
+
+    ankle =
+      XYThetaToMatrixHomogeneous
+      (leftFirst ?
+       correction->leftAnkleCorrection (nextStepTime)
+       : correction->rightAnkleCorrection (nextStepTime))
+      * previousCorrection
+      * ankle;
+
+    if (leftFirst && ankle (1, 3) < 0.)
+      {
+	std::cout << "Delaying correction at t = " << t << std::endl;
+	return true;
+      }
+    if (!leftFirst && ankle (1, 3) > 0.)
+      {
+	std::cout << "Delaying correction at t = " << t << std::endl;
+	return true;
+      }
+    return false;
+  }
 } // end of anonymous namespace.
 
 void
@@ -322,23 +372,8 @@ FeetFollowerWithCorrection::computeNewCorrection ()
   else
     error[2] = -std::min (-error[2], maxErrorTheta_);
 
-  // If the correction goes toward left, do it with left foot first,
-  // otherwise do it with right foot first.
-  //
-  // Here we abandon current correction and will retry at the
-  // end of the next step, it leftFirst is true, next time it will
-  // be false.
-  if (leftFirst && error[1] < 0.)
-    {
-      std::cout << "Delaying correction (dx < 0) at t = " << t_ << std::endl;
-      return;
-    }
-  if (!leftFirst && error[1] > 0.)
-    {
-      std::cout << "Delaying correction (dx > 0) at t = " << t_ << std::endl;
-      return;
-    }
-
+  // Express the error in the world frame instead
+  // of the waist frame.
   sot::ErrorTrajectory::vector_t errorW =
     MatrixHomogeneousToXYTheta
     (waistIn_ (t_)
@@ -357,12 +392,19 @@ FeetFollowerWithCorrection::computeNewCorrection ()
 
   positionError = XYThetaToMatrixHomogeneous (errorW) * previousCorrection;
 
-  corrections_.push_back
-    (boost::make_shared<Correction>
-     (positionError,
-      leftFirst ? firstInterval  : secondInterval,
-      leftFirst ? secondInterval : firstInterval,
-      comCorrectionInterval, errorW));
+  boost::shared_ptr<Correction> correction =
+    boost::make_shared<Correction>
+    (positionError,
+     leftFirst ? firstInterval  : secondInterval,
+     leftFirst ? secondInterval : firstInterval,
+     comCorrectionInterval, errorW);
+
+  if (shouldDelayCorrection (leftFirst,
+			     correction,
+			     previousCorrection,
+			     referenceTrajectory_, t_))
+    return;
+  corrections_.push_back (correction);
 
   std::cout
     << "Adding new correction, offset = " << errorW
