@@ -218,6 +218,8 @@ namespace
   bool shouldDelayCorrection (bool leftFirst,
 			      boost::shared_ptr<Correction> correction,
 			      const sot::MatrixHomogeneous& previousCorrection,
+			      const sot::MatrixHomogeneous& leftAnkle,
+			      const sot::MatrixHomogeneous& rightAnkle,
 			      const FeetFollower* referenceTrajectory,
 			      const double& t)
   {
@@ -245,6 +247,11 @@ namespace
        : correction->rightAnkleCorrection (nextStepTime))
       * previousCorrection
       * ankle;
+
+    // compute the new ankle position in the frame of the
+    // old ankle position.
+    ankle = ankle
+      * (leftFirst ? leftAnkle.inverse () : rightAnkle.inverse ());
 
     if (leftFirst && ankle (1, 3) < 0.)
       {
@@ -402,6 +409,8 @@ FeetFollowerWithCorrection::computeNewCorrection ()
   if (shouldDelayCorrection (leftFirst,
 			     correction,
 			     previousCorrection,
+			     leftAnkle_,
+			     rightAnkle_,
 			     referenceTrajectory_, t_))
     return;
   corrections_.push_back (correction);
