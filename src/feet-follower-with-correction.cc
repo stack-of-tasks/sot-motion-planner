@@ -255,12 +255,14 @@ namespace
 
     if (leftFirst && ankle (1, 3) < 0.)
       {
-	std::cout << "Delaying correction at t = " << t << std::endl;
+	std::cout << "Delaying correction at t = " << t
+		  << ", " << (leftFirst ? 'l' : 'r') << std::endl;
 	return true;
       }
     if (!leftFirst && ankle (1, 3) > 0.)
       {
-	std::cout << "Delaying correction at t = " << t << std::endl;
+	std::cout << "Delaying correction at t = " << t
+		  << ", " << (leftFirst ? 'l' : 'r') << std::endl;
 	return true;
       }
     return false;
@@ -417,7 +419,8 @@ FeetFollowerWithCorrection::computeNewCorrection ()
 
   std::cout
     << "Adding new correction, offset = " << errorW
-    << ", t = " << t_ << std::endl;
+    << ", t = " << t_
+    << ", " << (leftFirst ? 'l' : 'r') << std::endl;
 }
 
 void
