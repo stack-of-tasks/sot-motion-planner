@@ -45,10 +45,10 @@ namespace sot
 
 #ifndef NDEBUG
     double l = getUpperBound (range) - getLowerBound (range);
-    assert (l / getStep (range_) == trunc (l / getStep (range_)));
-
     unsigned n = Double2Unsigned::convert (l / getStep (range_));
-    assert (n == data.size ());
+
+    assert (n * getStep (range_) - l < 1e-6);
+    assert (l / getStep (range_) - data.size () < 1e-6);
 #endif //! NDEBUG
   }
 
