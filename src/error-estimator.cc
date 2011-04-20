@@ -70,21 +70,19 @@ ErrorEstimator::timestampToIndex (const ml::Vector& timestamp)
 
   long int sec = Double2Long::convert (timestamp (0));
   long int usec = Double2Long::convert (timestamp (1));
-  ptime_t time (date(1970,1,1), seconds (sec) + microseconds (usec));
+
+  //FIXME: fail at midnight.
+  ptime_t time (day_clock::universal_day (), seconds (sec) + microseconds (usec));
 
   typedef boost::numeric::converter<size_t, int64_t> Int64_t2Size_t;
 
-  typedef std::pair<ptime_t, sot::MatrixHomogeneous> pair_t;
+  typedef boost::tuple<ptime_t, int, sot::MatrixHomogeneous> pair_t;
 
-  BOOST_FOREACH (const pair_t& e, waistPositions_)
+  for (unsigned i = 0; i < waistPositions_.size (); ++i)
     {
-      if (e.first >= time)
-	{
-	  int64_t idx =
-	    time_duration::ticks_per_second () /
-	    ((e.first - time).ticks () * STEPS_PER_SECOND);
-	  return Int64_t2Size_t::convert (idx);
-	}
+      const pair_t& e = waistPositions_[waistPositions_.size () - 1 - i];
+      if (boost::get<0> (e) < time)
+	return waistPositions_.size () - 1 - i;
     }
   return 0;
 }
