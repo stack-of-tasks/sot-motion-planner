@@ -15,6 +15,9 @@
 # received a copy of the GNU Lesser General Public License along with
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+from math import cos, sin
+import numpy as np
+
 from dynamic_graph.sot.core import RobotSimu
 from dynamic_graph.sot.dynamics.tools import *
 from dynamic_graph.sot.motion_planner.feet_follower_graph import *
@@ -68,6 +71,24 @@ plug(robot.dynamic.waist, f.errorEstimator.waist)
 
 robot.device.after.addSignal(robot.dynamic.name + '.' + 'waist')
 
+def matrixToTuple(M):
+    tmp = M.tolist()
+    res = []
+    for i in tmp:
+        res.append(tuple(i))
+    return tuple(res)
+
+def computeWorldTransformation():
+    theta = corba.waistPosition.value[2]
+    M = np.matrix(
+        (( cos (theta),-sin (theta), 0., corba.waistPosition.value[0]),
+         ( sin (theta), cos (theta), 0., corba.waistPosition.value[1]),
+         (          0.,          0., 1., 0.),
+         (          0.,          0., 0., 1.))
+        )
+    return matrixToTuple(np.matrix(robot.dynamic.waist.value)
+                         * np.linalg.inv(M))
+
 def plugMocap():
     if len(corba.signals()) == 3:
         print ("evart-to-client not launched, abandon.")
@@ -77,19 +98,7 @@ def plugMocap():
     #FIXME: here we are supposing that the dg world frame matches
     # the tile frame.
     #f.errorEstimator.setWorldTransformation(corba.tilePosition.value)
-
-    (x, y, z) = (
-        corba.waistPosition.value[0],
-        corba.waistPosition.value[1],
-        0.
-        )
-    M = ((1., 0., 0., -x),
-         (0., 1., 0., -y),
-         (0., 0., 1., -z),
-         (0., 0., 0., 1.))
-    print (M)
-
-    f.errorEstimator.setWorldTransformation(M)
+    f.errorEstimator.setWorldTransformation(computeWorldTransformation())
 
     plug(corba.waistPosition, f.errorEstimator.position)
     plug(corba.waistPositionTimestamp, f.errorEstimator.positionTimestamp)
