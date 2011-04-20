@@ -110,8 +110,9 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
   //FIXME: here we suppose implicit sync between feet follower and
   //error estimation.
   waistPositions_.push_back
-    (std::make_pair (boost::posix_time::microsec_clock::universal_time (),
-		     waist_ (t)));
+    (boost::make_tuple
+     (boost::posix_time::microsec_clock::universal_time (),
+      t, waist_ (t)));
 
   if (positionTimestamp_ (t).size () != 2)
     return res;
@@ -120,7 +121,7 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
   if (index >= waistPositions_.size ())
     return res;
 
-  sot::MatrixHomogeneous planned = waistPositions_[index].second;
+  sot::MatrixHomogeneous planned = boost::get<2> (waistPositions_[index]);
   sot::MatrixHomogeneous estimated = worldTransformation_ *
     XYThetaToMatrixHomogeneous (position_ (t));
 

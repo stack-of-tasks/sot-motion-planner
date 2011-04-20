@@ -21,6 +21,7 @@
 
 # include <boost/date_time/posix_time/posix_time_types.hpp>
 # include <boost/shared_ptr.hpp>
+# include <boost/tuple/tuple.hpp>
 
 # include <jrl/mal/boost.hh>
 
@@ -93,7 +94,8 @@ protected:
 
   FeetFollower* referenceTrajectory_;
 
-  std::vector<std::pair<ptime_t, sot::MatrixHomogeneous> > waistPositions_;
+  std::vector<boost::tuple<ptime_t, unsigned, sot::MatrixHomogeneous> >
+  waistPositions_;
   bool started_;
 };
 
