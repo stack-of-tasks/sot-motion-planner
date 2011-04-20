@@ -81,11 +81,11 @@ def plugMocap():
     (x, y, z) = (
         corba.waistPosition.value[0],
         corba.waistPosition.value[1],
-        robot.dynamic.waist.value[3][3]
+        0.
         )
-    M = ((1., 0., 0., x),
-         (0., 1., 0., y),
-         (0., 0., 1., z),
+    M = ((1., 0., 0., -x),
+         (0., 1., 0., -y),
+         (0., 0., 1., -z),
          (0., 0., 0., 1.))
     print (M)
 
@@ -110,12 +110,17 @@ else:
 
 
 def logRef():
-    f.trace.add(corba.name + '.waistPosition',
-                corba.name + '-waistPosition')
-    robot.device.after.addSignal(corba.name + '.waistPosition')
+    if enableMocap:
+        f.trace.add(corba.name + '.waistPosition',
+                    corba.name + '-waistPosition')
+        robot.device.after.addSignal(corba.name + '.waistPosition')
 
     f.trace.add(f.errorEstimator.name + '.' + 'error',
                 f.errorEstimator.name + '-' + 'error')
     robot.device.after.addSignal(f.errorEstimator.name + '.' + 'error')
+
+    f.trace.add(robot.dynamic.name + '.' + 'waist',
+                robot.dynamic.name + '-' + 'waist')
+    robot.device.after.addSignal(robot.dynamic.name + '.' + 'waist')
 
 logWaistPosInteractive = logRef
