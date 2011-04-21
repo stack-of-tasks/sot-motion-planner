@@ -45,10 +45,6 @@ class FeetFollowerGraph:
     def __init__(self):
         pass
 
-    def __del__(self):
-        if self.trace:
-            self.trace.dump()
-
     def setAnklePosition(self):
         # Setup feet to ankle transformation.
         anklePosL = robot.dynamic.getAnklePositionInFootFrame()
