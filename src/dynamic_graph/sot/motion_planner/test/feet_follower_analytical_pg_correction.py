@@ -15,7 +15,7 @@
 # received a copy of the GNU Lesser General Public License along with
 # sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
-from math import cos, sin
+from math import cos, sin, atan2
 import numpy as np
 
 from dynamic_graph.sot.core import RobotSimu
@@ -33,9 +33,15 @@ from dynamic_graph.corba_server import CorbaServer
 
 onRobot=type(robot.device) != RobotSimu
 enableMocap=True
+enableCorrection=True
+enableOffsetFromErrorEstimator=False
 
-print("Is this the robot? " + str(onRobot))
-print("Are we using mocap? "+ str(enableMocap))
+print("* Is this the robot? " + str(onRobot))
+print("* Are we using mocap? "+ str(enableMocap))
+print("* Is correction enabled? "+ str(enableCorrection))
+print("* Is correction coming from error estimator (mocap)? "+
+      str(enableOffsetFromErrorEstimator))
+print("")
 
 # Launch corba server.
 corba = CorbaServer('corba')
@@ -45,10 +51,10 @@ steps = [
     (0.,    0.31, 0.15, -0.76, 0.20,-0.19, 0.),
     (-1.52, 0.31, 0.15, -0.76, 0.20, 0.15, 0.),
     (-1.52, 0.31, 0.15, -0.76, 0.20,-0.15, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.20, 0.15, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.20,-0.15, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.20, 0.15, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.20,-0.15, 0.),
+#    (-1.52, 0.31, 0.15, -0.76, 0.20, 0.15, 0.),
+#    (-1.52, 0.31, 0.15, -0.76, 0.20,-0.15, 0.),
+#    (-1.52, 0.31, 0.15, -0.76, 0.20, 0.15, 0.),
+#    (-1.52, 0.31, 0.15, -0.76, 0.20,-0.15, 0.),
     (-1.52, 0.31, 0.15, -0.76, 0.20, 0.15, 0.),
     (-1.52, 0.31, 0.15, -0.76, 0.20,-0.15, 0.),
     (-1.52, 0.31, 0.15, -0.76, 0.0,  0.19, 0.),
@@ -56,42 +62,49 @@ steps = [
 
 
 f = FeetFollowerAnalyticalPgGraph(steps)
-f.referenceTrajectory = f.feetFollower
-f.feetFollower = FeetFollowerWithCorrection('correction')
-
-# Set the reference trajectory.
-f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
-
-plug(robot.dynamic.waist, f.feetFollower.waist)
-
-# Set the safety limits.
-# Max rotation alone: 3.14/8.
-#(maxX, maxY, maxTheta) = (0.06, 0.03, 0.05)
-
-(maxX, maxY, maxTheta) = (0.04, 0.04, 0.05)
-
-(maxX, maxY, maxTheta) = (0., 0., 0.)
-
-f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
-print ("Safe limits: %f %f %f" % (maxX, maxY, maxTheta))
-
-# Make up some error value.
-f.randomizer = Randomizer('r')
-f.randomizer.addSignal('offset', 3)
-plug (f.randomizer.offset, f.feetFollower.offset)
 
 f.errorEstimator = ErrorEstimator('error_estimator')
+
+if enableCorrection:
+    f.referenceTrajectory = f.feetFollower
+    f.feetFollower = FeetFollowerWithCorrection('correction')
+
+    # Set the reference trajectory.
+    f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
+
+    plug(robot.dynamic.waist, f.feetFollower.waist)
+
+    # Set the safety limits.
+    # Max rotation alone: 3.14/8.
+    #(maxX, maxY, maxTheta) = (0.06, 0.03, 0.05)
+
+    (maxX, maxY, maxTheta) = (0.04, 0.04, 0.05)
+
+    (maxX, maxY, maxTheta) = (0., 0., 0.)
+
+    f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
+    print ("Safe limits: %f %f %f" % (maxX, maxY, maxTheta))
+
+    # Replug.
+    plug(f.feetFollower.zmp, robot.device.zmp)
+    plug(f.feetFollower.com, robot.featureComDes.errorIN)
+    plug(f.feetFollower.signal('left-ankle'),
+         robot.features['left-ankle'].reference)
+    plug(f.feetFollower.signal('right-ankle'),
+         robot.features['right-ankle'].reference)
+
+# Setup error estimator.
 f.errorEstimator.setReferenceTrajectory(f.referenceTrajectory.name)
 plug(robot.dynamic.waist, f.errorEstimator.waist)
-#plug(f.errorEstimator.error, f.feetFollower.offset)
 
-# Replug.
-plug(f.feetFollower.zmp, robot.device.zmp)
-plug(f.feetFollower.com, robot.featureComDes.errorIN)
-plug(f.feetFollower.signal('left-ankle'),
-     robot.features['left-ankle'].reference)
-plug(f.feetFollower.signal('right-ankle'),
-     robot.features['right-ankle'].reference)
+if enableCorrection:
+    if enableOffsetFromErrorEstimator:
+        plug(f.errorEstimator.error, f.feetFollower.offset)
+    else:
+        # Make up some error value.
+        f.randomizer = Randomizer('r')
+        f.randomizer.addSignal('offset', 3)
+        plug (f.randomizer.offset, f.feetFollower.offset)
 
 def matrixToTuple(M):
     tmp = M.tolist()
@@ -100,31 +113,57 @@ def matrixToTuple(M):
         res.append(tuple(i))
     return tuple(res)
 
-def computeWorldTransformation():
-    theta = corba.waistPosition.value[2]
-    M = np.matrix(
-        (( cos (theta),-sin (theta), 0., corba.waistPosition.value[0]),
-         ( sin (theta), cos (theta), 0., corba.waistPosition.value[1]),
+def XYThetaToHomogeneousMatrix(x):
+    theta = x[2]
+    return np.matrix(
+        (( cos (theta),-sin (theta), 0., x[0]),
+         ( sin (theta), cos (theta), 0., x[1]),
          (          0.,          0., 1., 0.),
          (          0.,          0., 0., 1.))
         )
+def HomogeneousMatrixToXYZTheta(x):
+    x = np.mat(x)
+    return (x[0,3], x[1,3], x[2,3], atan2(x[1,1], x[0,0]))
+
+def computeWorldTransformationFromWaist():
+    M = XYThetaToHomogeneousMatrix(corba.waistPosition.value)
     return matrixToTuple(np.matrix(robot.dynamic.waist.value)
                          * np.linalg.inv(M))
+
+# sMm -> position of the mocap frame in the sot frame.
+def computeWorldTransformationFromTiles():
+    print corba.tiles.value
+    theta = corba.tiles.value[2]
+    # Tiles position in the mocap frame.
+    tMm = XYThetaToHomogeneousMatrix(corba.tiles.value)
+    # Tiles position in the SoT frame.
+    #sMt = np.matrix(
+    #    (( 1., 0., 0., -0.1),
+    #     ( 0., 1., 0., -0.1 + 0.19 / 2.),
+    #     ( 0., 0., 1., 0.),
+    #     ( 0., 0., 0., 1.))
+    #    )
+    wMm = XYThetaToHomogeneousMatrix(corba.waistPosition.value)
+    sMt = wMm * np.linalg.inv(tMm)
+    return matrixToTuple(sMt * tMm)
 
 def plugMocap():
     if len(corba.signals()) == 3:
         print ("evart-to-client not launched, abandon.")
         return
-    #raw_input("Start evart-to-client, please.")
+    robot.dynamic.waist.recompute(1)
+    #sMm = computeWorldTransformationFromTiles()
+    sMm = computeWorldTransformationFromWaist()
+    print("World transformation:")
+    print(HomogeneousMatrixToXYZTheta(sMm))
+    f.errorEstimator.setWorldTransformation(sMm)
 
-    #FIXME: here we are supposing that the dg world frame matches
-    # the tile frame.
-    #f.errorEstimator.setWorldTransformation(corba.tilePosition.value)
-
-    f.errorEstimator.setWorldTransformation(computeWorldTransformation())
+    #f.errorEstimator.setWorldTransformation(computeWorldTransformationFromWaist())
 
     plug(corba.waistPosition, f.errorEstimator.position)
     plug(corba.waistPositionTimestamp, f.errorEstimator.positionTimestamp)
+    print ("Initial error:")
+    print (f.errorEstimator.error.value)
 
 # Motion capture
 if enableMocap:
