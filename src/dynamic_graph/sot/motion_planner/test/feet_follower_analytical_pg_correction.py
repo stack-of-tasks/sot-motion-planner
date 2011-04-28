@@ -64,9 +64,9 @@ steps = [
 f = FeetFollowerAnalyticalPgGraph(steps)
 
 f.errorEstimator = ErrorEstimator('error_estimator')
+f.referenceTrajectory = f.feetFollower
 
 if enableCorrection:
-    f.referenceTrajectory = f.feetFollower
     f.feetFollower = FeetFollowerWithCorrection('correction')
 
     # Set the reference trajectory.
@@ -193,8 +193,9 @@ def logRef():
     f.trace.add(robot.dynamic.name + '.' + 'waist',
                 robot.dynamic.name + '-' + 'waist')
 
-    f.trace.add(f.feetFollower.name + '.' + 'offset',
-                f.feetFollower.name + '-' + 'offset')
+    if type(f.feetFollower) == FeetFollowerWithCorrection:
+        f.trace.add(f.feetFollower.name + '.' + 'offset',
+                    f.feetFollower.name + '-' + 'offset')
 
     f.trace.add(f.errorEstimator.name + '.' + 'error',
                 f.errorEstimator.name + '-' + 'error')
