@@ -192,6 +192,7 @@ def logRef():
 
     f.trace.add(robot.dynamic.name + '.' + 'waist',
                 robot.dynamic.name + '-' + 'waist')
+    robot.device.after.addSignal(robot.dynamic.name + '.' + 'waist')
 
     if type(f.feetFollower) == FeetFollowerWithCorrection:
         f.trace.add(f.feetFollower.name + '.' + 'offset',

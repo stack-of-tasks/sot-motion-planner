@@ -95,6 +95,57 @@ FeetFollowerAnalyticalPg::impl_update ()
     ++index_;
 }
 
+namespace
+{
+  void logStepFeatures(const std::vector<double>& steps,
+		       const StepFeatures& stepFeatures,
+		       const ml::Matrix& wMs)
+  {
+    std::ofstream log ("/tmp/pg.dat");
+
+    log << "# it lf_x lf_y lf_z rf_x rf_y rf_z "
+	<< "com_x com_y com_z zmp_x zmp_y w_x w_y w_z"
+	<< std::endl;
+
+    for (unsigned i = 0; i < stepFeatures.size; ++i)
+    {
+      boost::format fmt
+	("%d "
+	 "%f %f %f "
+	 "%f %f %f "
+	 "%f %f %f "
+	 "%f %f");
+      fmt
+	% i
+
+	% stepFeatures.leftfootXtraj[i]
+	% stepFeatures.leftfootYtraj[i]
+	% stepFeatures.leftfootHeight[i]
+
+	% stepFeatures.rightfootXtraj[i]
+	% stepFeatures.rightfootYtraj[i]
+	% stepFeatures.rightfootHeight[i]
+
+	% stepFeatures.comTrajX[i]
+	% stepFeatures.comTrajY[i]
+	% stepFeatures.zc
+
+	% stepFeatures.zmpTrajX[i]
+	% stepFeatures.zmpTrajY[i];
+
+      log << fmt.str () << std::endl;
+    }
+
+    std::ofstream wMsLog ("/tmp/wms.dat");
+    wMsLog << wMs << std::endl;
+
+    std::ofstream logSteps ("/tmp/pg_steps.dat");
+
+    for (unsigned i = 0; i < steps.size (); ++i)
+      logSteps << steps[i] << std::endl;
+  }
+} // end of anonymous namespace.
+
 void
 FeetFollowerAnalyticalPg::generateTrajectory ()
 {
@@ -206,6 +257,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
     * transformPgFrameIntoAnkleFrame (initialConfig[0], initialConfig[1],
 				      initialConfig[2], initialConfig[3],
 				      leftFootToAnkle_).inverse ();
+  //logStepFeatures(steps, stepFeatures, wMs);
 
   discreteInterval_t range (0., stepFeatures.size * STEP, STEP);
 

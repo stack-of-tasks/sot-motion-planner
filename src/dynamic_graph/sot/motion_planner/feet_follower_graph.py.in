@@ -121,6 +121,8 @@ class FeetFollowerGraph:
         self.trace.add(self.feetFollower.name + '.right-ankle',
                        self.feetFollower.name + '-right-ankle')
 
+        robot.device.after.addSignal(self.feetFollower.name + '.zmp')
+
         # Tasks error sdes input.
         self.trace.add(robot.comTask.name + '.error', 'errorCom')
         self.trace.add(robot.tasks['left-ankle'].name + '.error', 'errorLa')
