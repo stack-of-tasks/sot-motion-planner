@@ -43,7 +43,44 @@ class FeetFollowerGraph:
     trace = None
 
     def __init__(self):
-        pass
+        self.trace = TracerRealTime('trace')
+        self.trace.setBufferSize(2**20)
+        self.trace.open('/tmp/','feet_follower_','.dat')
+
+        for s in robot.OperationalPoints + ["com", "zmp"]:
+            self.trace.add(robot.dynamic.name + '.' + s,
+                           robot.dynamic.name + '-' + s)
+            robot.device.after.addSignal(robot.dynamic.name + '.' + s)
+
+        for s in robot.OperationalPoints:
+            self.trace.add(
+                robot.features[s]._reference.name + '.position',
+                robot.features[s]._reference.name + '-position')
+            robot.device.after.addSignal(
+                robot.features[s]._reference.name + '.position')
+
+            self.trace.add(
+                robot.tasks[s].name + '.error',
+                robot.tasks[s].name + '-error')
+            robot.device.after.addSignal(
+                robot.tasks[s].name + '.error')
+
+
+        self.trace.add(robot.featureComDes.name + '.errorIN',
+                       robot.featureComDes.name + '-errorIN')
+        robot.device.after.addSignal(robot.featureComDes.name + '.errorIN')
+
+        self.trace.add(robot.comTask.name + '.error',
+                       robot.comTask.name + '-error')
+        robot.device.after.addSignal(robot.comTask.name + '.error')
+
+        self.trace.add(robot.device.name + '.zmp', robot.device.name + '-zmp')
+        robot.device.after.addSignal(robot.device.name + '.zmp')
+
+        # Recompute trace.triger at each iteration to enable tracing.
+        robot.device.after.addSignal(self.trace.name +'.triger')
+
+        self.trace.start()
 
     def setAnklePosition(self):
         # Setup feet to ankle transformation.
@@ -89,6 +126,7 @@ class FeetFollowerGraph:
             FeatureGeneric(robot.name + '_postureFeatureDes')
 
         self.postureError = PostureError('PostureError')
+        self.postureError.setHalfSitting(robot.halfSitting)
         plug(robot.device.state, self.postureError.state)
         plug(self.postureError.error, self.postureFeature.errorIN)
 
@@ -107,10 +145,6 @@ class FeetFollowerGraph:
         solver.sot.push(self.postureTask.name)
 
     def setupTrace(self):
-        self.trace = TracerRealTime('trace')
-        self.trace.setBufferSize(2**20)
-        self.trace.open('/tmp/','feet_follower_','.dat')
-
         # Feature sdes input.
         self.trace.add(self.feetFollower.name + '.com',
                        self.feetFollower.name + '-com')
@@ -128,20 +162,6 @@ class FeetFollowerGraph:
         self.trace.add(robot.tasks['left-ankle'].name + '.error', 'errorLa')
         self.trace.add(robot.tasks['right-ankle'].name + '.error', 'errorRa')
         self.trace.add(self.postureTask.name + '.error', 'errorPosture')
-
-        # Recompute trace.triger at each iteration to enable tracing.
-        robot.device.after.addSignal(self.trace.name +'.triger')
-
-        # Start tracing.
-        self.trace.start()
-
-    def computeError(self):
-        e = robot.device.state.value
-        e_ = [e[3], e[4], e[5]]
-        offset = 6 + 2 * 6
-        for i in xrange(len(e) - offset):
-            e_.append(e[offset + i])
-        return tuple(e_)
 
     def computeDesiredValue(self):
         e = list(robot.halfSitting)

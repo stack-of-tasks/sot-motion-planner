@@ -103,7 +103,7 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
     {
       boost::optional<int> size = referenceTrajectory_->trajectorySize ();
       assert (size);
-      waistPositions_.reserve (*size);
+      waistPositions_.reserve (5 * *size);
       started_ = true;
     }
 

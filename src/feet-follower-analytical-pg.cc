@@ -164,10 +164,10 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   leftOrRightFootStable_ = true;
 
   sot::MatrixHomogeneous initialLeftFeet =
-    leftFootToAnkle_.inverse () * initialLeftAnklePosition_;
+    initialLeftAnklePosition_ * leftFootToAnkle_.inverse ();
 
   sot::MatrixHomogeneous initialRightFeet =
-    rightFootToAnkle_.inverse () * initialRightAnklePosition_;
+    initialRightAnklePosition_ * rightFootToAnkle_.inverse ();
 
   ml::Vector initialStep (6);
 
@@ -177,12 +177,11 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 
   // As leftPosition_x = -rightPosition_x, leftPosition_y = -rightPosition_y,
   // we center the movement in (0, 0) and shift it back using wMs.
-
   initialStep (0) =
     std::fabs (initialLeftFeet (0, 3) - initialRightFeet (0, 3)) / 2.;
   initialStep (1) =
     std::fabs (initialLeftFeet (1, 3) - initialRightFeet (1, 3)) / 2.;
-  initialStep (2) = atan2(initialLeftFeet (1,0), initialLeftFeet (0,0));
+  initialStep (2) = 0.;
 
   initialStep (3) = -initialStep (0);
   initialStep (4) = -initialStep (1);
@@ -257,7 +256,8 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
     * transformPgFrameIntoAnkleFrame (initialConfig[0], initialConfig[1],
 				      initialConfig[2], initialConfig[3],
 				      leftFootToAnkle_).inverse ();
-  //logStepFeatures(steps, stepFeatures, wMs);
+
+  logStepFeatures(steps, stepFeatures, wMs);
 
   discreteInterval_t range (0., stepFeatures.size * STEP, STEP);
 

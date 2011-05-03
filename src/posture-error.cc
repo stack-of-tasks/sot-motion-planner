@@ -15,12 +15,13 @@
 // dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 #include <string>
+#include <dynamic-graph/command-setter.h>
 #include <dynamic-graph/entity.h>
 #include <dynamic-graph/factory.h>
 #include <dynamic-graph/null-ptr.hh>
 #include <dynamic-graph/pool.h>
-#include <dynamic-graph/signal-time-dependent.h>
 #include <dynamic-graph/signal-ptr.h>
+#include <dynamic-graph/signal-time-dependent.h>
 #include <sot/core/matrix-homogeneous.hh>
 
 #include "common.hh"
@@ -33,6 +34,7 @@ namespace sot
   using namespace ::dynamicgraph::sot;
 }
 
+using ::dynamicgraph::command::Setter;
 
 class PostureError : public dg::Entity
 {
@@ -52,6 +54,10 @@ class PostureError : public dg::Entity
     signalRegistration (error_ << state_);
 
     error_.addDependency (state_);
+
+  std::string docstring;
+  addCommand ("setHalfSitting", new Setter<PostureError, ml::Vector>
+	      (*this, &PostureError::setHalfSitting, docstring));
   }
 
   virtual ~PostureError ()
@@ -73,16 +79,22 @@ private:
 
     res.resize (errorSize);
 
-    res (0) = state (3);
-    res (1) = state (4);
+    res (0) = state (3) - halfSitting_ (3);
+    res (1) = state (4) - halfSitting_ (4);
 
     for (unsigned i = 0; i < errorSize - 2u; ++i)
-      res (i + 2) = state (i + 6 + 12);
+      res (i + 2) = state (i + 6 + 12) - halfSitting_ (i + 6 + 12);
     return res;
+  }
+
+  void setHalfSitting (const ml::Vector& halfSitting)
+  {
+    halfSitting_ = halfSitting;
   }
 
   signalIn_t state_;
   signalOut_t error_;
+  ml::Vector halfSitting_;
 };
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(PostureError, "PostureError");
