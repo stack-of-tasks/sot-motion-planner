@@ -138,11 +138,14 @@ class FeetFollowerGraph:
         self.postureTask.add(self.postureFeature.name)
         self.postureTask.controlGain.value = initialGain
 
-        if type(robot.device) == RobotSimu:
-            solver.sot.push(robot.comTask.name)
-            solver.sot.push(robot.tasks['left-ankle'].name)
-            solver.sot.push(robot.tasks['right-ankle'].name)
+        solver.sot.remove(robot.tasks['right-ankle'].name)
+        solver.sot.remove(robot.tasks['left-ankle'].name)
+        solver.sot.remove(robot.comTask.name)
+
         solver.sot.push(self.postureTask.name)
+        solver.sot.push(robot.comTask.name)
+        solver.sot.push(robot.tasks['left-ankle'].name)
+        solver.sot.push(robot.tasks['right-ankle'].name)
 
     def setupTrace(self):
         # Feature sdes input.
@@ -165,10 +168,6 @@ class FeetFollowerGraph:
 
     def computeDesiredValue(self):
         e = list(robot.halfSitting)
-        e[23] -= 1.
-        e[25] -= 1.
-        e[30] += 1.
-        e[32] -= 1.
         e_ = [e[3], e[4]]
         offset = 6 + 2 * 6
         for i in xrange(len(e) - offset):

@@ -79,11 +79,11 @@ private:
 
     res.resize (errorSize);
 
-    res (0) = state (3) - halfSitting_ (3);
-    res (1) = state (4) - halfSitting_ (4);
+    res (0) = state (3);
+    res (1) = state (4);
 
     for (unsigned i = 0; i < errorSize - 2u; ++i)
-      res (i + 2) = state (i + 6 + 12) - halfSitting_ (i + 6 + 12);
+      res (i + 2) = state (i + 6 + 12);
     return res;
   }
 
