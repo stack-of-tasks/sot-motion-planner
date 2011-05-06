@@ -28,16 +28,21 @@ def play(f, maxIter = 4000, afterStart = None):
     while not f.canStart():
         robot.device.increment(timeStep)
     f.start()
-    print("started")
+    print("start")
     if afterStart:
         afterStart()
+    print("started")
 
+    t = 0
     # Main.
     #  Main loop
-    logCfg = open("/tmp/cfg.dat", "w")
+    #logCfg = open("/tmp/cfg.dat", "w")
 
     for i in xrange(maxIter):
         robot.device.increment(timeStep)
+
+        f.errorEstimator.error.recompute(t)
+        t = t + 1
 
         #log(logCfg)
         if clt:

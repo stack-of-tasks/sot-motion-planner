@@ -257,7 +257,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 				      initialConfig[2], initialConfig[3],
 				      leftFootToAnkle_).inverse ();
 
-  logStepFeatures(steps, stepFeatures, wMs);
+  //logStepFeatures(steps, stepFeatures, wMs);
 
   discreteInterval_t range (0., stepFeatures.size * STEP, STEP);
 

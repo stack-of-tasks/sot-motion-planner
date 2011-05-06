@@ -80,7 +80,7 @@ class FeetFollowerGraph:
         # Recompute trace.triger at each iteration to enable tracing.
         robot.device.after.addSignal(self.trace.name +'.triger')
 
-        self.trace.start()
+        #self.trace.start()
 
     def setAnklePosition(self):
         # Setup feet to ankle transformation.
@@ -211,6 +211,7 @@ class FeetFollowerGraph:
         self.setupTrace()
         if beforeStart:
             beforeStart()
+        self.trace.start()
         self.feetFollower.start()
 
 class FeetFollowerFromFileGraph(FeetFollowerGraph):
