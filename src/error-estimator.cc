@@ -127,6 +127,16 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
 
   sot::MatrixHomogeneous error = planned * estimated.inverse ();
   res = MatrixHomogeneousToXYTheta (error);
+
+  static const double max[3] = {0.04, 0.04, 0.05};
+  for (unsigned i = 0; i < 3; ++i)
+    {
+      if (res (i) > max[i])
+	res (i) = max[i];
+      if (res (i) < -max[i])
+	res (i) = -max[i];
+    }
+
   return res;
 }
 
