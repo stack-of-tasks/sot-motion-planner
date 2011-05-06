@@ -134,6 +134,9 @@ FeetFollowerWithCorrection::impl_update ()
 void
 FeetFollowerWithCorrection::impl_start ()
 {
+  std::cout
+    << "/!\\ feet follower with correction started /!\\"
+    << std::endl;
   if (!referenceTrajectory_)
     return;
   referenceTrajectory_->start ();
@@ -153,7 +156,7 @@ namespace
       {
 	if (e.first > t)
 	  return false;
-	if (std::fabs (e.first - t) < 1e-3)
+	if (t >= e.first && std::fabs (e.first - t) <= 1e-2)
 	  return e.second == supportFoot;
       }
     return false;
@@ -203,7 +206,8 @@ namespace
     WalkMovement::supportFoot_t::const_iterator iter = supportFoot.begin ();
     for (; iter != supportFoot.end (); ++iter)
       {
-	if (iter->first == time)
+	if (time >= iter->first
+	    && std::fabs (time - iter->first) <= 1e-2)
 	  return iter;
       }
     return supportFoot.end ();
@@ -339,8 +343,8 @@ FeetFollowerWithCorrection::computeNewCorrection ()
 
   // 10%           - 80%        - 10%
   // no correction - correction - no correction
-  double firstEpsilon = 0. * (t2->first - t1->first);
-  double secondEpsilon = 0. * (t3->first - t4->first);
+  double firstEpsilon = 0.2 * (t2->first - t1->first);
+  double secondEpsilon = 0.2 * (t3->first - t4->first);
 
   sot::ErrorTrajectory::interval_t firstInterval =
     sot::ErrorTrajectory::makeInterval
@@ -348,9 +352,17 @@ FeetFollowerWithCorrection::computeNewCorrection ()
   sot::ErrorTrajectory::interval_t secondInterval =
     sot::ErrorTrajectory::makeInterval
     (t3->first + secondEpsilon, t4->first - secondEpsilon);
+
+  // double start = t1->first + 0.15 + 0.95;
+  // double end = t1->first + 0.15 + 1.05;
+
+  double start = t1->first;
+  double end = t4->first;
+  double eps = 0.2 * (end - start);
+
   sot::ErrorTrajectory::interval_t comCorrectionInterval =
     sot::ErrorTrajectory::makeInterval
-    (t1->first + 0.15 + 0.95, t1->first + 0.15 + 1.05);
+    (start + eps, end - eps);
 
   ml::Vector tmp (3);
   tmp.setZero ();
