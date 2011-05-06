@@ -36,10 +36,10 @@ enableMocap=True
 enableCorrection=True
 enableOffsetFromErrorEstimator=False
 
-print("* Is this the robot? " + str(onRobot))
-print("* Are we using mocap? "+ str(enableMocap))
-print("* Is correction enabled? "+ str(enableCorrection))
-print("* Is correction coming from error estimator (mocap)? "+
+print("* Is this the robot? "  + str(onRobot))
+print("* Are we using mocap? " + str(enableMocap))
+print("* Is correction enabled? " + str(enableCorrection))
+print("* Is correction coming from error estimator (mocap)? " +
       str(enableOffsetFromErrorEstimator))
 print("")
 
@@ -193,7 +193,9 @@ def logRef():
     if type(f.feetFollower) == FeetFollowerWithCorrection:
         f.trace.add(f.feetFollower.name + '.' + 'offset',
                     f.feetFollower.name + '-' + 'offset')
+        robot.device.after.addSignal(f.feetFollower.name + '.' + 'offset')
 
     f.trace.add(f.errorEstimator.name + '.' + 'error',
                 f.errorEstimator.name + '-' + 'error')
+    robot.device.after.addSignal(f.errorEstimator.name + '.' + 'error')
     print ("logging reference trajectory")
