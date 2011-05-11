@@ -20,6 +20,7 @@
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 
+#include <jrl/mathtools/angle.hh>
 #include <jrl/mal/boost.hh>
 #include <dynamic-graph/command-getter.h>
 #include <dynamic-graph/command-setter.h>
@@ -47,25 +48,32 @@ namespace sot
   using namespace ::dynamicgraph::sot;
 }
 
+/// \brief Compute the ankle position in the world frame knowing the
+/// foot position and the transformation from the foot to the ankle.
+///
+/// wMa = ankle position in world frame.
+/// wMf = foot position in world frame.
+/// fMa = ankle position in foot frame.
+///
+/// wMf is computed from (x,y,z,theta) information
+///
+/// wMa = wMf * fMa
+///
 sot::MatrixHomogeneous
-transformPgFrameIntoAnkleFrame (double tx, double ty, double tz, double theta,
-				const sot::MatrixHomogeneous& feetToAnkle)
+computeAnklePositionInWorldFrame (double footX, double footY, double footZ, double footYaw,
+				  const sot::MatrixHomogeneous& fMa)
 {
-  ml::Vector t (3);
-  t (0) = tx;
-  t (1) = ty;
-  t (2) = tz;
+  jrlMathTools::Angle theta (footYaw);
 
-  sot::VectorRollPitchYaw vR;
-  vR (2) = theta;
-  sot::MatrixRotation R;
-  vR.toMatrix (R);
+  ml::Vector xyztheta (4);
+  xyztheta (0) = footX;
+  xyztheta (1) = footY;
+  xyztheta (2) = footZ;
+  xyztheta (3) = theta.value ();
 
-  sot::MatrixHomogeneous tmp;
-  tmp.buildFrom (R, t);
-  sot::MatrixHomogeneous tmp2;
-  tmp2 = feetToAnkle * tmp;
-  return tmp2;
+  sot::MatrixHomogeneous wMf =
+    XYZThetaToMatrixHomogeneous (xyztheta);
+  return wMf * fMa;
 }
 
 WalkMovement::WalkMovement
@@ -73,12 +81,14 @@ WalkMovement::WalkMovement
  const sot::DiscretizedTrajectory& rightFoot,
  const sot::DiscretizedTrajectory& com,
  const sot::DiscretizedTrajectory& zmp,
- const sot::MatrixHomogeneous& wMs)
+ const sot::DiscretizedTrajectory& waistYaw,
+ const sot::MatrixHomogeneous& wMw_traj)
   : leftFoot (leftFoot),
     rightFoot (rightFoot),
     com (com),
     zmp (zmp),
-    wMs (wMs)
+    waistYaw (waistYaw),
+    wMw_traj (wMw_traj)
 {}
 
 using ::dynamicgraph::command::Setter;
@@ -88,6 +98,7 @@ FeetFollower::FeetFollower (const std::string& name)
     t_ (std::numeric_limits<int>::min ()),
     com_ (3),
     zmp_ (3),
+    waistYaw_ (1),
     leftAnkle_ (),
     rightAnkle_ (),
     comZ_ (0.),
@@ -99,6 +110,8 @@ FeetFollower::FeetFollower (const std::string& name)
     startTime_ (-1.),
     comOut_ (INIT_SIGNAL_OUT ("com", FeetFollower::updateCoM, "Vector")),
     zmpOut_ (INIT_SIGNAL_OUT ("zmp", FeetFollower::updateZmp, "Vector")),
+    waistYawOut_ (INIT_SIGNAL_OUT
+		  ("waistYaw", FeetFollower::updateWaistYaw, "Vector")),
     leftAnkleOut_
     (INIT_SIGNAL_OUT
      ("left-ankle", FeetFollower::updateLeftAnkle, "MatrixHomo")),
@@ -106,10 +119,12 @@ FeetFollower::FeetFollower (const std::string& name)
     (INIT_SIGNAL_OUT
      ("right-ankle", FeetFollower::updateRightAnkle, "MatrixHomo"))
 {
-  signalRegistration (zmpOut_ << comOut_ << leftAnkleOut_ << rightAnkleOut_);
+  signalRegistration (zmpOut_ << comOut_ << waistYawOut_
+		      << leftAnkleOut_ << rightAnkleOut_);
 
   zmpOut_.setNeedUpdateFromAllChildren (true);
   comOut_.setNeedUpdateFromAllChildren (true);
+  waistYawOut_.setNeedUpdateFromAllChildren (true);
   leftAnkleOut_.setNeedUpdateFromAllChildren (true);
   rightAnkleOut_.setNeedUpdateFromAllChildren (true);
 
@@ -173,6 +188,15 @@ FeetFollower::updateZmp (ml::Vector& res, int t)
   return res;
 }
 
+ml::Vector&
+FeetFollower::updateWaistYaw (ml::Vector& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = waistYaw_;
+  return res;
+}
+
 sot::MatrixHomogeneous&
 FeetFollower::updateLeftAnkle (sot::MatrixHomogeneous& res, int t)
 {
@@ -226,9 +250,3 @@ namespace command
     return Value ();
   }
 } // end of namespace command.
-
-
-
-
-
-

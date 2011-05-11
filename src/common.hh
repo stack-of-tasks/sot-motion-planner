@@ -14,9 +14,11 @@
 // sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 #ifndef SOT_MOTION_PLANNER_COMMON_HH
 # define SOT_MOTION_PLANNER_COMMON_HH
+# include <cmath>
 # include <boost/bind.hpp>
 # include <boost/format.hpp>
 
+# include <jrl/mathtools/angle.hh>
 # include <sot/core/matrix-homogeneous.hh>
 # include <sot/core/matrix-rotation.hh>
 # include <sot/core/vector-roll-pitch-yaw.hh>
@@ -71,14 +73,37 @@ XYThetaToMatrixHomogeneous (const ml::Vector& xytheta)
   t (1) = xytheta (1);
   t (2) = 0.;
 
+  jrlMathTools::Angle theta (xytheta (2));
+
   sot::VectorRollPitchYaw vR;
-  vR (2) = xytheta (2);
+  vR (2) = theta.value ();
   sot::MatrixRotation R;
   vR.toMatrix (R);
   sot::MatrixHomogeneous res;
   res.buildFrom (R, t);
   return res;
 }
+
+inline sot::MatrixHomogeneous
+XYZThetaToMatrixHomogeneous (const ml::Vector& xyztheta)
+{
+  assert (xyztheta.size () == 4);
+  ml::Vector t (3);
+  t (0) = xyztheta (0);
+  t (1) = xyztheta (1);
+  t (2) = xyztheta (2);
+
+  jrlMathTools::Angle theta (xyztheta (3));
+
+  sot::VectorRollPitchYaw vR;
+  vR (2) = theta.value ();
+  sot::MatrixRotation R;
+  vR.toMatrix (R);
+  sot::MatrixHomogeneous res;
+  res.buildFrom (R, t);
+  return res;
+}
+
 
 template <typename T>
 sot::MatrixHomogeneous
@@ -90,8 +115,10 @@ XYThetaToMatrixHomogeneous (const T& xytheta)
   t (1) = xytheta[1];
   t (2) = 0.;
 
+  jrlMathTools::Angle theta (xytheta[2]);
+
   sot::VectorRollPitchYaw vR;
-  vR (2) = xytheta[2];
+  vR (2) = theta.value ();
   sot::MatrixRotation R;
   vR.toMatrix (R);
   sot::MatrixHomogeneous res;

@@ -110,6 +110,7 @@ FeetFollowerWithCorrection::impl_update ()
   referenceTrajectory_->updateRightAnkle (rightAnkle_, t_);
   referenceTrajectory_->updateCoM (com_, t_);
   referenceTrajectory_->updateZmp (zmp_, t_);
+  referenceTrajectory_->updateWaistYaw (waistYaw_, t_);
 
   updateCorrection ();
 
@@ -129,6 +130,11 @@ FeetFollowerWithCorrection::impl_update ()
 
   for (unsigned i = 0; i < 3; ++i)
     com_ (i) = comH (i), zmp_ (i) = zmpH (i);
+
+  jrlMathTools::Angle theta
+    (waistYaw_ (0)
+     + MatrixHomogeneousToXYTheta (correctionCom_) (2));
+  waistYaw_ (0) = theta.value ();
 }
 
 void
@@ -236,9 +242,12 @@ namespace
       referenceTrajectory->walkMovement ()->leftFoot (nextStepTime)
       : referenceTrajectory->walkMovement ()->rightFoot (nextStepTime);
 
+    // Next ankle position (can be left or right)
+    //
+    // {}^{w}M_{ankle} = {}^{w}M_{w_{traj}} * {}^{w_{traj}}M_{ankle}
     sot::MatrixHomogeneous ankle =
-      referenceTrajectory->walkMovement ()->wMs *
-      transformPgFrameIntoAnkleFrame
+      referenceTrajectory->walkMovement ()->wMw_traj *
+      computeAnklePositionInWorldFrame
       (foot[0], foot[1], foot[2], foot[3],
        leftFirst ?
        referenceTrajectory->leftFootToAnkle ()

@@ -48,8 +48,8 @@ namespace sot
 class FeetFollower;
 
 sot::MatrixHomogeneous
-transformPgFrameIntoAnkleFrame (double tx, double ty, double tz, double theta,
-				const sot::MatrixHomogeneous& feetToAnkle);
+computeAnklePositionInWorldFrame (double footX, double footY, double footZ, double footYaw,
+				  const sot::MatrixHomogeneous& fMa);
 
 namespace command
 {
@@ -90,6 +90,7 @@ struct WalkMovement
 			 const sot::DiscretizedTrajectory& rightFoot,
 			 const sot::DiscretizedTrajectory& com,
 			 const sot::DiscretizedTrajectory& zmp,
+			 const sot::DiscretizedTrajectory& waistYaw,
 			 const sot::MatrixHomogeneous& wMs);
 
   /// \brief Left foot trajectory.
@@ -104,15 +105,18 @@ struct WalkMovement
   /// \brief ZMP reference trajectory.
   sot::DiscretizedTrajectory zmp;
 
-  /// \brief Trajectory frame position in the world frame.
+  /// \brief Waist yaw reference trajectory.
+  sot::DiscretizedTrajectory waistYaw;
+
+  /// \brief Trajectory frame position in the world frame (wMw_traj).
   ///
   /// Trajectories are played from the current position but
   /// initial position may be different. To solve this issue,
   /// the world frame position w.r.t the start position
   /// is stored in this attribute.
   ///
-  /// ${}^w X = {}^w M_s * {}^s X$
-  sot::MatrixHomogeneous wMs;
+  /// ${}^wM_{la} = {}^w M_{w_{traj}} * {}^{w_{traj}} M_{la}$
+  sot::MatrixHomogeneous wMw_traj;
 
   /// \brief Describes when the walk phase changes.
   ///
@@ -150,6 +154,7 @@ class FeetFollower : public dg::Entity
   void update (int t);
   ml::Vector& updateCoM (ml::Vector& res, int t);
   ml::Vector& updateZmp (ml::Vector& res, int t);
+  ml::Vector& updateWaistYaw (ml::Vector& res, int t);
   sot::MatrixHomogeneous& updateLeftAnkle (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateRightAnkle (sot::MatrixHomogeneous& res, int t);
   double getTime () const;
@@ -209,6 +214,7 @@ protected:
   int t_;
   ml::Vector com_;
   ml::Vector zmp_;
+  ml::Vector waistYaw_;
   sot::MatrixHomogeneous leftAnkle_;
   sot::MatrixHomogeneous rightAnkle_;
 
@@ -223,6 +229,7 @@ protected:
 
   signalCoM_t comOut_;
   signalCoM_t zmpOut_;
+  signalCoM_t waistYawOut_;
   signalFoot_t leftAnkleOut_;
   signalFoot_t rightAnkleOut_;
 

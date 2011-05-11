@@ -22,6 +22,7 @@ FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
     SOVERSION ${PROJECT_VERSION})
 
   PKG_CONFIG_USE_DEPENDENCY(${NAME} dynamic-graph)
+  PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mathtools)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mal)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} sot-core)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} roboptim-core)
@@ -57,7 +58,9 @@ SET(FEET_FOLLOWER_SOURCES
 
   randomizer.cc randomizer.hh
 
-  posture-error.cc)
+  posture-error.cc
+  waist-yaw.cc
+  )
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
 

@@ -34,9 +34,7 @@ namespace sot
   using namespace ::dynamicgraph::sot;
 }
 
-using ::dynamicgraph::command::Setter;
-
-class PostureError : public dg::Entity
+class WaistYaw : public dg::Entity
 {
  public:
   typedef dg::SignalPtr<ml::Vector, int> signalIn_t;
@@ -44,25 +42,26 @@ class PostureError : public dg::Entity
 
   static const std::string CLASS_NAME;
 
-  explicit PostureError (const std::string& name)
+  explicit WaistYaw (const std::string& name)
     : Entity(name),
       state_
       (dg::nullptr,
        MAKE_SIGNAL_STRING (name, true, "Vector", "state")),
-      error_ (INIT_SIGNAL_OUT ("error", PostureError::updateError, "Vector")),
-      sdes_ (INIT_SIGNAL_OUT ("sdes", PostureError::updateSdes, "Vector"))
+      waistYaw_
+      (dg::nullptr,
+       MAKE_SIGNAL_STRING (name, true, "Vector", "waistYaw")),
+      error_ (INIT_SIGNAL_OUT ("error", WaistYaw::updateError, "Vector")),
+      sdes_ (INIT_SIGNAL_OUT ("sdes", WaistYaw::updateSdes, "Vector"))
   {
-    signalRegistration (error_ << sdes_ << state_);
-
+    signalRegistration (error_ << sdes_ << state_ << waistYaw_);
+    
     error_.addDependency (state_);
     sdes_.addDependency (state_);
-
-    std::string docstring;
-    addCommand ("setHalfSitting", new Setter<PostureError, ml::Vector>
-		(*this, &PostureError::setHalfSitting, docstring));
+    error_.addDependency (waistYaw_);
+    sdes_.addDependency (waistYaw_);
   }
 
-  virtual ~PostureError ()
+  virtual ~WaistYaw ()
   {}
 
   virtual const std::string& getClassName ()
@@ -73,48 +72,22 @@ class PostureError : public dg::Entity
 private:
   ml::Vector& updateError (ml::Vector& res, int t)
   {
-    ml::Vector state = state_ (t);
-
-    int errorSize = state.size () - 12 - 3 - 1;
-    if (errorSize < 0)
-      return res;
-
-    res.resize (errorSize);
-
-    res (0) = state (3);
-    res (1) = state (4);
-
-    for (unsigned i = 0; i < errorSize - 2u; ++i)
-      res (i + 2) = state (i + 6 + 12);
+    res.resize (1);
+    res (0) = state_ (t) (5);
     return res;
   }
 
   ml::Vector& updateSdes (ml::Vector& res, int t)
   {
-    int errorSize = halfSitting_.size () - 12 - 3 - 1;
-
-    if (errorSize < 0)
-      return res;
-
-    res.resize (errorSize);
-
-    res (0) = halfSitting_ (3);
-    res (1) = halfSitting_ (4);
-
-    for (unsigned i = 0; i < errorSize - 2u; ++i)
-      res (i + 2) = halfSitting_ (i + 6 + 12);
+    res.resize (1);
+    res (0) = waistYaw_ (t) (0);
     return res;
   }
 
-  void setHalfSitting (const ml::Vector& halfSitting)
-  {
-    halfSitting_ = halfSitting;
-  }
-
   signalIn_t state_;
+  signalIn_t waistYaw_;
   signalOut_t error_;
   signalOut_t sdes_;
-  ml::Vector halfSitting_;
 };
 
-DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(PostureError, "PostureError");
+DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(WaistYaw, "WaistYaw");

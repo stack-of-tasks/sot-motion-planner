@@ -19,7 +19,8 @@ from dynamic_graph.sot.dynamics.tools import *
 from __main__ import robot, solver
 from dynamic_graph.sot.core import FeatureGeneric, Task, RobotSimu
 from dynamic_graph.sot.motion_planner import \
-    FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError
+    FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError, \
+    WaistYaw
 from dynamic_graph.tracer_real_time import TracerRealTime
 
 def translationToSE3(t):
@@ -99,6 +100,9 @@ class FeetFollowerGraph:
     def setup(self):
         initialGain = 1.
 
+        #robot.features['left-ankle']._reference.frame("current")
+        #robot.features['right-ankle']._reference.frame("current")
+
         # Lower the gains to reduce the initial velocity.
         robot.comTask.controlGain.value = initialGain
         robot.tasks['left-ankle'].controlGain.value = initialGain
@@ -130,14 +134,34 @@ class FeetFollowerGraph:
         plug(robot.device.state, self.postureError.state)
         plug(self.postureError.error, self.postureFeature.errorIN)
 
-        self.postureFeature.jacobianIN.value = self.computeJacobian()
-        self.postureFeatureDes.errorIN.value = self.computeDesiredValue()
+        self.postureFeature.jacobianIN.value = self.computeJacobianPosture()
+        plug(self.postureError.sdes, self.postureFeatureDes.errorIN)
 
         self.postureFeature.sdes.value = self.postureFeatureDes
 
         self.postureTask.add(self.postureFeature.name)
         self.postureTask.controlGain.value = initialGain
 
+        # Initialize the waist yaw task.
+        self.waistYawTask = Task(robot.name + '_waistYaw')
+        self.waistYawFeature = FeatureGeneric(robot.name + '_waistYawFeature')
+        self.waistYawFeatureDes = \
+            FeatureGeneric(robot.name + '_waistYawFeatureDes')
+
+        self.waistYawError = WaistYaw('WaistYawError')
+        plug(self.feetFollower.waistYaw, self.waistYawError.waistYaw)
+        plug(robot.device.state, self.waistYawError.state)
+        plug(self.waistYawError.error, self.waistYawFeature.errorIN)
+
+        self.waistYawFeature.jacobianIN.value = self.computeJacobianWaistYaw()
+        plug(self.waistYawError.sdes, self.waistYawFeatureDes.errorIN)
+
+        self.waistYawFeature.sdes.value = self.waistYawFeatureDes
+
+        self.waistYawTask.add(self.waistYawFeature.name)
+        self.waistYawTask.controlGain.value = initialGain
+
+        # Tasks
         solver.sot.remove(robot.tasks['right-ankle'].name)
         solver.sot.remove(robot.tasks['left-ankle'].name)
         solver.sot.remove(robot.comTask.name)
@@ -146,6 +170,7 @@ class FeetFollowerGraph:
         solver.sot.push(robot.comTask.name)
         solver.sot.push(robot.tasks['left-ankle'].name)
         solver.sot.push(robot.tasks['right-ankle'].name)
+        solver.sot.push(self.waistYawTask.name)
 
     def setupTrace(self):
         # Feature sdes input.
@@ -157,6 +182,8 @@ class FeetFollowerGraph:
                        self.feetFollower.name + '-left-ankle')
         self.trace.add(self.feetFollower.name + '.right-ankle',
                        self.feetFollower.name + '-right-ankle')
+        self.trace.add(self.feetFollower.name + '.waistYaw',
+                       self.feetFollower.name + '-waistYaw')
 
         robot.device.after.addSignal(self.feetFollower.name + '.zmp')
 
@@ -165,23 +192,22 @@ class FeetFollowerGraph:
         self.trace.add(robot.tasks['left-ankle'].name + '.error', 'errorLa')
         self.trace.add(robot.tasks['right-ankle'].name + '.error', 'errorRa')
         self.trace.add(self.postureTask.name + '.error', 'errorPosture')
+        self.trace.add(self.waistYawTask.name + '.error', 'errorWaistYaw')
 
-    def computeDesiredValue(self):
-        e = list(robot.halfSitting)
-        e_ = [e[3], e[4]]
-        offset = 6 + 2 * 6
-        for i in xrange(len(e) - offset):
-            e_.append(e[offset + i])
-        return tuple(e_)
-
-
-    def computeJacobian(self):
+    def computeJacobianPosture(self):
         j = []
-
         for i in xrange(36):
             if i == 3 or i == 4 or i >= 6 + 2 * 6:
                 j.append(oneVector(i))
         return tuple(j)
+
+    def computeJacobianWaistYaw(self):
+        j = []
+        for i in xrange(36):
+            if i == 5:
+                j.append(oneVector(i))
+        return tuple(j)
+
 
     def canStart(self):
         securityThreshold = 1e-3
@@ -208,6 +234,7 @@ class FeetFollowerGraph:
         robot.tasks['left-ankle'].controlGain.value = 180.
         robot.tasks['right-ankle'].controlGain.value = 180.
         self.postureTask.controlGain.value = 180.
+        self.waistYawTask.controlGain.value = 180.
         self.setupTrace()
         if beforeStart:
             beforeStart()

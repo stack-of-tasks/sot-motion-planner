@@ -34,7 +34,7 @@ from dynamic_graph.corba_server import CorbaServer
 onRobot=type(robot.device) != RobotSimu
 enableMocap=True
 enableCorrection=True
-enableOffsetFromErrorEstimator=False
+enableOffsetFromErrorEstimator=True
 
 print("* Is this the robot? "  + str(onRobot))
 print("* Are we using mocap? " + str(enableMocap))
@@ -58,11 +58,75 @@ steps = [
     (-1.52, 0.31, 0.15, -0.76, 0.0,  0.19, 0.),
     ]
 
+def degToRad(x):
+    return x * 3.14 / 180.
+
+steps= [
+    # Front
+    (0., 0.24, 0.25, -0.76, 0.15,    -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.15, -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.15, -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.15, -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.15, -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
+
+    # To the left.
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.25, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.25, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.25, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.25, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.25, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
+
+    # Back
+    (0., 0.24, 0.25, -0.76,    -0.15, -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, -0.15, +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, -0.15, -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, -0.15, +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, -0.15, -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, -0.15, +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, -0.15, -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, -0.15, +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, -0.15, -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, -0.15, +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76,  0.,   -0.19, 0.),
+
+    # To the right.
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.25, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.25, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.25, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.25, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.25, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
+    ]
+
+steps= [
+    (0., 0.24, 0.25, -0.76, 0.15,    -0.19, 0.),
+    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
+    ]
+
 
 f = FeetFollowerAnalyticalPgGraph(steps)
 
 f.errorEstimator = ErrorEstimator('error_estimator')
 f.referenceTrajectory = f.feetFollower
+f.corba = corba
 
 if enableCorrection:
     f.feetFollower = FeetFollowerWithCorrection('correction')
@@ -79,7 +143,9 @@ if enableCorrection:
     (maxX, maxY, maxTheta) = (0.04, 0.04, 0.05)
 
     (maxX, maxY, maxTheta) = (0.04, 0., 0.05)
-    (maxX, maxY, maxTheta) = (0.03, 0.01, 0.05)
+    (maxX, maxY, maxTheta) = (0.04, 0.04, 0.1)
+
+    (maxX, maxY, maxTheta) = (0., 0., 0.)
 
     f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
     print ("Safe limits: %f %f %f" % (maxX, maxY, maxTheta))
@@ -122,7 +188,7 @@ def XYThetaToHomogeneousMatrix(x):
         )
 def HomogeneousMatrixToXYZTheta(x):
     x = np.mat(x)
-    return (x[0,3], x[1,3], x[2,3], atan2(x[1,1], x[0,0]))
+    return (x[0,3], x[1,3], x[2,3], atan2(x[1,0], x[0,0]))
 
 def computeWorldTransformationFromWaist():
     M = XYThetaToHomogeneousMatrix(corba.waistPosition.value)
@@ -181,7 +247,7 @@ else:
 
 # Trace
 def logRef():
-    signals = ['com', 'zmp', 'left-ankle', 'right-ankle']
+    signals = ['com', 'zmp', 'left-ankle', 'right-ankle', 'waistYaw']
     for s in signals:
         f.trace.add(f.referenceTrajectory.name + '.' + s,
                     f.referenceTrajectory.name + '-' + s)
@@ -197,4 +263,8 @@ def logRef():
     f.trace.add(f.errorEstimator.name + '.' + 'error',
                 f.errorEstimator.name + '-' + 'error')
     robot.device.after.addSignal(f.errorEstimator.name + '.' + 'error')
+
+    f.trace.add(f.corba.name + '.' + 'waistPosition',
+                f.corba.name + '-' + 'waistPosition')
+    robot.device.after.addSignal(f.corba.name + '.' + 'waistPosition')
     print ("logging reference trajectory")

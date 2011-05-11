@@ -36,6 +36,8 @@ SET(CXX_DISABLE_WERROR 1)
 SETUP_PROJECT()
 
 # Search for dependencies.
+ADD_REQUIRED_DEPENDENCY("jrl-mathtools")
+
 ADD_REQUIRED_DEPENDENCY("jrl-mal >= 1.8.0")
 
 ADD_REQUIRED_DEPENDENCY("dynamic-graph >= 1.0.0")

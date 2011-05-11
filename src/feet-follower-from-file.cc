@@ -50,6 +50,7 @@ WalkMovement loadFromFile(const fs::path& LeftFootPath,
 			    const fs::path& RightFootPath,
 			    const fs::path& ComPath,
 			    const fs::path& ZmpPath,
+			    const fs::path& WaistYawPath,
 			    const double& step)
 {
   return WalkMovement
@@ -61,6 +62,8 @@ WalkMovement loadFromFile(const fs::path& LeftFootPath,
      (ComPath, step, "com"),
      sot::DiscretizedTrajectory::loadTrajectoryFromFile
      (ZmpPath, step, "zmp"),
+     sot::DiscretizedTrajectory::loadTrajectoryFromFile
+     (WaistYawPath, step, "waist-yaw"),
      sot::MatrixHomogeneous ());
 }
 
@@ -87,6 +90,7 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
   fs::path trajectoryRightFootPath = trajectoryPath / "right-ankle.dat";
   fs::path trajectoryComPath = trajectoryPath / "com.dat";
   fs::path trajectoryZmpPath = trajectoryPath / "zmp.dat";
+  fs::path trajectoryWaistYawPath = trajectoryPath / "waist-yaw.dat";
 
   if (!fs::is_directory (trajectoryPath))
     {
@@ -122,10 +126,18 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
       return;
     }
 
+  if (!fs::exists (trajectoryWaistYawPath)
+      || fs::is_directory (trajectoryWaistYawPath))
+    {
+      std::cerr << "invalid waist yaw trajectory file" << std::endl;
+      return;
+    }
+
   trajectories_ = loadFromFile (trajectoryLeftFootPath,
 				trajectoryRightFootPath,
 				trajectoryComPath,
 				trajectoryZmpPath,
+				trajectoryWaistYawPath,
 				STEP);
 
   // Reset the movement.
@@ -134,10 +146,15 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
   const sot::Trajectory::vector_t& initialConfig =
     trajectories_->leftFoot (0.);
 
-  trajectories_->wMs = initialLeftAnklePosition_
-    * transformPgFrameIntoAnkleFrame (initialConfig[0], initialConfig[1],
-				      initialConfig[2], initialConfig[3],
-				      leftFootToAnkle_).inverse ();
+  // wMw_traj = wMa * aMw_traj = wMa * (w_trajMa)^{-1}
+  //
+  // wMa = ankle position in dynamic-graph frame (initialLeftAnklePosition_)
+  // w_trajMa = ankle position in pattern generator frame (initialConfig)
+  trajectories_->wMw_traj =
+    initialLeftAnklePosition_
+    * computeAnklePositionInWorldFrame (initialConfig[0], initialConfig[1],
+					initialConfig[2], initialConfig[3],
+					leftFootToAnkle_).inverse ();
 }
 
 FeetFollowerFromFile::~FeetFollowerFromFile ()
@@ -169,14 +186,16 @@ FeetFollowerFromFile::impl_update ()
       return;
     }
 
+  // wMla = wMw_traj * w_trajMla
   leftAnkle_ =
-    trajectories_->wMs *
-    transformPgFrameIntoAnkleFrame
+    trajectories_->wMw_traj *
+    computeAnklePositionInWorldFrame
     (leftFoot[0], leftFoot[1], leftFoot[2], leftFoot[3], leftFootToAnkle_);
 
+  // wMra = wMw_traj * w_trajMra
   rightAnkle_ =
-    trajectories_->wMs *
-    transformPgFrameIntoAnkleFrame
+    trajectories_->wMw_traj *
+    computeAnklePositionInWorldFrame
     (rightFoot[0], rightFoot[1], rightFoot[2], rightFoot[3],
      rightFootToAnkle_);
 
@@ -191,8 +210,10 @@ FeetFollowerFromFile::impl_update ()
 
   comH (3) = zmpH (3) = 1.;
 
-  comH = trajectories_->wMs * comH;
-  zmpH = trajectories_->wMs * zmpH;
+  // {}^w com = wMw_traj * {}^{w_traj} com
+  comH = trajectories_->wMw_traj * comH;
+  // {}^w zmp = wMw_traj * {}^{w_traj} zmp
+  zmpH = trajectories_->wMw_traj * zmpH;
 
   for (unsigned i = 0; i < 3; ++i)
     com_ (i) = comH (i), zmp_ (i) = zmpH (i);

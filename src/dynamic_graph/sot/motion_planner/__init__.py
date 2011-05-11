@@ -19,4 +19,4 @@ from localizer import Localizer
 
 from feet_follower import \
     FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError, \
-    FeetFollowerWithCorrection, Randomizer, ErrorEstimator
+    FeetFollowerWithCorrection, Randomizer, ErrorEstimator, WaistYaw

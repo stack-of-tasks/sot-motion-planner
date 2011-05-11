@@ -59,6 +59,7 @@ FeetFollowerAnalyticalPg::impl_update ()
   const Trajectory::vector_t& rightFoot = trajectories_->rightFoot (t);
   const Trajectory::vector_t& zmp = trajectories_->zmp (t);
   const Trajectory::vector_t& com = trajectories_->com (t);
+  const Trajectory::vector_t& waistYaw = trajectories_->waistYaw (t);
 
   if (leftFoot.size () != 4 || rightFoot.size () != 4
       || com.size () != 3 || zmp.size () != 3)
@@ -67,14 +68,16 @@ FeetFollowerAnalyticalPg::impl_update ()
       return;
     }
 
+  // wMla = wMw_traj * w_trajMla
   leftAnkle_ =
-    trajectories_->wMs *
-    transformPgFrameIntoAnkleFrame
+    trajectories_->wMw_traj *
+    computeAnklePositionInWorldFrame
     (leftFoot[0], leftFoot[1], leftFoot[2], leftFoot[3], leftFootToAnkle_);
 
+  // wMra = wMw_traj * w_trajMra
   rightAnkle_ =
-    trajectories_->wMs *
-    transformPgFrameIntoAnkleFrame
+    trajectories_->wMw_traj *
+    computeAnklePositionInWorldFrame
     (rightFoot[0], rightFoot[1], rightFoot[2], rightFoot[3],
      rightFootToAnkle_);
 
@@ -85,11 +88,16 @@ FeetFollowerAnalyticalPg::impl_update ()
     comH (i) = com[i], zmpH (i) = zmp[i];
   comH (3) = zmpH (3) = 1.;
 
-  comH = trajectories_->wMs * comH;
-  zmpH = trajectories_->wMs * zmpH;
+  // {}^w com = wMw_traj * {}^{w_traj} com
+  comH = trajectories_->wMw_traj * comH;
+  // {}^w zmp = wMw_traj * {}^{w_traj} zmp
+  zmpH = trajectories_->wMw_traj * zmpH;
 
   for (unsigned i = 0; i < 3; ++i)
     com_ (i) = comH (i), zmp_ (i) = zmpH (i);
+
+  jrlMathTools::Angle theta (waistYaw[0]);
+  waistYaw_ (0) = theta.value ();
 
   if (started_)
     ++index_;
@@ -201,6 +209,9 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
       if (steps_[i] (3) < -0.76 || steps_[i] (3) > 0.)
 	throw std::runtime_error ("invalid second slide");
 
+      // Convert from radian to degrees.
+      steps_[i] (6) *= 180. / M_PI;
+
       for (unsigned j = 0; j < steps_[i].size (); ++j)
 	steps.push_back (steps_[i] (j));
     }
@@ -214,6 +225,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   std::vector<vector_t> rightFootData;
   std::vector<vector_t> comData;
   std::vector<vector_t> zmpData;
+  std::vector<vector_t> waistYawData;
 
   for (unsigned i = 0; i < stepFeatures.size; ++i)
     {
@@ -221,16 +233,25 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
       vector_t rightFoot (4);
       vector_t com (3);
       vector_t zmp (3);
+      vector_t waistYaw (1);
+
+      // Convert from degrees into radians.
+      jrlMathTools::Angle waistOrient
+	(stepFeatures.waistOrient[i] * M_PI / 180.);
+      jrlMathTools::Angle leftFootOrient
+	(stepFeatures.leftfootOrient[i] * M_PI / 180.);
+      jrlMathTools::Angle rightFootOrient
+	(stepFeatures.rightfootOrient[i] * M_PI / 180.);
 
       leftFoot[0] = stepFeatures.leftfootXtraj[i];
       leftFoot[1] = stepFeatures.leftfootYtraj[i];
       leftFoot[2] = stepFeatures.leftfootHeight[i];
-      leftFoot[3] = stepFeatures.leftfootOrient[i];
+      leftFoot[3] = leftFootOrient.value ();
 
       rightFoot[0] = stepFeatures.rightfootXtraj[i];
       rightFoot[1] = stepFeatures.rightfootYtraj[i];
       rightFoot[2] = stepFeatures.rightfootHeight[i];
-      rightFoot[3] = stepFeatures.rightfootOrient[i];
+      rightFoot[3] = rightFootOrient.value ();
 
       com[0] = stepFeatures.comTrajX[i];
       com[1] = stepFeatures.comTrajY[i];
@@ -240,10 +261,13 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
       zmp[1] = stepFeatures.zmpTrajY[i];
       zmp[2] = 0.;
 
+      waistYaw[0] = waistOrient.value ();
+
       leftFootData.push_back (leftFoot);
       rightFootData.push_back (rightFoot);
       comData.push_back (com);
       zmpData.push_back (zmp);
+      waistYawData.push_back (waistYaw);
     }
 
   // Reset the movement.
@@ -251,13 +275,17 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 
   const sot::Trajectory::vector_t& initialConfig = leftFootData[0];
 
-  sot::MatrixHomogeneous wMs =
+  // wMw_traj = wMa * aMw_traj = wMa * (w_trajMa)^{-1}
+  //
+  // wMa = ankle position in dynamic-graph frame (initialLeftAnklePosition_)
+  // w_trajMa = ankle position in pattern generator frame (initialConfig)
+  sot::MatrixHomogeneous wMw_traj =
     initialLeftAnklePosition_
-    * transformPgFrameIntoAnkleFrame (initialConfig[0], initialConfig[1],
-				      initialConfig[2], initialConfig[3],
-				      leftFootToAnkle_).inverse ();
+    * computeAnklePositionInWorldFrame (initialConfig[0], initialConfig[1],
+					initialConfig[2], initialConfig[3],
+					leftFootToAnkle_).inverse ();
 
-  //logStepFeatures(steps, stepFeatures, wMs);
+  logStepFeatures(steps, stepFeatures, wMw_traj);
 
   discreteInterval_t range (0., stepFeatures.size * STEP, STEP);
 
@@ -266,7 +294,8 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
      sot::DiscretizedTrajectory (range, rightFootData, "right-foot"),
      sot::DiscretizedTrajectory (range, comData, "com"),
      sot::DiscretizedTrajectory (range, zmpData, "zmp"),
-     wMs);
+     sot::DiscretizedTrajectory (range, waistYawData, "waist-yaw"),
+     wMw_traj);
 
 
   //FIXME: for now compute walk phases by looking at foot height.
