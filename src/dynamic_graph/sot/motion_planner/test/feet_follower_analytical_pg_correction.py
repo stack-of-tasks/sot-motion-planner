@@ -43,24 +43,14 @@ print("* Is correction coming from error estimator (mocap)? " +
       str(enableOffsetFromErrorEstimator))
 print("")
 
+# Define correction limits.
+(maxX, maxY, maxTheta) = (0.04, 0.04, 0.1)
+#(maxX, maxY, maxTheta) = (0., 0., 0.)
+
 # Launch corba server.
 corba = CorbaServer('corba')
 
 # first slide # hor distance # max feet height # second slide # x # y # theta
-steps = [
-    (0.,    0.31, 0.15, -0.76, 0.15,-0.19, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.15, 0.19, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.15,-0.19, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.15, 0.19, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.15,-0.19, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.15, 0.19, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.15,-0.19, 0.),
-    (-1.52, 0.31, 0.15, -0.76, 0.0,  0.19, 0.),
-    ]
-
-def degToRad(x):
-    return x * 3.14 / 180.
-
 steps= [
     # Front
     (0., 0.24, 0.25, -0.76, 0.15,    -0.19, 0.),
@@ -116,11 +106,6 @@ steps= [
     (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
     ]
 
-steps= [
-    (0., 0.24, 0.25, -0.76, 0.15,    -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
-    ]
-
 
 f = FeetFollowerAnalyticalPgGraph(steps)
 
@@ -137,16 +122,6 @@ if enableCorrection:
     plug(robot.dynamic.waist, f.feetFollower.waist)
 
     # Set the safety limits.
-    # Max rotation alone: 3.14/8.
-    #(maxX, maxY, maxTheta) = (0.06, 0.03, 0.05)
-
-    (maxX, maxY, maxTheta) = (0.04, 0.04, 0.05)
-
-    (maxX, maxY, maxTheta) = (0.04, 0., 0.05)
-    (maxX, maxY, maxTheta) = (0.04, 0.04, 0.1)
-
-    (maxX, maxY, maxTheta) = (0., 0., 0.)
-
     f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
     print ("Safe limits: %f %f %f" % (maxX, maxY, maxTheta))
 
@@ -216,15 +191,15 @@ def plugMocap():
     if len(corba.signals()) == 3:
         print ("evart-to-client not launched, abandon.")
         return
+    if len(corba.waistPosition.value) != 3:
+        print ("waist not tracked, abandon.")
+        return
     robot.dynamic.waist.recompute(1)
     #sMm = computeWorldTransformationFromTiles()
     sMm = computeWorldTransformationFromWaist()
     print("World transformation:")
     print(HomogeneousMatrixToXYZTheta(sMm))
     f.errorEstimator.setWorldTransformation(sMm)
-
-    #f.errorEstimator.setWorldTransformation(computeWorldTransformationFromWaist())
-
     plug(corba.waistPosition, f.errorEstimator.position)
     plug(corba.waistPositionTimestamp, f.errorEstimator.positionTimestamp)
     print ("Initial error:")
@@ -235,6 +210,8 @@ if enableMocap:
     if not onRobot:
         while len(corba.signals()) == 3:
             raw_input("Press enter after starting evart-to-corba.")
+        while len(corba.waistPosition.value) != 3:
+            raw_input("Waist not tracked...")
         plugMocap()
     else:
         print ("Type 'plugMocap()'")

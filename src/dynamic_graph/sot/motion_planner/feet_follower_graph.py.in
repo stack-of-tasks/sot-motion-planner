@@ -130,7 +130,12 @@ class FeetFollowerGraph:
             FeatureGeneric(robot.name + '_postureFeatureDes')
 
         self.postureError = PostureError('PostureError')
-        self.postureError.setHalfSitting(robot.halfSitting)
+
+        posture = list(robot.halfSitting)
+        posture[6 + 17] -= 0.2
+        posture[6 + 24] += 0.2
+        self.postureError.setPosture(tuple(posture))
+
         plug(robot.device.state, self.postureError.state)
         plug(self.postureError.error, self.postureFeature.errorIN)
 
