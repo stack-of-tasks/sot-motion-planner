@@ -27,6 +27,52 @@
 
 static const int STEPS_PER_SECOND = 200;
 
+namespace command
+{
+  namespace errorEstimator
+  {
+    SetSafetyLimits::SetSafetyLimits
+    (ErrorEstimator& entity, const std::string& docstring)
+      : Command
+	(entity,
+	 boost::assign::list_of (Value::DOUBLE) (Value::DOUBLE) (Value::DOUBLE),
+	 docstring)
+    {}
+
+    Value SetSafetyLimits::doExecute ()
+    {
+      ErrorEstimator& entity =
+	static_cast<ErrorEstimator&> (owner ());
+
+      std::vector<Value> values = getParameterValues ();
+      double maxErrorX = values[0].value ();
+      double maxErrorY = values[1].value ();
+      double maxErrorTheta = values[2].value ();
+
+      entity.setSafetyLimits (maxErrorX, maxErrorY, maxErrorTheta);
+      return Value ();
+    }
+
+    UnsetSafetyLimits::UnsetSafetyLimits
+    (ErrorEstimator& entity, const std::string& docstring)
+      : Command
+	(entity,
+	 std::vector<Value::Type> (),
+	 docstring)
+    {}
+
+    Value
+    UnsetSafetyLimits::doExecute ()
+    {
+      ErrorEstimator& entity =
+	static_cast<ErrorEstimator&> (owner ());
+      entity.unsetSafetyLimits ();
+      return Value ();
+    }
+  } // end of errorEstimator.
+} // end of namespace command.
+
+
 ErrorEstimator::ErrorEstimator (const std::string& name)
   : dg::Entity (name),
     worldTransformation_ (),
@@ -53,6 +99,13 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
   addCommand ("setWorldTransformation",
 	      new dg::command::Setter<ErrorEstimator, ml::Matrix>
 	      (*this, &ErrorEstimator::worldTransformation, docstring));
+
+  addCommand ("setSafetyLimits",
+	      new command::errorEstimator::SetSafetyLimits
+	      (*this, docstring));
+  addCommand ("unsetSafetyLimits",
+	      new command::errorEstimator::UnsetSafetyLimits
+	      (*this, docstring));
 }
 
 ErrorEstimator::~ErrorEstimator ()
@@ -72,7 +125,8 @@ ErrorEstimator::timestampToIndex (const ml::Vector& timestamp)
   long int usec = Double2Long::convert (timestamp (1));
 
   //FIXME: fail at midnight.
-  ptime_t time (day_clock::universal_day (), seconds (sec) + microseconds (usec));
+  ptime_t time (day_clock::universal_day (),
+		seconds (sec) + microseconds (usec));
 
   typedef boost::numeric::converter<size_t, int64_t> Int64_t2Size_t;
 
@@ -126,17 +180,17 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
     XYThetaToMatrixHomogeneous (position_ (t));
 
   sot::MatrixHomogeneous error = planned * estimated.inverse ();
-  res = MatrixHomogeneousToXYTheta (error);
+  ml::Vector error_xytheta = MatrixHomogeneousToXYTheta (error);
 
-  static const double max[3] = {0.04, 0.04, 0.05};
-  for (unsigned i = 0; i < 3; ++i)
-    {
-      if (res (i) > max[i])
-	res (i) = max[i];
-      if (res (i) < -max[i])
-	res (i) = -max[i];
-    }
-
+  if (maxError_)
+    for (unsigned i = 0; i < 3; ++i)
+      {
+	if (error_xytheta (i) > (*maxError_)[i])
+	  error_xytheta (i) = (*maxError_)[i];
+	if (error_xytheta (i) < -(*maxError_)[i])
+	  error_xytheta (i) = -(*maxError_)[i];
+      }
+  res = error_xytheta;
   return res;
 }
 
@@ -145,6 +199,24 @@ ErrorEstimator::setReferenceTrajectory (FeetFollower* ptr)
 {
   referenceTrajectory_ = ptr;
   started_ = false;
+}
+
+void
+ErrorEstimator::setSafetyLimits (const double& maxErrorX,
+				 const double& maxErrorY,
+				 const double& maxErrorTheta)
+{
+  boost::array<double, 3> max;
+  max[0] = maxErrorX;
+  max[1] = maxErrorY;
+  max[2] = maxErrorTheta;
+  maxError_ = max;
+}
+
+void
+ErrorEstimator::unsetSafetyLimits ()
+{
+  maxError_.reset ();
 }
 
 

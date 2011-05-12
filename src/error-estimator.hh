@@ -19,6 +19,7 @@
 # include <string>
 # include <utility>
 
+# include <boost/array.hpp>
 # include <boost/date_time/posix_time/posix_time_types.hpp>
 # include <boost/shared_ptr.hpp>
 # include <boost/tuple/tuple.hpp>
@@ -48,6 +49,33 @@ namespace sot
 }
 
 class FeetFollower;
+class ErrorEstimator;
+
+namespace command
+{
+  namespace errorEstimator
+  {
+    using ::dynamicgraph::command::Command;
+    using ::dynamicgraph::command::Value;
+
+    class SetSafetyLimits : public Command
+    {
+    public:
+      SetSafetyLimits (ErrorEstimator& entity,
+		       const std::string& docstring);
+      virtual Value doExecute ();
+    };
+
+    class UnsetSafetyLimits : public Command
+    {
+    public:
+      UnsetSafetyLimits (ErrorEstimator& entity,
+			 const std::string& docstring);
+      virtual Value doExecute ();
+    };
+  } // end of namespace errorEstimator.
+} // end of namespace command.
+
 
 class ErrorEstimator : public dg::Entity
 {
@@ -71,6 +99,11 @@ class ErrorEstimator : public dg::Entity
   void setReferenceTrajectory (FeetFollower* ptr);
 
   ml::Vector& updateError (ml::Vector& res, int);
+
+  void setSafetyLimits (const double& maxErrorX,
+			const double& maxErrorY,
+			const double& maxErrorTheta);
+  void unsetSafetyLimits ();
 
 protected:
   size_t timestampToIndex (const ml::Vector& timestamp);
@@ -97,6 +130,8 @@ protected:
   std::vector<boost::tuple<ptime_t, unsigned, sot::MatrixHomogeneous> >
   waistPositions_;
   bool started_;
+
+  boost::optional<boost::array<double, 3> > maxError_;
 };
 
 #endif //! SOT_MOTION_PLANNER_ERROR_ESTIMATOR_HH

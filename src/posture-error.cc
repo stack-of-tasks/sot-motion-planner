@@ -58,8 +58,8 @@ class PostureError : public dg::Entity
     sdes_.addDependency (state_);
 
     std::string docstring;
-    addCommand ("setHalfSitting", new Setter<PostureError, ml::Vector>
-		(*this, &PostureError::setHalfSitting, docstring));
+    addCommand ("setPosture", new Setter<PostureError, ml::Vector>
+		(*this, &PostureError::setPosture, docstring));
   }
 
   virtual ~PostureError ()
@@ -91,30 +91,30 @@ private:
 
   ml::Vector& updateSdes (ml::Vector& res, int t)
   {
-    int errorSize = halfSitting_.size () - 12 - 3 - 1;
+    int errorSize = posture_.size () - 12 - 3 - 1;
 
     if (errorSize < 0)
       return res;
 
     res.resize (errorSize);
 
-    res (0) = halfSitting_ (3);
-    res (1) = halfSitting_ (4);
+    res (0) = posture_ (3);
+    res (1) = posture_ (4);
 
     for (unsigned i = 0; i < errorSize - 2u; ++i)
-      res (i + 2) = halfSitting_ (i + 6 + 12);
+      res (i + 2) = posture_ (i + 6 + 12);
     return res;
   }
 
-  void setHalfSitting (const ml::Vector& halfSitting)
+  void setPosture (const ml::Vector& posture)
   {
-    halfSitting_ = halfSitting;
+    posture_ = posture;
   }
 
   signalIn_t state_;
   signalOut_t error_;
   signalOut_t sdes_;
-  ml::Vector halfSitting_;
+  ml::Vector posture_;
 };
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(PostureError, "PostureError");
