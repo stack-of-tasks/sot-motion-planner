@@ -269,7 +269,11 @@ namespace
     if (leftFirst && ankle (1, 3) < 0.)
       {
 	std::cout << "Delaying correction at t = " << t
-		  << ", " << (leftFirst ? 'l' : 'r') << std::endl;
+		  << ", " << (leftFirst ? 'l' : 'r') << std::endl
+		  << "\t (dx,dy) = ("
+		  << ankle (0, 3) << ","
+		  << ankle (1, 3) << ","
+		  << ")" << std::endl;
 	return true;
       }
     if (!leftFirst && ankle (1, 3) > 0.)
