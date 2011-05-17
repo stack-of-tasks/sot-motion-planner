@@ -132,6 +132,8 @@ if enableCorrection:
          robot.features['left-ankle'].reference)
     plug(f.feetFollower.signal('right-ankle'),
          robot.features['right-ankle'].reference)
+    plug(f.feetFollower.signal('waistYaw'),
+         f.waistYawError.waistYaw)
 
 # Setup error estimator.
 f.errorEstimator.setReferenceTrajectory(f.referenceTrajectory.name)
