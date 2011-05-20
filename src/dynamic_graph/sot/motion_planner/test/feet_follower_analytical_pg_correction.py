@@ -133,7 +133,7 @@ if enableCorrection:
     plug(f.feetFollower.signal('right-ankle'),
          robot.features['right-ankle'].reference)
     plug(f.feetFollower.signal('waistYaw'),
-         f.waistYawError.waistYaw)
+         robot.features['waist'].reference)
 
 # Setup error estimator.
 f.errorEstimator.setReferenceTrajectory(f.referenceTrajectory.name)
@@ -243,7 +243,7 @@ def logRef():
                 f.errorEstimator.name + '-' + 'error')
     robot.device.after.addSignal(f.errorEstimator.name + '.' + 'error')
 
-    f.trace.add(f.corba.name + '.' + 'waistPosition',
-                f.corba.name + '-' + 'waistPosition')
-    robot.device.after.addSignal(f.corba.name + '.' + 'waistPosition')
+    f.trace.add(f.corba.name + '.' + 'waist',
+                f.corba.name + '-' + 'waist')
+    robot.device.after.addSignal(f.corba.name + '.' + 'waist')
     print ("logging reference trajectory")

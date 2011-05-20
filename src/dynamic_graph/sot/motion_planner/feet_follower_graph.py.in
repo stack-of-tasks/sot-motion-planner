@@ -126,9 +126,6 @@ class FeetFollowerGraph:
         # Initialize the posture task.
         self.postureTask = Task(robot.name + '_posture')
         self.postureFeature = FeatureGeneric(robot.name + '_postureFeature')
-        self.postureFeatureDes = \
-            FeatureGeneric(robot.name + '_postureFeatureDes')
-
         self.postureError = PostureError('PostureError')
 
         posture = list(robot.halfSitting)
@@ -138,33 +135,14 @@ class FeetFollowerGraph:
 
         plug(robot.device.state, self.postureError.state)
         plug(self.postureError.error, self.postureFeature.errorIN)
-
         self.postureFeature.jacobianIN.value = self.computeJacobianPosture()
-        plug(self.postureError.sdes, self.postureFeatureDes.errorIN)
-
-        self.postureFeature.sdes.value = self.postureFeatureDes
-
         self.postureTask.add(self.postureFeature.name)
         self.postureTask.controlGain.value = initialGain
 
         # Initialize the waist yaw task.
-        self.waistYawTask = Task(robot.name + '_waistYaw')
-        self.waistYawFeature = FeatureGeneric(robot.name + '_waistYawFeature')
-        self.waistYawFeatureDes = \
-            FeatureGeneric(robot.name + '_waistYawFeatureDes')
-
-        self.waistYawError = WaistYaw('WaistYawError')
-        plug(self.feetFollower.waistYaw, self.waistYawError.waistYaw)
-        plug(robot.device.state, self.waistYawError.state)
-        plug(self.waistYawError.error, self.waistYawFeature.errorIN)
-
-        self.waistYawFeature.jacobianIN.value = self.computeJacobianWaistYaw()
-        plug(self.waistYawError.sdes, self.waistYawFeatureDes.errorIN)
-
-        self.waistYawFeature.sdes.value = self.waistYawFeatureDes
-
-        self.waistYawTask.add(self.waistYawFeature.name)
-        self.waistYawTask.controlGain.value = initialGain
+        robot.features['waist'].selec.value = '100000'
+        plug(self.feetFollower.waistYaw, robot.features['waist'].reference)
+        robot.tasks['waist'].controlGain.value = initialGain
 
         # Tasks
         solver.sot.remove(robot.tasks['right-ankle'].name)
@@ -175,7 +153,7 @@ class FeetFollowerGraph:
         solver.sot.push(robot.comTask.name)
         solver.sot.push(robot.tasks['left-ankle'].name)
         solver.sot.push(robot.tasks['right-ankle'].name)
-        solver.sot.push(self.waistYawTask.name)
+        solver.sot.push(robot.tasks['waist'].name)
 
     def setupTrace(self):
         # Feature sdes input.
@@ -196,8 +174,8 @@ class FeetFollowerGraph:
         self.trace.add(robot.comTask.name + '.error', 'errorCom')
         self.trace.add(robot.tasks['left-ankle'].name + '.error', 'errorLa')
         self.trace.add(robot.tasks['right-ankle'].name + '.error', 'errorRa')
+        self.trace.add(robot.tasks['waist'].name + '.error', 'errorWaist')
         self.trace.add(self.postureTask.name + '.error', 'errorPosture')
-        self.trace.add(self.waistYawTask.name + '.error', 'errorWaistYaw')
 
     def computeJacobianPosture(self):
         j = []
@@ -239,7 +217,7 @@ class FeetFollowerGraph:
         robot.tasks['left-ankle'].controlGain.value = 180.
         robot.tasks['right-ankle'].controlGain.value = 180.
         self.postureTask.controlGain.value = 180.
-        self.waistYawTask.controlGain.value = 180.
+        robot.tasks['waist'].controlGain.value = 180.
         self.setupTrace()
         if beforeStart:
             beforeStart()
