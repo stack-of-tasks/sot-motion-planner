@@ -19,4 +19,5 @@ from localizer import Localizer
 
 from feet_follower import \
     FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError, \
-    FeetFollowerWithCorrection
+    FeetFollowerWithCorrection, LegsFollower, LegsError, WaistError
+

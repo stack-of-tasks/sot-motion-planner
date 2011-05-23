@@ -34,7 +34,7 @@ namespace sot
 }
 
 
-class PostureError : public dg::Entity
+class WaistError : public dg::Entity
 {
  public:
   typedef dg::SignalPtr<ml::Vector, int> signalIn_t;
@@ -42,20 +42,21 @@ class PostureError : public dg::Entity
 
   static const std::string CLASS_NAME;
 
-  explicit PostureError (const std::string& name)
+  explicit WaistError (const std::string& name)
     : Entity(name),
       state_
       (dg::nullptr,
        MAKE_SIGNAL_STRING (name, true, "Vector", "state")),
-      error_ (INIT_SIGNAL_OUT ("error", PostureError::updateError, "Vector"))
+      error_ (INIT_SIGNAL_OUT ("error", WaistError::updateError, "Vector"))
   {
-    signalRegistration (error_ << state_);
+    signalRegistration (error_ << state_) ;
 
     error_.addDependency (state_);
+
   }
 
-  virtual ~PostureError ()
-  {}
+  virtual ~WaistError ()
+  { }
 
   virtual const std::string& getClassName ()
   {
@@ -63,28 +64,31 @@ class PostureError : public dg::Entity
   }
 
 private:
+
   ml::Vector& updateError (ml::Vector& res, int t)
   {
     ml::Vector state = state_ (t);
 
-    int errorSize = state.size () - 12 - 3;
-    if (errorSize < 0)
-      return res;
 
-    res.resize (errorSize);
-
-    res (0) = state (3);
-    res (1) = state (4);
-    res (2) = state (5);
-
-    for (unsigned i = 0; i < errorSize - 3u; ++i)
-      res (i + 3) = state (i + 6 + 12);
-
+    res.resize (6);
+    res(0) = state(0);
+    res(1) = state(1);
+    res(2) = state(2);
+    res(3) = state(3);
+    res(4) = state(4);
+    res(5) = state(5);
+/*
+    res(0) = state(0);
+    res(1) = state(1);
+    res(2) = state(5);
+*/
     return res;
   }
 
   signalIn_t state_;
   signalOut_t error_;
+
+
 };
 
-DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(PostureError, "PostureError");
+DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(WaistError, "WaistError");

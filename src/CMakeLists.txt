@@ -53,10 +53,13 @@ SET(FEET_FOLLOWER_SOURCES
   feet-follower-analytical-pg.cc analytical-pg/newPGstepStudy.cpp
   feet-follower-with-correction.cc
 
-  posture-error.cc)
+  legs-follower.cc legs-follower.hh
+  legs-error.cc
+  waist-error.cc
+  posture-error.cc
+)
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
-
 
 EXEC_PROGRAM(
   ${PYTHON_EXECUTABLE}
@@ -69,6 +72,7 @@ EXEC_PROGRAM(
 
 SET(TRAJECTORY_PATH "${CMAKE_SOURCE_DIR}/tests")
 CONFIG_FILES(dynamic_graph/sot/motion_planner/feet_follower_graph.py)
+#CONFIG_FILES(dynamic_graph/sot/motion_planner/legs_follower_graph.py)
 
 SET(PYTHON_MODULE_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner)
@@ -78,6 +82,7 @@ SET(PYTHON_MODULE_BUILD_DIR
 INSTALL(FILES
   ${PYTHON_MODULE_DIR}/__init__.py
   ${PYTHON_MODULE_BUILD_DIR}/feet_follower_graph.py
+  ${PYTHON_MODULE_DIR}/legs_follower_graph.py
   DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/motion_planner
   )
 

@@ -14,8 +14,16 @@
 // sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 #ifndef SOT_MOTION_PLANNER_COMMON_HH
 # define SOT_MOTION_PLANNER_COMMON_HH
+# include <cmath>
 # include <boost/bind.hpp>
 # include <boost/format.hpp>
+
+
+//# include <jrl/mathtools/angle.hh>
+# include <sot/core/matrix-homogeneous.hh>
+# include <sot/core/matrix-rotation.hh>
+# include <sot/core/vector-roll-pitch-yaw.hh>
+
 
 inline std::string
 makeSignalString (const std::string& className,
@@ -48,5 +56,33 @@ makeSignalString (const std::string& className,
   boost::bind(&METHOD_NAME, this, _1, _2),				\
     dg::sotNOSIGNAL,							\
     MAKE_SIGNAL_STRING(name, false, TYPE, SIGNAL_NAME)
+
+namespace ml = ::maal::boost;
+namespace dg = ::dynamicgraph;
+
+//namespace sot
+//{
+//  using namespace ::dynamicgraph::sot;
+//}
+
+inline ::dynamicgraph::sot::MatrixHomogeneous
+XYZThetaToMatrixHomogeneous (const ml::Vector& xyztheta)
+{
+  assert (xyztheta.size () == 4);
+  ml::Vector t (3);
+  t (0) = xyztheta (0);
+  t (1) = xyztheta (1);
+  t (2) = xyztheta (2);
+
+  //jrlMathTools::Angle theta (xyztheta (3));
+
+  ::dynamicgraph::sot::VectorRollPitchYaw vR;
+  vR (2) = xyztheta (3);
+  ::dynamicgraph::sot::MatrixRotation R;
+  vR.toMatrix (R);
+  ::dynamicgraph::sot::MatrixHomogeneous res;
+  res.buildFrom (R, t);
+  return res;
+}
 
 #endif //! SOT_MOTION_PLANNER_COMMON_HH
