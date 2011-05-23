@@ -75,7 +75,6 @@ SET(FEET_FOLLOWER_SOURCES
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
 
-
 EXEC_PROGRAM(
   ${PYTHON_EXECUTABLE}
   ARGS
@@ -87,12 +86,14 @@ EXEC_PROGRAM(
 
 SET(TRAJECTORY_PATH "${CMAKE_SOURCE_DIR}/tests")
 CONFIG_FILES(dynamic_graph/sot/motion_planner/feet_follower_graph.py)
+#CONFIG_FILES(dynamic_graph/sot/motion_planner/legs_follower_graph.py)
 
 SET(PYTHON_MODULE_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner)
 SET(PYTHON_MODULE_BUILD_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/dynamic_graph/sot/motion_planner)
 
+<<<<<<< HEAD
 
 # Install dynamic_graph.sot.motion_planner
 SET(PYTHON_MODULE dynamic_graph/sot/motion_planner)
@@ -136,6 +137,8 @@ SET(FILES
   mocap.py
   virtual_sensor.py
   visp.py
+  feet_follower_graph.py
+  legs_follower_graph.py
   )
 FOREACH(FILE ${FILES})
   PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")

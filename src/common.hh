@@ -19,6 +19,7 @@
 # include <boost/format.hpp>
 
 # include <jrl/mathtools/angle.hh>
+
 # include <sot/core/matrix-homogeneous.hh>
 # include <sot/core/matrix-rotation.hh>
 # include <sot/core/vector-roll-pitch-yaw.hh>
@@ -92,6 +93,7 @@ XYZThetaToMatrixHomogeneous (const ml::Vector& xyztheta)
   t (0) = xyztheta (0);
   t (1) = xyztheta (1);
   t (2) = xyztheta (2);
+
 
   jrlMathTools::Angle theta (xyztheta (3));
 
