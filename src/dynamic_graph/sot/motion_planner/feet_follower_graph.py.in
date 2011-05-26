@@ -140,7 +140,7 @@ class FeetFollowerGraph:
         self.postureTask.controlGain.value = initialGain
 
         # Initialize the waist yaw task.
-        robot.features['waist'].selec.value = '100000'
+        robot.features['waist'].selec.value = '111000'
         plug(self.feetFollower.waistYaw, robot.features['waist'].reference)
         robot.tasks['waist'].controlGain.value = initialGain
 
@@ -180,17 +180,9 @@ class FeetFollowerGraph:
     def computeJacobianPosture(self):
         j = []
         for i in xrange(36):
-            if i == 3 or i == 4 or i >= 6 + 2 * 6:
+            if i >= 6 + 2 * 6:
                 j.append(oneVector(i))
         return tuple(j)
-
-    def computeJacobianWaistYaw(self):
-        j = []
-        for i in xrange(36):
-            if i == 5:
-                j.append(oneVector(i))
-        return tuple(j)
-
 
     def canStart(self):
         securityThreshold = 1e-3

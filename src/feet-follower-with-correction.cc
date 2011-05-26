@@ -269,7 +269,7 @@ namespace
     ankle = ankle
       * (leftFirst ? leftAnkle.inverse () : rightAnkle.inverse ());
 
-    if (leftFirst && ankle (1, 3) < 0.)
+    if (leftFirst && ankle (1, 3) < -1e-8)
       {
 	std::cout << "Delaying correction at t = " << t
 		  << ", " << (leftFirst ? 'l' : 'r') << std::endl
@@ -279,7 +279,7 @@ namespace
 		  << ")" << std::endl;
 	return true;
       }
-    if (!leftFirst && ankle (1, 3) > 0.)
+    if (!leftFirst && ankle (1, 3) > 1e-8)
       {
 	std::cout << "Delaying correction at t = " << t
 		  << ", " << (leftFirst ? 'l' : 'r') << std::endl;

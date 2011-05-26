@@ -54,7 +54,7 @@ class WaistYaw : public dg::Entity
       sdes_ (INIT_SIGNAL_OUT ("sdes", WaistYaw::updateSdes, "Vector"))
   {
     signalRegistration (error_ << sdes_ << state_ << waistYaw_);
-    
+
     error_.addDependency (state_);
     sdes_.addDependency (state_);
     error_.addDependency (waistYaw_);
@@ -72,15 +72,19 @@ class WaistYaw : public dg::Entity
 private:
   ml::Vector& updateError (ml::Vector& res, int t)
   {
-    res.resize (1);
-    res (0) = state_ (t) (5);
+    res.resize (3);
+    res (0) = state_ (t) (3);
+    res (1) = state_ (t) (4);
+    res (2) = state_ (t) (5);
     return res;
   }
 
   ml::Vector& updateSdes (ml::Vector& res, int t)
   {
-    res.resize (1);
-    res (0) = waistYaw_ (t) (0);
+    res.resize (3);
+    res (0) = 0.;
+    res (1) = 0.;
+    res (2) = waistYaw_ (t) (0);
     return res;
   }
 
