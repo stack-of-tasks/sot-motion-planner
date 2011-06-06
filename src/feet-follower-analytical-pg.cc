@@ -30,10 +30,32 @@ FeetFollowerAnalyticalPg::FeetFollowerAnalyticalPg (const std::string& name)
 {
   std::string docstring = "";
 
+  docstring =
+    "    Compute trajectory of feet, center of mass and waist orientation\n"
+    "    \n"
+    "    No input\n"
+    "    Note: the list of steps should have been inserted using command "
+    "pushStep\n";
   addCommand ("generateTrajectory",
 	      new command::GenerateTrajectory (*this, docstring));
+  docstring =
+    "    Add a step in the list\n"
+    "    \n"
+    "    Input: a vector of 7 floating point numbers\n"
+    "      - first sliding coefficient (between -1.52 and 0.)\n"
+    "      - horizontal distance between feet in stable single support\n"
+    "      - height of swing foot in stable single support\n"
+    "      - second sliding coefficient (between -0.76 and 0.)\n"
+    "      - landing position of swing foot in support foot reference frame "
+    "(x)\n"
+    "      - landing position of swing foot in support foot reference frame "
+    "(y)\n"
+    "      - landing position of swing foot in support foot reference frame\n"
+    "        (orientation)\n";
   addCommand ("pushStep",
 	      new command::PushStep (*this, docstring));
+  docstring =
+    "    Clear list of steps\n";
   addCommand ("clearSteps",
 	      new command::ClearSteps (*this, docstring));
 }
