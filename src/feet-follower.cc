@@ -188,8 +188,8 @@ FeetFollower::updateZmp (ml::Vector& res, int t)
   return res;
 }
 
-sot::MatrixHomogeneous&
-FeetFollower::updateWaistYaw (sot::MatrixHomogeneous& res, int t)
+ml::Vector&
+FeetFollower::updateWaistYaw (ml::Vector& res, int t)
 {
   if (t > t_)
     update (t);

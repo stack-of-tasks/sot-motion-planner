@@ -119,9 +119,7 @@ FeetFollowerAnalyticalPg::impl_update ()
     com_ (i) = comH (i), zmp_ (i) = zmpH (i);
 
   jrlMathTools::Angle theta (waistYaw[0]);
-  ml::Vector xytheta (3);
-  xytheta (0) = 0., xytheta (1) = 0., xytheta (2) = theta.value ();
-  waistYaw_ = XYThetaToMatrixHomogeneous (xytheta);
+  waistYaw_(0) = theta.value ();
 
   if (started_)
     ++index_;
