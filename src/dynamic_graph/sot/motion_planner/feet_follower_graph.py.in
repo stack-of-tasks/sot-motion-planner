@@ -255,7 +255,8 @@ class FeetFollowerAnalyticalPgGraph(FeetFollowerGraph):
             self.feetFollower.setComZ(comZ)
         else:
             self.feetFollower.setComZ(robot.dynamic.com.value[2])
-        for step in steps:
-            self.feetFollower.pushStep(step)
-        self.feetFollower.generateTrajectory()
-        self.setup()
+        if steps:
+            for step in steps:
+                self.feetFollower.pushStep(step)
+            self.feetFollower.generateTrajectory()
+            self.setup()
