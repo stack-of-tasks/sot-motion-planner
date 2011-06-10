@@ -15,7 +15,7 @@
 # received a copy of the GNU Lesser General Public License along with
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
-from dynamic_graph.sot.dynamics.tools import *
+from dynamic_graph import plug
 from __main__ import robot, solver
 from dynamic_graph.sot.core import FeatureGeneric, Task, RobotSimu
 from dynamic_graph.sot.motion_planner import \
