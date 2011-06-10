@@ -133,10 +133,13 @@ FeetFollowerWithCorrection::impl_update ()
 
 
   jrlMathTools::Angle theta
-    (jrlMathTools::Angle(waistYaw_(0)) +
+    (jrlMathTools::Angle(MatrixHomogeneousToXYTheta (waistYaw_) (2)) +
      jrlMathTools::Angle(MatrixHomogeneousToXYTheta (correctionCom_) (2)));
 
-  waistYaw_(0) = theta.value ();
+  ml::Vector xytheta (3);
+  xytheta (0) = xytheta (1) = 0.;
+  xytheta (2) = theta.value ();
+  waistYaw_ = XYThetaToMatrixHomogeneous (xytheta);
 }
 
 void

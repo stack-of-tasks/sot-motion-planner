@@ -48,7 +48,8 @@ namespace sot
 class FeetFollower;
 
 sot::MatrixHomogeneous
-computeAnklePositionInWorldFrame (double footX, double footY, double footZ, double footYaw,
+computeAnklePositionInWorldFrame (double footX, double footY, double footZ,
+				  double footYaw,
 				  const sot::MatrixHomogeneous& fMa);
 
 namespace command
@@ -154,7 +155,7 @@ class FeetFollower : public dg::Entity
   void update (int t);
   ml::Vector& updateCoM (ml::Vector& res, int t);
   ml::Vector& updateZmp (ml::Vector& res, int t);
-  ml::Vector& updateWaistYaw (ml::Vector& res, int t);
+  sot::MatrixHomogeneous& updateWaistYaw (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateLeftAnkle (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateRightAnkle (sot::MatrixHomogeneous& res, int t);
   double getTime () const;
@@ -214,7 +215,7 @@ protected:
   int t_;
   ml::Vector com_;
   ml::Vector zmp_;
-  ml::Vector waistYaw_;
+  sot::MatrixHomogeneous waistYaw_;
   sot::MatrixHomogeneous leftAnkle_;
   sot::MatrixHomogeneous rightAnkle_;
 
@@ -229,7 +230,7 @@ protected:
 
   signalCoM_t comOut_;
   signalCoM_t zmpOut_;
-  signalCoM_t waistYawOut_;
+  signalFoot_t waistYawOut_;
   signalFoot_t leftAnkleOut_;
   signalFoot_t rightAnkleOut_;
 

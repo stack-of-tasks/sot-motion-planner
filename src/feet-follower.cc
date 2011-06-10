@@ -98,7 +98,7 @@ FeetFollower::FeetFollower (const std::string& name)
     t_ (std::numeric_limits<int>::min ()),
     com_ (3),
     zmp_ (3),
-    waistYaw_ (1),
+    waistYaw_ (),
     leftAnkle_ (),
     rightAnkle_ (),
     comZ_ (0.),
@@ -111,7 +111,7 @@ FeetFollower::FeetFollower (const std::string& name)
     comOut_ (INIT_SIGNAL_OUT ("com", FeetFollower::updateCoM, "Vector")),
     zmpOut_ (INIT_SIGNAL_OUT ("zmp", FeetFollower::updateZmp, "Vector")),
     waistYawOut_ (INIT_SIGNAL_OUT
-		  ("waistYaw", FeetFollower::updateWaistYaw, "Vector")),
+		  ("waistYaw", FeetFollower::updateWaistYaw, "MatrixHomo")),
     leftAnkleOut_
     (INIT_SIGNAL_OUT
      ("left-ankle", FeetFollower::updateLeftAnkle, "MatrixHomo")),
@@ -188,8 +188,8 @@ FeetFollower::updateZmp (ml::Vector& res, int t)
   return res;
 }
 
-ml::Vector&
-FeetFollower::updateWaistYaw (ml::Vector& res, int t)
+sot::MatrixHomogeneous&
+FeetFollower::updateWaistYaw (sot::MatrixHomogeneous& res, int t)
 {
   if (t > t_)
     update (t);
