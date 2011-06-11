@@ -17,10 +17,10 @@
 
 from dynamic_graph import plug
 from __main__ import robot, solver
-from dynamic_graph.sot.core import FeatureGeneric, Task, RobotSimu
+from dynamic_graph.sot.core import FeatureGeneric, Task, RobotSimu, \
+    FeaturePosture
 from dynamic_graph.sot.motion_planner import \
-    FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError, \
-    WaistYaw
+    FeetFollowerFromFile, FeetFollowerAnalyticalPg, WaistYaw
 from dynamic_graph.tracer_real_time import TracerRealTime
 
 def translationToSE3(t):
@@ -125,17 +125,13 @@ class FeetFollowerGraph:
 
         # Initialize the posture task.
         self.postureTask = Task(robot.name + '_posture')
-        self.postureFeature = FeatureGeneric(robot.name + '_postureFeature')
-        self.postureError = PostureError('PostureError')
+        self.postureFeature = FeaturePosture(robot.name + '_postureFeature')
 
         posture = list(robot.halfSitting)
-        posture[6 + 17] -= 0.2
-        posture[6 + 24] += 0.2
-        self.postureError.setPosture(tuple(posture))
+        self.postureFeature.setPosture(tuple(posture))
 
-        plug(robot.device.state, self.postureError.state)
-        plug(self.postureError.error, self.postureFeature.errorIN)
-        self.postureFeature.jacobianIN.value = self.computeJacobianPosture()
+        plug(robot.device.state, self.postureFeature.state)
+        #self.computeJacobianPosture()
         self.postureTask.add(self.postureFeature.name)
         self.postureTask.controlGain.value = initialGain
 
@@ -149,11 +145,11 @@ class FeetFollowerGraph:
         solver.sot.remove(robot.tasks['left-ankle'].name)
         solver.sot.remove(robot.comTask.name)
 
-        solver.sot.push(self.postureTask.name)
-        solver.sot.push(robot.comTask.name)
         solver.sot.push(robot.tasks['left-ankle'].name)
         solver.sot.push(robot.tasks['right-ankle'].name)
+        solver.sot.push(robot.comTask.name)
         solver.sot.push(robot.tasks['waist'].name)
+        solver.sot.push(self.postureTask.name)
 
     def setupTrace(self):
         # Feature sdes input.
@@ -177,12 +173,9 @@ class FeetFollowerGraph:
         self.trace.add(robot.tasks['waist'].name + '.error', 'errorWaist')
         self.trace.add(self.postureTask.name + '.error', 'errorPosture')
 
-    def computeJacobianPosture(self):
-        j = []
-        for i in xrange(36):
-            if i >= 6 + 2 * 6:
-                j.append(oneVector(i))
-        return tuple(j)
+    # def computeJacobianPosture(self):
+    #     for i in xrange(18,36):
+    #         self.postureFeature.selectDof(i, True)
 
     def canStart(self):
         securityThreshold = 1e-3
