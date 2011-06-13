@@ -25,8 +25,6 @@
 #include "error-estimator.hh"
 #include "set-reference-trajectory.hh"
 
-static const int STEPS_PER_SECOND = 200;
-
 namespace command
 {
   namespace errorEstimator

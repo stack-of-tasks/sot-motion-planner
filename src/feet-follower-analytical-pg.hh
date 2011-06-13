@@ -64,8 +64,6 @@ class FeetFollowerAnalyticalPg : public FeetFollower
 public:
   static const std::string CLASS_NAME;
 
-  static const double STEP;
-
   explicit FeetFollowerAnalyticalPg (const std::string& name);
   virtual ~FeetFollowerAnalyticalPg ();
 

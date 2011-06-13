@@ -44,8 +44,6 @@
 #include "discretized-trajectory.hh"
 #include "feet-follower-from-file.hh"
 
-const double FeetFollowerFromFile::STEP = 0.005;
-
 WalkMovement loadFromFile(const fs::path& LeftFootPath,
 			    const fs::path& RightFootPath,
 			    const fs::path& ComPath,
@@ -138,7 +136,7 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
 				trajectoryComPath,
 				trajectoryZmpPath,
 				trajectoryWaistYawPath,
-				STEP);
+				timeStep_);
 
   // Reset the movement.
   index_ = 0;
@@ -169,7 +167,7 @@ FeetFollowerFromFile::impl_update ()
   if (!trajectories_)
     return;
 
-  const double t = index_ * STEP;
+  const double t = index_ * timeStep_;
 
   if (t >= Function::getUpperBound (trajectories_->leftFoot.getRange ()))
     return;

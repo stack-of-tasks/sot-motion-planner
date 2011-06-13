@@ -159,6 +159,7 @@ class FeetFollower : public dg::Entity
   sot::MatrixHomogeneous& updateLeftAnkle (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateRightAnkle (sot::MatrixHomogeneous& res, int t);
   double getTime () const;
+  void setTimeStep(const double& inTimeStep);
 
   /// \brief Returns the current time index on the trajectory.
   /// I.e. time - startTime (0 means the trajectory replay just began)
@@ -227,6 +228,7 @@ protected:
 
   bool started_;
   double startTime_;
+  double timeStep_;
 
   signalCoM_t comOut_;
   signalCoM_t zmpOut_;

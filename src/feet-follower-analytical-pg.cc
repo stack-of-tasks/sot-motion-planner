@@ -15,11 +15,7 @@
 // dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 #include "discretized-trajectory.hh"
-
 #include "feet-follower-analytical-pg.hh"
-
-const double FeetFollowerAnalyticalPg::STEP = 0.005;
-
 
 FeetFollowerAnalyticalPg::FeetFollowerAnalyticalPg (const std::string& name)
   : FeetFollower (name),
@@ -72,7 +68,7 @@ FeetFollowerAnalyticalPg::impl_update ()
   if (!trajectories_)
     return;
 
-  const double t = index_ * STEP;
+  const double t = index_ * timeStep_;
 
   if (t >= Function::getUpperBound (trajectories_->leftFoot.getRange ()))
     return;
@@ -243,7 +239,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
     }
 
   pg.produceSeqSlidedHalfStepFeatures
-    (stepFeatures, STEP, comZ_, g,
+    (stepFeatures, timeStep_, comZ_, g,
      timeBeforeZmpShift, timeAfterZmpShift, halfStepLength, steps,
      leftOrRightFootStable_ ? 'L' : 'R');
 
@@ -313,7 +309,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 
   logStepFeatures(steps, stepFeatures, wMw_traj);
 
-  discreteInterval_t range (0., stepFeatures.size * STEP, STEP);
+  discreteInterval_t range (0., stepFeatures.size * timeStep_, timeStep_);
 
   trajectories_ = WalkMovement
     (sot::DiscretizedTrajectory (range, leftFootData, "left-foot"),
@@ -356,7 +352,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 	{
 	  oldPhase = phase;
 	  trajectories_->supportFoot.push_back
-	    (std::make_pair (i * STEP, phase));
+	    (std::make_pair (i * timeStep_, phase));
 	}
     }
 

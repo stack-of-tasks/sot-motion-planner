@@ -41,7 +41,7 @@
 namespace ml = ::maal::boost;
 namespace dg = ::dynamicgraph;
 
-static const double STEP = 0.005; //FIXME:
+static const double DEFAULT_TIME_STEP = 0.005; //FIXME:
 
 namespace sot
 {
@@ -108,6 +108,7 @@ FeetFollower::FeetFollower (const std::string& name)
     initialRightAnklePosition_ (),
     started_ (false),
     startTime_ (-1.),
+    timeStep_(DEFAULT_TIME_STEP),
     comOut_ (INIT_SIGNAL_OUT ("com", FeetFollower::updateCoM, "Vector")),
     zmpOut_ (INIT_SIGNAL_OUT ("zmp", FeetFollower::updateZmp, "Vector")),
     waistYawOut_ (INIT_SIGNAL_OUT
@@ -129,35 +130,75 @@ FeetFollower::FeetFollower (const std::string& name)
   rightAnkleOut_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
+  docstring =
+    "    Set height of center of mass during walk\n"
+    "    \n"
+    "    Input: a floating point number\n";
   addCommand ("setComZ", new Setter<FeetFollower, double>
 	      (*this, &FeetFollower::setComZ, docstring));
 
+  docstring =
+    "    Set position of ankle in left foot local frame.\n"
+    "    \n"
+    "    Input: a matrix homogeneous\n";
   addCommand ("setLeftFootToAnkle",
 	      new Setter<FeetFollower, maal::boost::Matrix>
 	      (*this, &FeetFollower::setLeftFootToAnkle, docstring));
+
+  docstring =
+    "    Set position of ankle in right foot local frame.\n"
+    "    \n"
+    "    Input: a matrix homogeneous\n";
   addCommand ("setRightFootToAnkle",
 	      new Setter<FeetFollower, maal::boost::Matrix>
 	      (*this, &FeetFollower::setRightFootToAnkle, docstring));
 
+  docstring =
+    "    Set initial position of left ankle\n"
+    "    \n"
+    "    Input: a matrix homogeneous\n";
   addCommand ("setInitialLeftAnklePosition",
 	      new Setter<FeetFollower, maal::boost::Matrix>
 	      (*this, &FeetFollower::setInitialLeftAnklePosition, docstring));
+
+  docstring =
+    "    Set initial position of right ankle\n"
+    "    \n"
+    "    Input: a matrix homogeneous\n";
   addCommand ("setInitialRightAnklePosition",
 	      new Setter<FeetFollower, maal::boost::Matrix>
 	      (*this,
 	       &FeetFollower::setInitialRightAnklePosition, docstring));
 
+  docstring =
+    "    \n"
+    "    Start walking motion"
+    "    \n"
+    "    No input_n";
   addCommand ("start", new command::Start (*this, docstring));
+  docstring =
+    "    Set time step of discretized trajectories\n"
+    "    \n"
+    "    Input: a floating point number\n"
+    "      default value is 0.005\n";
+  addCommand ("setTimeStep",
+	      new Setter<FeetFollower, double>
+	      (*this, &FeetFollower::setTimeStep, docstring));
 }
 
 FeetFollower::~FeetFollower ()
 {}
 
+void FeetFollower::setTimeStep(const double& inTimeStep)
+{
+  timeStep_ = inTimeStep;
+}
+
 void
 FeetFollower::start ()
 {
   started_ = true;
-  startTime_ = t_ * STEP;
+  startTime_ = t_ * timeStep_;
   impl_start ();
 }
 
@@ -218,7 +259,7 @@ FeetFollower::updateRightAnkle (sot::MatrixHomogeneous& res, int t)
 double
 FeetFollower::getTime () const
 {
-  return t_ * STEP;
+  return t_ * timeStep_;
 }
 
 double
