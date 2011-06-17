@@ -81,7 +81,7 @@ private:
 
     res.resize (errorSize);
     for (unsigned i = 0; i < errorSize; ++i)
-      res (i) = state (i + 6 + 12);
+      res (i) = state (i + 6 + 12) - posture_ (i + 6 + 12);
     return res;
   }
 
