@@ -64,10 +64,11 @@ namespace command
     std::string name = values[0].value ();
 
     FeetFollower* referenceTrajectory = 0;
-    if (dynamicgraph::g_pool.existEntity (name))
+    if (dynamicgraph::PoolStorage::getInstance()->existEntity (name))
       {
 	referenceTrajectory =
-	  dynamic_cast<FeetFollower*> (&dynamicgraph::g_pool.getEntity (name));
+	  dynamic_cast<FeetFollower*>
+	  (&dynamicgraph::PoolStorage::getInstance()->getEntity (name));
 	if (!referenceTrajectory)
 	  std::cerr << "entity is not a FeetFollower" << std::endl;
       }
