@@ -153,6 +153,11 @@ public:
 
   static const std::string CLASS_NAME;
 
+  virtual const std::string& getClassName () const
+  {
+    return CLASS_NAME;
+  }
+
   explicit Localizer (const std::string& name);
 
   size_t getFinalProblemSize (int t) const

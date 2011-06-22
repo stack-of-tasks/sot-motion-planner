@@ -91,7 +91,7 @@ class ErrorEstimator : public dg::Entity
   explicit ErrorEstimator (const std::string& name);
   virtual ~ErrorEstimator ();
 
-  virtual const std::string& getClassName ()
+  virtual const std::string& getClassName () const
   {
     return CLASS_NAME;
   }

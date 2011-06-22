@@ -146,11 +146,6 @@ class FeetFollower : public dg::Entity
   explicit FeetFollower (const std::string& name);
   virtual ~FeetFollower ();
 
-  virtual const std::string& getClassName ()
-  {
-    return CLASS_NAME;
-  }
-
   void start ();
   void update (int t);
   ml::Vector& updateCoM (ml::Vector& res, int t);

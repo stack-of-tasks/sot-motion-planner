@@ -64,7 +64,7 @@ class WaistYaw : public dg::Entity
   virtual ~WaistYaw ()
   {}
 
-  virtual const std::string& getClassName ()
+  virtual const std::string& getClassName () const
   {
     return CLASS_NAME;
   }

@@ -65,7 +65,7 @@ class PostureError : public dg::Entity
   virtual ~PostureError ()
   {}
 
-  virtual const std::string& getClassName ()
+  virtual const std::string& getClassName () const
   {
     return CLASS_NAME;
   }

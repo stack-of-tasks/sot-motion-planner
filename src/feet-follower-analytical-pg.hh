@@ -67,6 +67,11 @@ public:
   explicit FeetFollowerAnalyticalPg (const std::string& name);
   virtual ~FeetFollowerAnalyticalPg ();
 
+  virtual const std::string& getClassName () const
+  {
+    return CLASS_NAME;
+  }
+
   void generateTrajectory ();
 
   void pushStep (const ml::Vector& step);

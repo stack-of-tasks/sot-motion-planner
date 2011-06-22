@@ -32,6 +32,11 @@ class FeetFollowerFromFile : public FeetFollower
 public:
   static const std::string CLASS_NAME;
 
+  virtual const std::string& getClassName () const
+  {
+    return CLASS_NAME;
+  }
+
   static const double STEP;
 
   explicit FeetFollowerFromFile (const std::string& name);

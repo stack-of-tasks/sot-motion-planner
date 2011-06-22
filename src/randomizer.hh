@@ -54,7 +54,7 @@ class Randomizer : public dg::Entity
   explicit Randomizer (const std::string& name);
   virtual ~Randomizer ();
 
-  virtual const std::string& getClassName ()
+  virtual const std::string& getClassName () const
   {
     return CLASS_NAME;
   }
