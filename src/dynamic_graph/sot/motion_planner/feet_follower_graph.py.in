@@ -34,6 +34,10 @@ def oneVector(i):
     r[i] = 1.
     return tuple(r)
 
+def squareNorm (v):
+    return reduce(lambda x,y : x+y**2, v, 0.)
+
+
 class FeetFollowerGraph:
     feetFollower = None
 
@@ -178,20 +182,19 @@ class FeetFollowerGraph:
     #         self.postureFeature.selectDof(i, True)
 
     def canStart(self):
-        securityThreshold = 1e-3
-        return (robot.comTask.error.value <=
-                (securityThreshold,) * len(robot.comTask.error.value)
+        squareSecurityThreshold = 1e-5
+        squareMaxControl = 1e-3
+        return (squareNorm(robot.comTask.error.value) <=
+                squareSecurityThreshold
 
-                and robot.tasks['left-ankle'].error.value <=
-                (securityThreshold,)
-                * len(robot.tasks['left-ankle'].error.value)
+                and squareNorm(robot.tasks['left-ankle'].error.value) <=
+                squareSecurityThreshold
 
-                and robot.tasks['right-ankle'].error.value <=
-                (securityThreshold,)
-                * len(robot.tasks['right-ankle'].error.value)
+                and squareNorm(robot.tasks['right-ankle'].error.value) <=
+                squareSecurityThreshold
 
-                and self.postureTask.error.value <=
-                (securityThreshold,) * len(self.postureTask.error.value))
+                and squareNorm(robot.device.control.value) <=
+                squareMaxControl)
 
     def start(self, beforeStart=None):
         if not self.canStart():
