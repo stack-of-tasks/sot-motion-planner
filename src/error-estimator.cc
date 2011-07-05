@@ -75,31 +75,58 @@ namespace command
 
 ErrorEstimator::ErrorEstimator (const std::string& name)
   : dg::Entity (name),
-    worldTransformation_ (),
+    wMsensor_ (),
     position_ (dg::nullptr,
 	       MAKE_SIGNAL_STRING (name, true, "Vector", "position")),
     positionTimestamp_
     (dg::nullptr,
      MAKE_SIGNAL_STRING (name, true, "Vector", "positionTimestamp")),
-    waist_ (dg::nullptr,
-	    MAKE_SIGNAL_STRING (name, true, "Vector", "waist")),
+    planned_ (dg::nullptr,
+	    MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "planned")),
     error_ (INIT_SIGNAL_OUT ("error", ErrorEstimator::updateError, "Vector")),
+    dbgPositionWorldFrame_ (
+			    INIT_SIGNAL_OUT
+			    ("dbgPositionWorldFrame",
+			     ErrorEstimator::updateDbgPositionWorldFrame,
+			     "MatrixHomo")),
+
+    dbgPlanned_ (
+		 INIT_SIGNAL_OUT
+		 ("dbgPlanned",
+		  ErrorEstimator::updateDbgPlanned,
+		  "MatrixHomo")),
+    dbgIndex_ (
+	       INIT_SIGNAL_OUT
+	       ("dbgIndex",
+		ErrorEstimator::updateDbgIndex,
+		"Vector")),
+
+    dbgPositionWorldFrameValue_ (),
+    dbgPlannedValue_ (),
+    dbgIndexValue_ (2),
+
     referenceTrajectory_ (dg::nullptr),
-    waistPositions_ (),
+    plannedPositions_ (),
     started_ (false)
 {
-  signalRegistration (position_ << positionTimestamp_ << waist_ << error_);
+  signalRegistration (position_ << positionTimestamp_ << planned_ << error_
+		      << dbgPositionWorldFrame_
+		      << dbgPlanned_
+		      << dbgIndex_);
   error_.setNeedUpdateFromAllChildren (true);
+
+  dbgPositionWorldFrame_.setNeedUpdateFromAllChildren (true);
+  dbgPlanned_.setNeedUpdateFromAllChildren (true);
+  dbgIndex_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
   addCommand ("setReferenceTrajectory",
 	      new command::SetReferenceTrajectory<ErrorEstimator>
 	      (*this, docstring));
 
-  addCommand ("setWorldTransformation",
+  addCommand ("setSensorToWorldTransformation",
 	      new dg::command::Setter<ErrorEstimator, ml::Matrix>
-	      (*this, &ErrorEstimator::worldTransformation, docstring));
-
+	      (*this, &ErrorEstimator::sensorToWorldTransformation, docstring));
   addCommand ("setSafetyLimits",
 	      new command::errorEstimator::SetSafetyLimits
 	      (*this, docstring));
@@ -132,11 +159,11 @@ ErrorEstimator::timestampToIndex (const ml::Vector& timestamp)
 
   typedef boost::tuple<ptime_t, int, sot::MatrixHomogeneous> pair_t;
 
-  for (unsigned i = 0; i < waistPositions_.size (); ++i)
+  for (unsigned i = 0; i < plannedPositions_.size (); ++i)
     {
-      const pair_t& e = waistPositions_[waistPositions_.size () - 1 - i];
+      const pair_t& e = plannedPositions_[plannedPositions_.size () - 1 - i];
       if (boost::get<0> (e) < time)
-	return waistPositions_.size () - 1 - i;
+	return plannedPositions_.size () - 1 - i;
     }
   return 0;
 }
@@ -144,6 +171,9 @@ ErrorEstimator::timestampToIndex (const ml::Vector& timestamp)
 ml::Vector&
 ErrorEstimator::updateError (ml::Vector& res, int t)
 {
+  using namespace boost::gregorian;
+  using namespace boost::posix_time;
+
   if (res.size () != 3)
     res.resize (3);
   res.setZero ();
@@ -157,30 +187,38 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
     {
       boost::optional<int> size = referenceTrajectory_->trajectorySize ();
       assert (size);
-      waistPositions_.reserve (5 * *size);
+      plannedPositions_.reserve (5 * *size);
       started_ = true;
     }
 
   //FIXME: here we suppose implicit sync between feet follower and
   //error estimation.
-  waistPositions_.push_back
+  static const int delta_usec = 1500 * 1000; // 150ms.
+  plannedPositions_.push_back
     (boost::make_tuple
-     (boost::posix_time::microsec_clock::universal_time (),
-      t, waist_ (t)));
+     (boost::posix_time::microsec_clock::universal_time ()
+      + microseconds (delta_usec),
+      t, planned_ (t)));
 
   if (positionTimestamp_ (t).size () != 2)
     return res;
   size_t index = timestampToIndex (positionTimestamp_ (t));
 
-  if (index >= waistPositions_.size ())
+  if (index >= plannedPositions_.size ())
     return res;
 
-  sot::MatrixHomogeneous planned = boost::get<2> (waistPositions_[index]);
-  sot::MatrixHomogeneous estimated = worldTransformation_ *
+  sot::MatrixHomogeneous planned = boost::get<2> (plannedPositions_[index]);
+  sot::MatrixHomogeneous estimated = wMsensor_ *
     XYThetaToMatrixHomogeneous (position_ (t));
 
-  sot::MatrixHomogeneous error = planned * estimated.inverse ();
-  ml::Vector error_xytheta = MatrixHomogeneousToXYTheta (error);
+  sot::MatrixHomogeneous error = estimated.inverse () * planned;
+
+  // Express the error in the world frame instead
+  // of the leftAnkle frame.
+  sot::MatrixHomogeneous errorW =
+    planned_ (t) * error * planned_ (t).inverse ();
+
+  ml::Vector error_xytheta = MatrixHomogeneousToXYTheta (errorW);
 
   if (maxError_)
     for (unsigned i = 0; i < 3; ++i)
@@ -191,6 +229,35 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
 	  error_xytheta (i) = -(*maxError_)[i];
       }
   res = error_xytheta;
+
+  // Update debugging information.
+  dbgPositionWorldFrameValue_ = estimated;
+  dbgPlannedValue_ = planned;
+
+  dbgIndexValue_ (0) = index;
+  dbgIndexValue_ (1) = plannedPositions_.size ();
+
+  return res;
+}
+
+sot::MatrixHomogeneous&
+ErrorEstimator::updateDbgPositionWorldFrame (sot::MatrixHomogeneous& res, int t)
+{
+  res = dbgPositionWorldFrameValue_;
+  return res;
+}
+
+sot::MatrixHomogeneous&
+ErrorEstimator::updateDbgPlanned (sot::MatrixHomogeneous& res, int t)
+{
+  res = dbgPlannedValue_;
+  return res;
+}
+
+ml::Vector&
+ErrorEstimator::updateDbgIndex (ml::Vector& res, int t)
+{
+  res = dbgIndexValue_;
   return res;
 }
 

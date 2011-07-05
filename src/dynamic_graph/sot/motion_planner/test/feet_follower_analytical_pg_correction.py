@@ -246,8 +246,6 @@ if enableCorrection:
     # Set the reference trajectory.
     f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
 
-    plug(robot.dynamic.waist, f.feetFollower.waist)
-
     # Set the safety limits.
     f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
     print ("Safe limits: %f %f %f" % (maxX, maxY, maxTheta))
@@ -264,7 +262,9 @@ if enableCorrection:
 
 # Setup error estimator.
 f.errorEstimator.setReferenceTrajectory(f.referenceTrajectory.name)
-plug(robot.dynamic.waist, f.errorEstimator.waist)
+
+#FIXME: we use ankle position as foot position here as Z does not matter.
+plug(f.referenceTrajectory.signal('left-ankle'), f.errorEstimator.planned)
 
 if enableCorrection:
     if enableOffsetFromErrorEstimator:
@@ -294,10 +294,16 @@ def HomogeneousMatrixToXYZTheta(x):
     x = np.mat(x)
     return (x[0,3], x[1,3], x[2,3], atan2(x[1,0], x[0,0]))
 
-def computeWorldTransformationFromWaist():
-    M = XYThetaToHomogeneousMatrix(corba.waist.value)
-    return matrixToTuple(np.matrix(robot.dynamic.waist.value)
-                         * np.linalg.inv(M))
+def computeWorldTransformationFromFoot():
+    corba.signal('left-foot').recompute(corba.signal('left-foot').time + 1)
+    robot.dynamic.waist.recompute(robot.dynamic.waist.time + 1)
+
+    mocapMfoot = XYThetaToHomogeneousMatrix(corba.signal('left-foot').value)
+    sotMfoot = np.matrix(robot.dynamic.signal('left-ankle').value)
+
+    # mocap position w.r.t sot frame
+    sotMmocap = sotMfoot * np.linalg.inv(mocapMfoot)
+    return matrixToTuple(sotMmocap)
 
 # sMm -> position of the mocap frame in the sot frame.
 def computeWorldTransformationFromTiles():
@@ -312,7 +318,7 @@ def computeWorldTransformationFromTiles():
     #     ( 0., 0., 1., 0.),
     #     ( 0., 0., 0., 1.))
     #    )
-    wMm = XYThetaToHomogeneousMatrix(corba.waist.value)
+    wMm = XYThetaToHomogeneousMatrix(corba.signal('left-foot').value)
     sMt = wMm * np.linalg.inv(tMm)
     return matrixToTuple(sMt * tMm)
 
@@ -320,17 +326,19 @@ def plugMocap():
     if len(corba.signals()) == 3:
         print ("evart-to-client not launched, abandon.")
         return
-    if len(corba.waist.value) != 3:
+    if len(corba.signal('left-foot').value) != 3:
         print ("waist not tracked, abandon.")
         return
-    robot.dynamic.waist.recompute(1)
+
     #sMm = computeWorldTransformationFromTiles()
-    sMm = computeWorldTransformationFromWaist()
+    sMm = computeWorldTransformationFromFoot()
+
     print("World transformation:")
     print(HomogeneousMatrixToXYZTheta(sMm))
-    f.errorEstimator.setWorldTransformation(sMm)
-    plug(corba.waist, f.errorEstimator.position)
-    plug(corba.waistTimestamp, f.errorEstimator.positionTimestamp)
+    f.errorEstimator.setSensorToWorldTransformation(sMm)
+    plug(corba.signal('left-foot'), f.errorEstimator.position)
+    plug(corba.signal('left-footTimestamp'),
+         f.errorEstimator.positionTimestamp)
     print ("Initial error:")
     print (f.errorEstimator.error.value)
 
@@ -339,8 +347,8 @@ if enableMocap:
     if not onRobot:
         while len(corba.signals()) == 3:
             raw_input("Press enter after starting evart-to-corba.")
-        while len(corba.waist.value) != 3:
-            raw_input("Waist not tracked...")
+        while len(corba.signal('left-foot').value) != 3:
+            raw_input("Foot not tracked...")
         plugMocap()
     else:
         print ("Type 'plugMocap()'")
@@ -370,9 +378,28 @@ def logRef():
                 f.errorEstimator.name + '-' + 'error')
     robot.device.after.addSignal(f.errorEstimator.name + '.' + 'error')
 
-    f.trace.add(f.corba.name + '.' + 'waist',
-                f.corba.name + '-' + 'waist')
-    robot.device.after.addSignal(f.corba.name + '.' + 'waist')
+    f.trace.add(f.errorEstimator.name + '.' + 'dbgPositionWorldFrame',
+                f.errorEstimator.name + '-' + 'dbgPositionWorldFrame')
+    robot.device.after.addSignal(
+        f.errorEstimator.name + '.' + 'dbgPositionWorldFrame')
+
+    f.trace.add(f.errorEstimator.name + '.' + 'dbgPlanned',
+                f.errorEstimator.name + '-' + 'dbgPlanned')
+    robot.device.after.addSignal(
+        f.errorEstimator.name + '.' + 'dbgPlanned')
+
+    f.trace.add(f.errorEstimator.name + '.' + 'dbgIndex',
+                f.errorEstimator.name + '-' + 'dbgIndex')
+    robot.device.after.addSignal(
+        f.errorEstimator.name + '.' + 'dbgIndex')
+
+    f.trace.add(f.corba.name + '.' + 'left-foot',
+                f.corba.name + '-' + 'left-foot')
+    robot.device.after.addSignal(f.corba.name + '.' + 'left-foot')
+
+#    f.trace.add(f.corba.name + '.' + 'waist',
+#                f.corba.name + '-' + 'waist')
+#    robot.device.after.addSignal(f.corba.name + '.' + 'waist')
 
     f.trace.add(robot.device.name + '.' + 'state',
                 robot.device.name + '-' + 'state')

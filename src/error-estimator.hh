@@ -76,61 +76,127 @@ namespace command
   } // end of namespace errorEstimator.
 } // end of namespace command.
 
-
+/// \brief Compute the error between the planned and real robot
+/// positions.
+///
+///
+/// This entity compares:
+///
+/// - a planned position provided by the 'planned' signal as an
+/// homogeneous matrix.
+///
+/// - a robot localization provided by the 'position' signal as a (x,
+///   y, theta) vector.
+///
+/// The planned positions are bufferized into plannedPositions_ and tagged
+/// with their execution time.
+/// On the opposite, 'positionTimestamp' provides the acquisition time.
+///
+/// Additionnally, the planned position must be given in the world frame.
+/// On the opposite, the localization data is given in the sensor frame.
+///
+/// The wMsensor_ attribute provides the transformation from sensor
+/// frame to world frame.
+///
+/// The error is computed by:
+///
+/// wMestimated = wMsensor . sensorMestimated
+/// wMplanned
+///
+/// estimatedMplanned = estimatedMw . wMplanned
+/// estimatedMplanned = (wMestimated)^{-1} . wMplanned
+///
+///
+/// wMlf = wMw' . w'Mlf
+///
 class ErrorEstimator : public dg::Entity
 {
+  DYNAMIC_GRAPH_ENTITY_DECL ();
  public:
+  /// \brief POSIX time
   typedef boost::posix_time::ptime ptime_t;
 
-  static const std::string CLASS_NAME;
-
+  /// \brief Input vector signal.
   typedef dg::SignalPtr<ml::Vector, int> signalVectorIn_t;
+  /// \brief Input homogeneous matrix signal.
   typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalMatrixHomoIn_t;
+  /// \brief Output vector signal.
   typedef dg::SignalTimeDependent<ml::Vector, int> signalVectorOut_t;
+  /// \brief Output vector signal.
+  typedef dg::SignalTimeDependent<sot::MatrixHomogeneous, int>
+  signalMatrixHomoOut_t;
 
+  /// \name Constructor and destructor.
+  /// \{
   explicit ErrorEstimator (const std::string& name);
   virtual ~ErrorEstimator ();
+  /// \}
 
-  virtual const std::string& getClassName ()
-  {
-    return CLASS_NAME;
-  }
-
+  /// \brief Set the reference trajectory.
   void setReferenceTrajectory (FeetFollower* ptr);
 
+  /// \brief Update the error signal.
   ml::Vector& updateError (ml::Vector& res, int);
 
+  sot::MatrixHomogeneous&
+  updateDbgPositionWorldFrame (sot::MatrixHomogeneous& res, int);
+
+  sot::MatrixHomogeneous&
+  updateDbgPlanned (sot::MatrixHomogeneous& res, int);
+
+  ml::Vector& updateDbgIndex (ml::Vector& res, int);
+
+  /// \brief Set the optional maximum error.
   void setSafetyLimits (const double& maxErrorX,
 			const double& maxErrorY,
 			const double& maxErrorTheta);
+  /// \brief Remove the optional maximum error.
   void unsetSafetyLimits ();
 
 protected:
+  /// \brief Compute the index in the plannedPositions_ vector
+  /// matching a given timestamp.
   size_t timestampToIndex (const ml::Vector& timestamp);
 
-  void worldTransformation (const ml::Matrix& wt)
+  /// \brief Set the sensor to world transformation.
+  void sensorToWorldTransformation (const ml::Matrix& wMsensor)
   {
-    worldTransformation_ = wt;
+    wMsensor_ = wMsensor;
   }
 
-  sot::MatrixHomogeneous worldTransformation_;
+  /// \brief Transform a coordinate from sensor frame to world frame.
+  /// {}^w p = {}^w M_{sensor} {}^sensor p
+  sot::MatrixHomogeneous wMsensor_;
 
-  /// \brief Robot position (X, Y, theta)
+  /// \brief Robot estimated position (X, Y, theta).
   signalVectorIn_t position_;
-  /// \brief Robot position timestamp (time)
+  /// \brief Robot estimated position timestamp (time)
   signalVectorIn_t positionTimestamp_;
 
-  /// \brief Current waist position.
-  signalMatrixHomoIn_t waist_;
+  /// \brief Current planned position.
+  signalMatrixHomoIn_t planned_;
   /// \brief Planned robot position in the real robot frame.
   signalVectorOut_t error_;
 
+  signalMatrixHomoOut_t dbgPositionWorldFrame_;
+  signalMatrixHomoOut_t dbgPlanned_;
+  signalVectorOut_t dbgIndex_;
+
+  sot::MatrixHomogeneous dbgPositionWorldFrameValue_;
+  sot::MatrixHomogeneous dbgPlannedValue_;
+  ml::Vector dbgIndexValue_;
+
+  /// \brief Pointer to the reference trajectory.
   FeetFollower* referenceTrajectory_;
 
+  /// \brief Set of past planned positions (time, index, position).
   std::vector<boost::tuple<ptime_t, unsigned, sot::MatrixHomogeneous> >
-  waistPositions_;
+  plannedPositions_;
+
+  /// \brief Did the movement start?
   bool started_;
 
+  /// \brief Optional maximum allowed error (x, y, theta).
   boost::optional<boost::array<double, 3> > maxError_;
 };
 

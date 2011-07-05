@@ -117,7 +117,6 @@ private:
   FeetFollower* referenceTrajectory_;
 
   signalVectorIn_t offsetIn_;
-  signalMatrixHomoIn_t waistIn_;
 
   sot::MatrixHomogeneous correctionLeftAnkle_;
   sot::MatrixHomogeneous correctionRightAnkle_;
