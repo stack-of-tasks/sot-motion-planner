@@ -193,7 +193,10 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
 
   //FIXME: here we suppose implicit sync between feet follower and
   //error estimation.
-  static const int delta_usec = 1500 * 1000; // 150ms.
+  //static const int delta_usec = 1500 * 1000; // 150ms.
+
+  static const int delta_usec = 0;
+
   plannedPositions_.push_back
     (boost::make_tuple
      (boost::posix_time::microsec_clock::universal_time ()
@@ -212,13 +215,7 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
     XYThetaToMatrixHomogeneous (position_ (t));
 
   sot::MatrixHomogeneous error = estimated.inverse () * planned;
-
-  // Express the error in the world frame instead
-  // of the leftAnkle frame.
-  sot::MatrixHomogeneous errorW =
-    planned_ (t) * error * planned_ (t).inverse ();
-
-  ml::Vector error_xytheta = MatrixHomogeneousToXYTheta (errorW);
+  ml::Vector error_xytheta = MatrixHomogeneousToXYTheta (error);
 
   if (maxError_)
     for (unsigned i = 0; i < 3; ++i)

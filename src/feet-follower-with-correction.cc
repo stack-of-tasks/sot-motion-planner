@@ -70,6 +70,8 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
     referenceTrajectory_ (),
     offsetIn_
     (dg::nullptr, MAKE_SIGNAL_STRING (name, true, "Vector", "offset")),
+    positionIn_
+    (dg::nullptr, MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "position")),
     correctionLeftAnkle_ (),
     correctionRightAnkle_ (),
     correctionCom_ (),
@@ -84,7 +86,12 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
   comOut_.addDependency (offsetIn_);
   zmpOut_.addDependency (offsetIn_);
 
-  signalRegistration (offsetIn_);
+  leftAnkleOut_.addDependency (positionIn_);
+  rightAnkleOut_.addDependency (positionIn_);
+  comOut_.addDependency (positionIn_);
+  zmpOut_.addDependency (positionIn_);
+
+  signalRegistration (offsetIn_ << positionIn_);
 
   std::string docstring = "";
   addCommand ("setReferenceTrajectory",
@@ -411,6 +418,15 @@ FeetFollowerWithCorrection::computeNewCorrection ()
   else
     error[2] = -std::min (-error[2], maxErrorTheta_);
 
+  // Express the error in the world frame instead
+  // of the waist frame.
+  sot::MatrixHomogeneous p = positionIn_.access (t_);
+  sot::ErrorTrajectory::vector_t errorW =
+    MatrixHomogeneousToXYTheta
+    (p
+     * XYThetaToMatrixHomogeneous (error)
+     * p.inverse ()).accessToMotherLib ();
+
   sot::MatrixHomogeneous previousCorrection;
   sot::MatrixHomogeneous positionError;
 
@@ -421,14 +437,14 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     previousCorrection =
       corrections_[corrections_.size () - 1]->positionError;
 
-  positionError = XYThetaToMatrixHomogeneous (error) * previousCorrection;
+  positionError = XYThetaToMatrixHomogeneous (errorW) * previousCorrection;
 
   boost::shared_ptr<Correction> correction =
     boost::make_shared<Correction>
     (positionError,
      leftFirst ? firstInterval  : secondInterval,
      leftFirst ? secondInterval : firstInterval,
-     comCorrectionInterval, error);
+     comCorrectionInterval, errorW);
 
   if (shouldDelayCorrection (leftFirst,
 			     correction,

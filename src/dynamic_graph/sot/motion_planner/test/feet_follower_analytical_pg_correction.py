@@ -250,6 +250,8 @@ if enableCorrection:
     f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
     print ("Safe limits: %f %f %f" % (maxX, maxY, maxTheta))
 
+    plug(robot.dynamic.signal('left-ankle'), f.feetFollower.position)
+
     # Replug.
     plug(f.feetFollower.zmp, robot.device.zmp)
     plug(f.feetFollower.com, robot.featureComDes.errorIN)
