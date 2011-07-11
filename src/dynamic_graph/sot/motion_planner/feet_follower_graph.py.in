@@ -45,7 +45,7 @@ class FeetFollowerGraph:
 
     def __init__(self):
         self.trace = TracerRealTime('trace')
-        self.trace.setBufferSize(2**20)
+        self.trace.setBufferSize(2**25)
         self.trace.open('/tmp/','feet_follower_','.dat')
 
         for s in robot.OperationalPoints + ["com", "zmp"]:
