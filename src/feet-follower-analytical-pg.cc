@@ -211,23 +211,15 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 
   // As leftPosition_x = -rightPosition_x, leftPosition_y = -rightPosition_y,
   // we center the movement in (0, 0) and shift it back using wMs.
-  // initialStep (0) =
-  //   std::fabs (initialLeftFeet (0, 3) - initialRightFeet (0, 3)) / 2.;
-  // initialStep (1) =
-  //   std::fabs (initialLeftFeet (1, 3) - initialRightFeet (1, 3)) / 2.;
-  // initialStep (2) = 0.;
-
-  // initialStep (3) = -initialStep (0);
-  // initialStep (4) = -initialStep (1);
-  // initialStep (5) = atan2(initialRightFeet (1,0), initialRightFeet (0,0));
-
-  initialStep (0) = 0.;
-  initialStep (1) = 0.095;
+  initialStep (0) =
+    std::fabs (initialLeftFeet (0, 3) - initialRightFeet (0, 3)) / 2.;
+  initialStep (1) =
+    std::fabs (initialLeftFeet (1, 3) - initialRightFeet (1, 3)) / 2.;
   initialStep (2) = 0.;
 
-  initialStep (3) = 0.;
-  initialStep (4) = 0.;
-  initialStep (5) = 0.;
+  initialStep (3) = -initialStep (0);
+  initialStep (4) = -initialStep (1);
+  initialStep (5) = atan2(initialRightFeet (1,0), initialRightFeet (0,0));
 
   std::vector<double> steps;
   for (unsigned i = 0; i < 6; ++i)
