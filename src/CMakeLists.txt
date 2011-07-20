@@ -85,6 +85,7 @@ SET(PYTHON_MODULE_BUILD_DIR
 INSTALL(FILES
   ${PYTHON_MODULE_DIR}/__init__.py
   ${PYTHON_MODULE_BUILD_DIR}/feet_follower_graph.py
+  ${PYTHON_MODULE_DIR}/feet_follower_graph_with_correction.py
   DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/motion_planner
   )
 

@@ -15,400 +15,51 @@
 # received a copy of the GNU Lesser General Public License along with
 # sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
-from math import cos, sin, atan2
-import numpy as np
-
-from dynamic_graph.sot.core import RobotSimu
-from dynamic_graph.sot.dynamics.tools import *
-from dynamic_graph.sot.motion_planner.feet_follower_graph import *
 from __main__ import robot, solver
 
-from dynamic_graph import plug
-from dynamic_graph.sot.motion_planner \
-    import Localizer, FeetFollowerWithCorrection, Randomizer, ErrorEstimator
 from dynamic_graph.sot.motion_planner.feet_follower_graph \
     import FeetFollowerAnalyticalPgGraph
+from dynamic_graph.sot.motion_planner.feet_follower_graph_with_correction \
+    import MotionCaptureErrorEstimationStrategy, FeetFollowerGraphWithCorrection
 
-from dynamic_graph.corba_server import CorbaServer
-
-onRobot=type(robot.device) != RobotSimu
-enableMocap=True
-enableCorrection=True
-enableOffsetFromErrorEstimator=True
-
-print("* Is this the robot? "  + str(onRobot))
-print("* Are we using mocap? " + str(enableMocap))
-print("* Is correction enabled? " + str(enableCorrection))
-print("* Is correction coming from error estimator (mocap)? " +
-      str(enableOffsetFromErrorEstimator))
-print("")
-
-# Define correction limits.
-#(maxX, maxY, maxTheta) = (0.04, 0.04, 0.1)
-#(maxX, maxY, maxTheta) = (0., 0., 0.)
-
-(maxX, maxY, maxTheta) = (0.04, 0., 0.)
-
-# Launch corba server.
-corba = CorbaServer('corba')
-
-# first slide # hor distance # max feet height # second slide # x # y # theta
-steps= [
-    # Front
-    (0., 0.24, 0.25, -0.76, 0.15,    -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.15, -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.15, -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.15, -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.15, -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.15, +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
-
-    # To the left.
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.25, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.25, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.25, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.25, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.25, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
-
-    # Back
-    (0., 0.24, 0.25, -0.76,    -0.15, -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, -0.15, +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, -0.15, -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, -0.15, +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, -0.15, -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, -0.15, +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, -0.15, -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, -0.15, +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, -0.15, -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, -0.15, +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76,  0.,   -0.19, 0.),
-
-    # To the right.
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.25, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.25, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.25, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.25, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.25, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0.,   -0.19, 0.),
+steps = [
+    ( 0.000000, 0.24, 0.25, -0.760000, 0.100000, -0.190000, 0.000000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.050000, 0.190000, -0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.100000, -0.170000, 0.000000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.100000, 0.190000, -0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, -0.190000, 0.000000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, 0.190000, 0.000000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, -0.170000, 0.000000,),
+    (-1.520000, 0.24, 0.25, -0.760000, -0.050000, 0.170000, 0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, -0.170000, 0.000000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, 0.190000, -0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.100000, -0.170000, -0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.100000, 0.190000, 0.000000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.100000, -0.190000, 0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, 0.190000, 0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, -0.000000, -0.190000, 0.000000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, 0.190000, -0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, -0.190000, 0.000000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, 0.190000, 0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, -0.190000, -0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, 0.190000, 0.000000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.100000, -0.190000, -0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.150000, 0.170000, 0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.100000, -0.190000, -0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.050000, 0.190000, 0.130000,),
+    (-1.520000, 0.24, 0.25, -0.760000, 0.100000, -0.170000, 0.000000),
     ]
 
-# Step in place.
-steps= [
-    (0.,    0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., +0.19, 0.),
-    (-1.52, 0.24, 0.25, -0.76, 0., -0.19, 0.),
-    ]
 
-steps= [
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., -0.19, -0.26),
-    (0., 0.24, 0.25, 0., 0., +0.19, -0.26),
-    ]
+feetFollower = FeetFollowerAnalyticalPgGraph(steps)
+correctedFeetFollower = FeetFollowerGraphWithCorrection(
+    feetFollower, MotionCaptureErrorEstimationStrategy)
 
-steps= [
-    (0., 0.24, 0.25, 0., 0.15, -0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, +0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, -0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, +0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, -0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, +0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, -0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, +0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, -0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, +0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, -0.19, 0.),
-    (0., 0.24, 0.25, 0., 0.15, +0.19, 0.),
-]
+# Short alias.
+f = correctedFeetFollower
 
+print(correctedFeetFollower)
 
-f = FeetFollowerAnalyticalPgGraph(steps)
-
-f.errorEstimator = ErrorEstimator('error_estimator')
-f.referenceTrajectory = f.feetFollower
-f.corba = corba
-
-if enableCorrection:
-    f.feetFollower = FeetFollowerWithCorrection('correction')
-
-    # Set the reference trajectory.
-    f.feetFollower.setReferenceTrajectory(f.referenceTrajectory.name)
-
-    # Set the safety limits.
-    f.feetFollower.setSafetyLimits(maxX, maxY, maxTheta)
-    print ("Safe limits: %f %f %f" % (maxX, maxY, maxTheta))
-
-    plug(robot.dynamic.signal('left-ankle'), f.feetFollower.position)
-
-    # Replug.
-    plug(f.feetFollower.zmp, robot.device.zmp)
-    plug(f.feetFollower.com, robot.featureComDes.errorIN)
-    plug(f.feetFollower.signal('left-ankle'),
-         robot.features['left-ankle'].reference)
-    plug(f.feetFollower.signal('right-ankle'),
-         robot.features['right-ankle'].reference)
-    plug(f.feetFollower.signal('waistYaw'),
-         robot.features['waist'].reference)
-
-# Setup error estimator.
-f.errorEstimator.setReferenceTrajectory(f.referenceTrajectory.name)
-
-#FIXME: we use ankle position as foot position here as Z does not matter.
-plug(f.referenceTrajectory.signal('left-ankle'), f.errorEstimator.planned)
-
-if enableCorrection:
-    if enableOffsetFromErrorEstimator:
-        plug(f.errorEstimator.error, f.feetFollower.offset)
-    else:
-        # Make up some error value.
-        f.randomizer = Randomizer('r')
-        f.randomizer.addSignal('offset', 3)
-        plug (f.randomizer.offset, f.feetFollower.offset)
-
-def matrixToTuple(M):
-    tmp = M.tolist()
-    res = []
-    for i in tmp:
-        res.append(tuple(i))
-    return tuple(res)
-
-def XYThetaToHomogeneousMatrix(x):
-    theta = x[2]
-    return np.matrix(
-        (( cos (theta),-sin (theta), 0., x[0]),
-         ( sin (theta), cos (theta), 0., x[1]),
-         (          0.,          0., 1., 0.),
-         (          0.,          0., 0., 1.))
-        )
-def HomogeneousMatrixToXYZTheta(x):
-    x = np.mat(x)
-    return (x[0,3], x[1,3], x[2,3], atan2(x[1,0], x[0,0]))
-
-def computeWorldTransformationFromFoot():
-    corba.signal('left-foot').recompute(corba.signal('left-foot').time + 1)
-    robot.dynamic.waist.recompute(robot.dynamic.waist.time + 1)
-
-    mocapMfoot = XYThetaToHomogeneousMatrix(corba.signal('left-foot').value)
-    sotMfoot = np.matrix(robot.dynamic.signal('left-ankle').value)
-
-    # mocap position w.r.t sot frame
-    sotMmocap = sotMfoot * np.linalg.inv(mocapMfoot)
-    return matrixToTuple(sotMmocap)
-
-# sMm -> position of the mocap frame in the sot frame.
-def computeWorldTransformationFromTiles():
-    print corba.tiles.value
-    theta = corba.tiles.value[2]
-    # Tiles position in the mocap frame.
-    tMm = XYThetaToHomogeneousMatrix(corba.tiles.value)
-    # Tiles position in the SoT frame.
-    #sMt = np.matrix(
-    #    (( 1., 0., 0., -0.1),
-    #     ( 0., 1., 0., -0.1 + 0.19 / 2.),
-    #     ( 0., 0., 1., 0.),
-    #     ( 0., 0., 0., 1.))
-    #    )
-    wMm = XYThetaToHomogeneousMatrix(corba.signal('left-foot').value)
-    sMt = wMm * np.linalg.inv(tMm)
-    return matrixToTuple(sMt * tMm)
-
-def plugMocap():
-    if len(corba.signals()) == 3:
-        print ("evart-to-client not launched, abandon.")
-        return
-    if len(corba.signal('left-foot').value) != 3:
-        print ("waist not tracked, abandon.")
-        return
-
-    #sMm = computeWorldTransformationFromTiles()
-    sMm = computeWorldTransformationFromFoot()
-
-    print("World transformation:")
-    print(HomogeneousMatrixToXYZTheta(sMm))
-    f.errorEstimator.setSensorToWorldTransformation(sMm)
-    plug(corba.signal('left-foot'), f.errorEstimator.position)
-    plug(corba.signal('left-footTimestamp'),
-         f.errorEstimator.positionTimestamp)
-    print ("Initial error:")
-    print (f.errorEstimator.error.value)
-
-# Motion capture
-if enableMocap:
-    if not onRobot:
-        while len(corba.signals()) == 3:
-            raw_input("Press enter after starting evart-to-corba.")
-        while len(corba.signal('left-foot').value) != 3:
-            raw_input("Foot not tracked...")
-        plugMocap()
-    else:
-        print ("Type 'plugMocap()'")
-        print ("then 'f.start(logRef)'")
-else:
-    f.errorEstimator.position.value = (0., 0., 0.)
-    f.errorEstimator.positionTimestamp.value = (0., 0.)
-    print ("disable error estimator")
-
-
-# Trace
-def logRef():
-    signals = ['com', 'zmp', 'left-ankle', 'right-ankle', 'waistYaw']
-    for s in signals:
-        f.trace.add(f.referenceTrajectory.name + '.' + s,
-                    f.referenceTrajectory.name + '-' + s)
-
-        robot.device.after.addSignal(f.referenceTrajectory.name + '.' + s)
-        robot.device.after.addSignal(f.feetFollower.name + '.' + s)
-
-    if type(f.feetFollower) == FeetFollowerWithCorrection:
-        f.trace.add(f.feetFollower.name + '.' + 'offset',
-                    f.feetFollower.name + '-' + 'offset')
-        robot.device.after.addSignal(f.feetFollower.name + '.' + 'offset')
-
-    f.trace.add(f.errorEstimator.name + '.' + 'error',
-                f.errorEstimator.name + '-' + 'error')
-    robot.device.after.addSignal(f.errorEstimator.name + '.' + 'error')
-
-    f.trace.add(f.errorEstimator.name + '.' + 'dbgPositionWorldFrame',
-                f.errorEstimator.name + '-' + 'dbgPositionWorldFrame')
-    robot.device.after.addSignal(
-        f.errorEstimator.name + '.' + 'dbgPositionWorldFrame')
-
-    f.trace.add(f.errorEstimator.name + '.' + 'dbgPlanned',
-                f.errorEstimator.name + '-' + 'dbgPlanned')
-    robot.device.after.addSignal(
-        f.errorEstimator.name + '.' + 'dbgPlanned')
-
-    f.trace.add(f.errorEstimator.name + '.' + 'dbgIndex',
-                f.errorEstimator.name + '-' + 'dbgIndex')
-    robot.device.after.addSignal(
-        f.errorEstimator.name + '.' + 'dbgIndex')
-
-    f.trace.add(f.corba.name + '.' + 'left-foot',
-                f.corba.name + '-' + 'left-foot')
-    robot.device.after.addSignal(f.corba.name + '.' + 'left-foot')
-
-#    f.trace.add(f.corba.name + '.' + 'waist',
-#                f.corba.name + '-' + 'waist')
-#    robot.device.after.addSignal(f.corba.name + '.' + 'waist')
-
-    f.trace.add(robot.device.name + '.' + 'state',
-                robot.device.name + '-' + 'state')
-    robot.device.after.addSignal(robot.device.name + '.' + 'state')
-
-    f.trace.add(solver.sot.name + '.' + 'control',
-                solver.sot.name + '-' + 'control')
-    robot.device.after.addSignal(solver.sot.name + '.' + 'control')
-
-    print ("logging reference trajectory")
+# If not on robot, start automatically.
+if not correctedFeetFollower.onRobot:
+    f.start()

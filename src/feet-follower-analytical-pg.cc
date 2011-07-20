@@ -311,9 +311,6 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 					initialConfig[2], initialConfig[3],
 					leftFootToAnkle_).inverse ();
 
-  // This is wrong!
-  wMw_traj.setIdentity();
-
   logStepFeatures(steps, stepFeatures, wMw_traj);
 
   discreteInterval_t range (0., stepFeatures.size * STEP, STEP);

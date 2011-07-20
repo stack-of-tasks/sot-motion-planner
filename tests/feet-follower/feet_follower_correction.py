@@ -19,5 +19,5 @@ from dynamic_graph.sot.dynamics.tools import *
 from dynamic_graph.sot.motion_planner. \
     test.feet_follower_analytical_pg_correction import *
 
-from common import play; play(f, maxIter=1000, afterStart=logRef)
+from common import play; play(f, maxIter=1000*12)
 f.trace.dump()

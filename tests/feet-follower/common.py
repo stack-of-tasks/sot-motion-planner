@@ -41,9 +41,6 @@ def play(f, maxIter = 4000, afterStart = None):
     for i in xrange(maxIter):
         robot.device.increment(timeStep)
 
-        f.errorEstimator.error.recompute(t)
-        t = t + 1
-
         #log(logCfg)
         if clt:
             clt.updateElementConfig(
