@@ -20,7 +20,9 @@ from __main__ import robot, solver
 from dynamic_graph.sot.motion_planner.feet_follower_graph \
     import FeetFollowerAnalyticalPgGraph
 from dynamic_graph.sot.motion_planner.feet_follower_graph_with_correction \
-    import MotionCaptureErrorEstimationStrategy, FeetFollowerGraphWithCorrection
+    import FeetFollowerGraphWithCorrection
+from dynamic_graph.sot.motion_planner.error_estimation_strategy \
+    import MotionCaptureErrorEstimationStrategy
 
 # first slide # hor distance # max feet height # second slide # x # y # theta
 steps = [

@@ -20,7 +20,9 @@ from __main__ import robot, solver
 from dynamic_graph.sot.motion_planner.feet_follower_graph \
     import FeetFollowerAnalyticalPgGraph
 from dynamic_graph.sot.motion_planner.feet_follower_graph_with_correction \
-    import MotionCaptureErrorEstimationStrategy, FeetFollowerGraphWithCorrection
+    import FeetFollowerGraphWithCorrection
+from dynamic_graph.sot.motion_planner.error_estimation_strategy \
+    import MotionCaptureErrorEstimationStrategy
 
 steps = [
     ( 0.000000, 0.24, 0.25, -0.760000, 0.100000, -0.190000, 0.000000,),

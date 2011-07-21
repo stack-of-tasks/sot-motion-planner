@@ -88,6 +88,7 @@ SET(PYTHON_MODULE dynamic_graph/sot/motion_planner)
 
 SET(FILES
   __init__.py
+  error_estimation_strategy.py
   feet_follower_graph_with_correction.py
   )
 
