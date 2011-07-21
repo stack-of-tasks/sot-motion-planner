@@ -82,23 +82,36 @@ SET(PYTHON_MODULE_DIR
 SET(PYTHON_MODULE_BUILD_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/dynamic_graph/sot/motion_planner)
 
-INSTALL(FILES
-  ${PYTHON_MODULE_DIR}/__init__.py
-  ${PYTHON_MODULE_BUILD_DIR}/feet_follower_graph.py
-  ${PYTHON_MODULE_DIR}/feet_follower_graph_with_correction.py
-  DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/motion_planner
+
+# Install dynamic_graph.sot.motion_planner
+SET(PYTHON_MODULE dynamic_graph/sot/motion_planner)
+
+SET(FILES
+  __init__.py
+  feet_follower_graph_with_correction.py
   )
 
-SET(PYTHON_TEST_DIR
-  ${CMAKE_CURRENT_SOURCE_DIR}/dynamic_graph/sot/motion_planner/test)
-INSTALL(FILES
-  ${PYTHON_TEST_DIR}/feet_follower_analytical_pg_walk_on_a_thread.py
-  ${PYTHON_TEST_DIR}/feet_follower_analytical_pg_step1.py
-  ${PYTHON_TEST_DIR}/feet_follower_analytical_pg_step2.py
-  ${PYTHON_TEST_DIR}/feet_follower_from_file_simple.py
-  ${PYTHON_TEST_DIR}/feet_follower_from_file_los.py
-  ${PYTHON_TEST_DIR}/feet_follower_from_file_walk_on_a_thread.py
-  ${PYTHON_TEST_DIR}/feet_follower_analytical_pg_correction.py
-  ${PYTHON_TEST_DIR}/__init__.py
-  DESTINATION ${PYTHON_SITELIB}/dynamic_graph/sot/motion_planner/test
+FOREACH(FILE ${FILES})
+  PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")
+ENDFOREACH()
+
+PYTHON_INSTALL_BUILD("${PYTHON_MODULE}"
+  "feet_follower_graph.py" "${PYTHON_SITELIB}")
+
+# Install dynamic_graph.sot.motion_planner.test
+SET(PYTHON_MODULE dynamic_graph/sot/motion_planner/test)
+
+SET(FILES
+  __init__.py
+  feet_follower_analytical_pg_walk_on_a_thread.py
+  feet_follower_analytical_pg_step1.py
+  feet_follower_analytical_pg_step2.py
+  feet_follower_from_file_simple.py
+  feet_follower_from_file_los.py
+  feet_follower_from_file_walk_on_a_thread.py
+  feet_follower_analytical_pg_correction.py
   )
+
+FOREACH(FILE ${FILES})
+  PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")
+ENDFOREACH()
