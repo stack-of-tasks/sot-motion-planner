@@ -16,7 +16,6 @@
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 from dynamic_graph import plug
-from __main__ import robot, solver
 from dynamic_graph.sot.core import FeatureGeneric, Task, RobotSimu
 from dynamic_graph.sot.motion_planner import \
     FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError, \
@@ -34,58 +33,88 @@ def oneVector(i):
     r[i] = 1.
     return tuple(r)
 
-class FeetFollowerGraph:
+class FeetFollowerGraph(object):
+    """
+    Robot executing the trajectory.
+    """
+    robot = None
+
+    """
+    Solver associated with the robot executing the trajectory.
+    """
+    solver = None
+
+    """
+    Feet follower entity used to execute the movement.
+    """
     feetFollower = None
 
+    """
+    Task constraining the robot upper dofs.
+    """
     postureTask = None
+
+    """
+    Feature constraining the robot upper dofs.
+    """
     postureFeature = None
-    postureFeatureDes = None
+
+    """
+    Entity computing the error associated with the posture task.
+    """
     postureError = None
+
+    """
+    Tracer used to log various data.
+    """
     trace = None
 
-    def __init__(self):
+    def __init__(self, robot, solver):
+        self.robot = robot
+        self.solver = solver
         self.trace = TracerRealTime('trace')
         self.trace.setBufferSize(2**25)
         self.trace.open('/tmp/','feet_follower_','.dat')
 
-        for s in robot.OperationalPoints + ["com", "zmp"]:
-            self.trace.add(robot.dynamic.name + '.' + s,
-                           robot.dynamic.name + '-' + s)
-            robot.device.after.addSignal(robot.dynamic.name + '.' + s)
+        for s in self.robot.OperationalPoints + ["com", "zmp"]:
+            self.trace.add(self.robot.dynamic.name + '.' + s,
+                           self.robot.dynamic.name + '-' + s)
+            self.robot.device.after.addSignal(self.robot.dynamic.name + '.' + s)
 
-        for s in robot.OperationalPoints:
+        for s in self.robot.OperationalPoints:
             self.trace.add(
-                robot.features[s]._reference.name + '.position',
-                robot.features[s]._reference.name + '-position')
-            robot.device.after.addSignal(
-                robot.features[s]._reference.name + '.position')
+                self.robot.features[s]._reference.name + '.position',
+                self.robot.features[s]._reference.name + '-position')
+            self.robot.device.after.addSignal(
+                self.robot.features[s]._reference.name + '.position')
 
             self.trace.add(
-                robot.tasks[s].name + '.error',
-                robot.tasks[s].name + '-error')
-            robot.device.after.addSignal(
-                robot.tasks[s].name + '.error')
+                self.robot.tasks[s].name + '.error',
+                self.robot.tasks[s].name + '-error')
+            self.robot.device.after.addSignal(
+                self.robot.tasks[s].name + '.error')
 
 
-        self.trace.add(robot.featureComDes.name + '.errorIN',
-                       robot.featureComDes.name + '-errorIN')
-        robot.device.after.addSignal(robot.featureComDes.name + '.errorIN')
+        self.trace.add(self.robot.featureComDes.name + '.errorIN',
+                       self.robot.featureComDes.name + '-errorIN')
+        self.robot.device.after.addSignal(
+            self.robot.featureComDes.name + '.errorIN')
 
-        self.trace.add(robot.comTask.name + '.error',
-                       robot.comTask.name + '-error')
-        robot.device.after.addSignal(robot.comTask.name + '.error')
+        self.trace.add(self.robot.comTask.name + '.error',
+                       self.robot.comTask.name + '-error')
+        self.robot.device.after.addSignal(self.robot.comTask.name + '.error')
 
-        self.trace.add(robot.device.name + '.zmp', robot.device.name + '-zmp')
-        robot.device.after.addSignal(robot.device.name + '.zmp')
+        self.trace.add(
+            self.robot.device.name + '.zmp', self.robot.device.name + '-zmp')
+        self.robot.device.after.addSignal(self.robot.device.name + '.zmp')
 
         # Recompute trace.triger at each iteration to enable tracing.
-        robot.device.after.addSignal(self.trace.name +'.triger')
+        self.robot.device.after.addSignal(self.trace.name +'.triger')
 
-        #self.trace.start()
 
     def setAnklePosition(self):
         # Setup feet to ankle transformation.
-        anklePosL = robot.dynamic.getAnklePositionInFootFrame()
+        anklePosL = self.robot.dynamic.getAnklePositionInFootFrame()
         anklePosR = (anklePosL[0], -anklePosL[1], anklePosL[2])
 
         self.feetFollower.setLeftFootToAnkle(translationToSE3(anklePosL))
@@ -93,67 +122,63 @@ class FeetFollowerGraph:
 
     def setInitialFeetPosition(self):
         self.feetFollower.setInitialLeftAnklePosition(
-            robot.features['left-ankle'].reference.value)
+            self.robot.features['left-ankle'].reference.value)
         self.feetFollower.setInitialRightAnklePosition(
-            robot.features['right-ankle'].reference.value)
+            self.robot.features['right-ankle'].reference.value)
 
     def setup(self):
         initialGain = 1.
 
-        #robot.features['left-ankle']._reference.frame("current")
-        #robot.features['right-ankle']._reference.frame("current")
-
         # Lower the gains to reduce the initial velocity.
-        robot.comTask.controlGain.value = initialGain
-        robot.tasks['left-ankle'].controlGain.value = initialGain
-        robot.tasks['right-ankle'].controlGain.value = initialGain
+        self.robot.comTask.controlGain.value = initialGain
+        self.robot.tasks['left-ankle'].controlGain.value = initialGain
+        self.robot.tasks['right-ankle'].controlGain.value = initialGain
 
         # Make sure the CoM is converging toward the starting
         # CoM of the trajectory.
-        robot.featureComDes.errorIN.value = \
-            (0., 0., robot.dynamic.com.value[2])
-        robot.featureCom.selec.value = '111'
+        self.robot.featureComDes.errorIN.value = \
+            (0., 0., self.robot.dynamic.com.value[2])
+        self.robot.featureCom.selec.value = '111'
 
         # Plug the feet follower output signals.
-        plug(self.feetFollower.zmp, robot.device.zmp)
+        plug(self.feetFollower.zmp, self.robot.device.zmp)
 
-        plug(self.feetFollower.com, robot.featureComDes.errorIN)
+        plug(self.feetFollower.com, self.robot.featureComDes.errorIN)
         plug(self.feetFollower.signal('left-ankle'),
-             robot.features['left-ankle'].reference)
+             self.robot.features['left-ankle'].reference)
         plug(self.feetFollower.signal('right-ankle'),
-             robot.features['right-ankle'].reference)
+             self.robot.features['right-ankle'].reference)
 
         # Initialize the posture task.
-        self.postureTask = Task(robot.name + '_posture')
-        self.postureFeature = FeatureGeneric(robot.name + '_postureFeature')
+        self.postureTask = Task(self.robot.name + '_posture')
+        self.postureFeature = FeatureGeneric(
+            self.robot.name + '_postureFeature')
         self.postureError = PostureError('PostureError')
 
-        posture = list(robot.halfSitting)
-        posture[6 + 17] -= 0.2
-        posture[6 + 24] += 0.2
+        posture = list(self.robot.halfSitting)
         self.postureError.setPosture(tuple(posture))
 
-        plug(robot.device.state, self.postureError.state)
+        plug(self.robot.device.state, self.postureError.state)
         plug(self.postureError.error, self.postureFeature.errorIN)
         self.postureFeature.jacobianIN.value = self.computeJacobianPosture()
         self.postureTask.add(self.postureFeature.name)
         self.postureTask.controlGain.value = initialGain
 
         # Initialize the waist yaw task.
-        robot.features['waist'].selec.value = '111000'
-        plug(self.feetFollower.waistYaw, robot.features['waist'].reference)
-        robot.tasks['waist'].controlGain.value = initialGain
+        self.robot.features['waist'].selec.value = '111000'
+        plug(self.feetFollower.waistYaw, self.robot.features['waist'].reference)
+        self.robot.tasks['waist'].controlGain.value = initialGain
 
         # Tasks
-        solver.sot.remove(robot.tasks['right-ankle'].name)
-        solver.sot.remove(robot.tasks['left-ankle'].name)
-        solver.sot.remove(robot.comTask.name)
+        self.solver.sot.remove(self.robot.tasks['right-ankle'].name)
+        self.solver.sot.remove(self.robot.tasks['left-ankle'].name)
+        self.solver.sot.remove(self.robot.comTask.name)
 
-        solver.sot.push(self.postureTask.name)
-        solver.sot.push(robot.comTask.name)
-        solver.sot.push(robot.tasks['left-ankle'].name)
-        solver.sot.push(robot.tasks['right-ankle'].name)
-        solver.sot.push(robot.tasks['waist'].name)
+        self.solver.sot.push(self.postureTask.name)
+        self.solver.sot.push(self.robot.comTask.name)
+        self.solver.sot.push(self.robot.tasks['left-ankle'].name)
+        self.solver.sot.push(self.robot.tasks['right-ankle'].name)
+        self.solver.sot.push(self.robot.tasks['waist'].name)
 
     def setupTrace(self):
         # Feature sdes input.
@@ -168,13 +193,15 @@ class FeetFollowerGraph:
         self.trace.add(self.feetFollower.name + '.waistYaw',
                        self.feetFollower.name + '-waistYaw')
 
-        robot.device.after.addSignal(self.feetFollower.name + '.zmp')
+        self.robot.device.after.addSignal(self.feetFollower.name + '.zmp')
 
         # Tasks error sdes input.
-        self.trace.add(robot.comTask.name + '.error', 'errorCom')
-        self.trace.add(robot.tasks['left-ankle'].name + '.error', 'errorLa')
-        self.trace.add(robot.tasks['right-ankle'].name + '.error', 'errorRa')
-        self.trace.add(robot.tasks['waist'].name + '.error', 'errorWaist')
+        self.trace.add(self.robot.comTask.name + '.error', 'errorCom')
+        self.trace.add(
+            self.robot.tasks['left-ankle'].name + '.error', 'errorLa')
+        self.trace.add(
+            self.robot.tasks['right-ankle'].name + '.error', 'errorRa')
+        self.trace.add(self.robot.tasks['waist'].name + '.error', 'errorWaist')
         self.trace.add(self.postureTask.name + '.error', 'errorPosture')
 
     def computeJacobianPosture(self):
@@ -186,16 +213,16 @@ class FeetFollowerGraph:
 
     def canStart(self):
         securityThreshold = 1e-3
-        return (robot.comTask.error.value <=
-                (securityThreshold,) * len(robot.comTask.error.value)
+        return (self.robot.comTask.error.value <=
+                (securityThreshold,) * len(self.robot.comTask.error.value)
 
-                and robot.tasks['left-ankle'].error.value <=
+                and self.robot.tasks['left-ankle'].error.value <=
                 (securityThreshold,)
-                * len(robot.tasks['left-ankle'].error.value)
+                * len(self.robot.tasks['left-ankle'].error.value)
 
-                and robot.tasks['right-ankle'].error.value <=
+                and self.robot.tasks['right-ankle'].error.value <=
                 (securityThreshold,)
-                * len(robot.tasks['right-ankle'].error.value)
+                * len(self.robot.tasks['right-ankle'].error.value)
 
                 and self.postureTask.error.value <=
                 (securityThreshold,) * len(self.postureTask.error.value))
@@ -205,11 +232,11 @@ class FeetFollowerGraph:
             print("Robot has not yet converged to the initial position,"
                   " please wait and try again.")
             return
-        robot.comTask.controlGain.value = 180.
-        robot.tasks['left-ankle'].controlGain.value = 180.
-        robot.tasks['right-ankle'].controlGain.value = 180.
+        self.robot.comTask.controlGain.value = 180.
+        self.robot.tasks['left-ankle'].controlGain.value = 180.
+        self.robot.tasks['right-ankle'].controlGain.value = 180.
         self.postureTask.controlGain.value = 180.
-        robot.tasks['waist'].controlGain.value = 180.
+        self.robot.tasks['waist'].controlGain.value = 180.
         self.setupTrace()
         if beforeStart:
             beforeStart()
@@ -222,8 +249,8 @@ class FeetFollowerFromFileGraph(FeetFollowerGraph):
     # Slow trajectory.
     defaultTrajectoryPath = defaultTrajectoryDirectory + '/simple_trajectory'
 
-    def __init__(self, trajectoryPath = defaultTrajectoryPath):
-        FeetFollowerGraph.__init__(self)
+    def __init__(self, robot, solver, trajectoryPath = defaultTrajectoryPath):
+        FeetFollowerGraph.__init__(self, robot, solver)
         self.feetFollower = FeetFollowerFromFile('feet-follower')
         self.setAnklePosition()
         self.setInitialFeetPosition()
@@ -246,17 +273,23 @@ class FeetFollowerAnalyticalPgGraph(FeetFollowerGraph):
         (-0.,  0.24, 0.25,-0., 0.31,-0.00, 0.),
         ]
 
-    def __init__(self, steps = defaultSteps, comZ = None):
-        FeetFollowerGraph.__init__(self)
+    def __init__(self, robot, solver, steps = defaultSteps, comZ = None):
+        FeetFollowerGraph.__init__(self, robot, solver)
         self.feetFollower = FeetFollowerAnalyticalPg('feet-follower')
         self.setAnklePosition()
         self.setInitialFeetPosition()
         if comZ:
             self.feetFollower.setComZ(comZ)
         else:
-            self.feetFollower.setComZ(robot.dynamic.com.value[2])
+            self.feetFollower.setComZ(self.robot.dynamic.com.value[2])
         if steps:
             for step in steps:
                 self.feetFollower.pushStep(step)
             self.feetFollower.generateTrajectory()
             self.setup()
+
+__all__ = [
+    "FeetFollowerGraph",
+    "FeetFollowerFromFileGraph",
+    "FeetFollowerAnalyticalPgGraph"
+    ]

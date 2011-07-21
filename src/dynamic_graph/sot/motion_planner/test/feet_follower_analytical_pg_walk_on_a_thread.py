@@ -33,4 +33,6 @@ steps = [
     (-1.00, 0.24, 0.25, -0.32, 0.0,  0.19, 0.),
     ]
 
-f = FeetFollowerAnalyticalPgGraph(steps, robot.dynamic.com.value[2] - 0.02)
+f = FeetFollowerAnalyticalPgGraph(
+    robot, solver,
+    steps, robot.dynamic.com.value[2] - 0.02)

@@ -21,6 +21,7 @@ from __main__ import robot, solver
 
 
 f = FeetFollowerFromFileGraph(
+    robot, solver,
     FeetFollowerFromFileGraph.defaultTrajectoryDirectory
     + '/local_stepper_test'
     )

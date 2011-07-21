@@ -33,4 +33,4 @@ steps = [
     (-1.52, 0.19, 0.10, -0.76, 0.0,  0.19, 0.),
     ]
 
-f = FeetFollowerAnalyticalPgGraph(steps)
+f = FeetFollowerAnalyticalPgGraph(robot, solver, steps)

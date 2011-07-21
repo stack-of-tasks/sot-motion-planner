@@ -51,9 +51,9 @@ steps = [
     ]
 
 
-feetFollower = FeetFollowerAnalyticalPgGraph(steps)
+feetFollower = FeetFollowerAnalyticalPgGraph(robot, solver, steps)
 correctedFeetFollower = FeetFollowerGraphWithCorrection(
-    feetFollower, MotionCaptureErrorEstimationStrategy)
+    robot, solver, feetFollower, MotionCaptureErrorEstimationStrategy)
 
 # Short alias.
 f = correctedFeetFollower

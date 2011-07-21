@@ -20,4 +20,5 @@ from dynamic_graph.sot.motion_planner.feet_follower_graph import *
 from __main__ import robot, solver
 
 f = FeetFollowerFromFileGraph(
+    robot, solver,
     FeetFollowerFromFileGraph.defaultTrajectoryDirectory + '/walk_on_a_thread')

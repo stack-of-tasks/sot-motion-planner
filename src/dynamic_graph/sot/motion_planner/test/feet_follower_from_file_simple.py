@@ -21,4 +21,5 @@ from __main__ import robot, solver
 
 
 f = FeetFollowerFromFileGraph(
+    robot, solver,
     FeetFollowerFromFileGraph.defaultTrajectoryDirectory + '/simple_trajectory')

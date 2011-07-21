@@ -20,7 +20,7 @@ from dynamic_graph.sot.motion_planner. \
     test.feet_follower_analytical_pg_step2 import *
 from common import play
 
-play(f, afterStart=logWaistPosInteractive)
+play(f)
 
 finalPosition = (
     -0.015361, -0.0049075500000000001, -0.00047065200000000001, -0.0172946,
