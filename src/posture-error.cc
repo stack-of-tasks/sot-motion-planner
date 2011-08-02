@@ -67,7 +67,7 @@ private:
   {
     ml::Vector state = state_ (t);
 
-    int errorSize = state.size () - 12 - 3;
+    int errorSize = state.size () - 12 - 3 -1;
     if (errorSize < 0)
       return res;
 
@@ -75,10 +75,10 @@ private:
 
     res (0) = state (3);
     res (1) = state (4);
-    res (2) = state (5);
+    //res (2) = state (5);
 
-    for (unsigned i = 0; i < errorSize - 3u; ++i)
-      res (i + 3) = state (i + 6 + 12);
+    for (unsigned i = 0; i < errorSize - 2u; ++i)
+      res (i + 2) = state (i + 6 + 12);
 
     return res;
   }

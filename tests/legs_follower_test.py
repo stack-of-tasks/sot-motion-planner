@@ -15,6 +15,10 @@
 # received a copy of the GNU Lesser General Public License along with
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+import time
+import signal, os
+
+
 print("Run legs_follower_graph.py  v1.9.")
 
 print "import from dynamics.tools"
@@ -159,8 +163,8 @@ class LFollower:
 	print solver.sot.display()
 
         print("Tasks added in solver.\n")
-	print("Command are : \n - f.plug()\n - f.plugViewer()\n - f.plugPlanner()\n"
-              " - f.plugPlannerWithoutMocap()\n - f.start()\n - f.stop()\n - f.readMocap()\n")
+	#print("Command are : \n - f.plug()\n - f.plugViewer()\n - f.plugPlanner()\n"
+        #      " - f.plugPlannerWithoutMocap()\n - f.start()\n - f.stop()\n - f.readMocap()\n")
 
     def legsJacobian(self):
         j = []
@@ -199,9 +203,9 @@ class LFollower:
 
     def setupTrace(self):
 	self.trace = TracerRealTime('trace')
-	self.trace.setBufferSize(2**26)
+	self.trace.setBufferSize(2**27)
 	self.trace.open('/tmp/','trace_','.dat')
-	
+
 	self.trace.add('legs-follower.com', 'com')
 	self.trace.add('legs-follower.zmp', 'zmp')
 	self.trace.add('legs-follower.ldof', 'ldof')
@@ -215,18 +219,17 @@ class LFollower:
         self.trace.add('corba.FR_steps','steps')
         self.trace.add('corba.FR_outputGoal','goal')
         self.trace.add('corba.waist','waistMocap')
-	self.trace.add('corba.left-foot','footMocap')
         self.trace.add('corba.table','tableMocap')
         self.trace.add('corba.bar','barMocap')
         self.trace.add('corba.chair','chairMocap')
-	self.trace.add('corba.helmet','helmetMocap')
+	self.trace.add('corba.helmet','chairMocap')
+	self.trace.add('corba.FR_outputLabyrinth', 'labyrinth')
 	self.trace.add('corba.FR_outputObs','obstacles')
 
         self.trace.add(robot.dynamic.name + '.left-ankle',
                        robot.dynamic.name + '-left-ankle')
         self.trace.add(robot.dynamic.name + '.right-ankle',
                        robot.dynamic.name + '-right-ankle')
-
 
 	# Recompute trace.triger at each iteration to enable tracing.
 	robot.device.after.addSignal('legs-follower.zmp')
@@ -235,11 +238,11 @@ class LFollower:
 	robot.device.after.addSignal('corba.FR_steps')
 	robot.device.after.addSignal('corba.FR_outputGoal')
 	robot.device.after.addSignal('corba.waist')
-	robot.device.after.addSignal('corba.left-foot')
 	robot.device.after.addSignal('corba.table')
 	robot.device.after.addSignal('corba.bar')
 	robot.device.after.addSignal('corba.chair')
 	robot.device.after.addSignal('corba.helmet')
+	robot.device.after.addSignal('corba.FR_outputLabyrinth')
 	robot.device.after.addSignal('corba.FR_outputObs')
         robot.device.after.addSignal(robot.dynamic.name + '.left-ankle')
 	robot.device.after.addSignal(robot.dynamic.name + '.right-ankle')
@@ -250,11 +253,11 @@ class LFollower:
         print("Plug planner.")
 	plug(corba.FR_radQ, self.legsFollower.inputRef)
 	plug(self.legsFollower.outputStart, corba.FR_inputStart)
-	plug(corba.waistTimestamp, corba.FR_timestamp)
+        plug(corba.waistTimestamp, corba.FR_timestamp)
 	plug(corba.table, corba.FR_table)
-	plug(corba.chair, corba.FR_chair)
-	plug(corba.bar, corba.FR_bar)
 	plug(corba.waist, corba.FR_waist)
+	plug(corba.bar, corba.FR_bar)
+	plug(corba.chair, corba.FR_chair)
 	plug(corba.helmet, corba.FR_inputGoal)
         plug(corba.torus1, corba.FR_torus1)
 	plug(corba.torus2, corba.FR_torus2)
@@ -277,13 +280,13 @@ class LFollower:
 	plug(corba.FR_steps, corba.viewer_inputSteps)
 	plug(corba.FR_outputGoal, corba.viewer_inputGoal)
 	plug(corba.table, corba.viewer_inputTable)
+	plug(corba.waist, corba.viewer_inputWaist)
 	plug(corba.chair, corba.viewer_inputChair)
 	plug(corba.bar, corba.viewer_inputBar)
         plug(corba.torus1, corba.viewer_inputTorus1)
 	plug(corba.torus2, corba.viewer_inputTorus2)
-	plug(corba.waist, corba.viewer_inputWaist)
 	plug(corba.FR_outputLabyrinth, corba.viewer_inputLabyrinth)
-	plug(corba.FR_outputObs, corba.viewer_inputObs)
+        plug(corba.FR_outputObs, corba.viewer_inputObs)
 	return
 
     def plug(self):
@@ -323,7 +326,42 @@ class LFollower:
     def stop(self):
 	self.legsFollower.stop()
 	self.trace.dump()
-	return
+        print "Trace saved"
+        return
 
 
 f = LFollower()
+
+corba.displaySignals()
+
+raw_input("Launch fast-replaning and viewer then press enter to plug.")
+corba.displaySignals()
+
+f.plug()
+
+corba.displaySignals()
+robot.device.increment(timeStep)
+raw_input("Press enter to start.")
+f.start()
+
+timeStep = 0.005
+
+#  Main loop
+for i in xrange(5000000):
+    t0 = time.time()
+    robot.device.increment(timeStep)
+    if i%1000==0:
+      	print i
+
+    if i==10000:
+        f.stop()
+        exit(1)
+
+    if clt:
+        clt.updateElementConfig(
+            'hrp', robot.smallToFull(robot.device.state.value))
+    
+    t1 = time.time()
+    if timeStep-(t1-t0) > 0.0:
+        time.sleep(timeStep-(t1-t0))
+print "Exiting."

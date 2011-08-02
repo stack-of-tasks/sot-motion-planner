@@ -81,8 +81,7 @@ class LegsFollower : public dg::Entity
   typedef dg::SignalTimeDependent<ml::Vector, int> signalCoM_t;
   typedef dg::SignalTimeDependent<ml::Vector, int> signalZMP_t;
   typedef dg::SignalTimeDependent<ml::Vector, int> signal_ldof_t;
-  //typedef dg::SignalTimeDependent<sot::MatrixHomogeneous, int> signal_waist_t;
-  typedef dg::SignalTimeDependent<ml::Vector, int> signal_waist_t;
+  typedef dg::SignalTimeDependent<sot::MatrixHomogeneous, int> signal_waist_t;
   typedef dg::SignalPtr<ml::Vector, int> signalIn_t;
   typedef dg::SignalPtr<ml::Vector, int> signalOut_t;
 
@@ -99,12 +98,12 @@ class LegsFollower : public dg::Entity
 
   void update (int t);
   ml::Vector& update_ldof (ml::Vector& res, int t);
-  ml::Vector& update_waist (ml::Vector& res, int t);
-  //sot::MatrixHomogeneous& update_waist(sot::MatrixHomogeneous& res, int t);
+  sot::MatrixHomogeneous& update_waist(sot::MatrixHomogeneous& res, int t);
   ml::Vector& update_com (ml::Vector& res, int t);
   ml::Vector& update_zmp (ml::Vector& res, int t);
 
   double getTime () const;
+  void getAbsoluteTime(double& sec, double& usec);
 
   /// \brief Returns the current time index on the trajectory.
   /// I.e. time - startTime (0 means the trajectory replay just began)
@@ -162,7 +161,8 @@ protected:
   signalCoM_t comOut_;
   signalZMP_t zmpOut_;
   signalIn_t inputRef_;
-  signalOut_t ouputStart_;
+  signalOut_t outputStart_;
+  signalOut_t outputYaw_;
 
 };
 
