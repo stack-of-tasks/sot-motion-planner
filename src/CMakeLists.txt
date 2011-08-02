@@ -93,7 +93,6 @@ SET(PYTHON_MODULE_DIR
 SET(PYTHON_MODULE_BUILD_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/dynamic_graph/sot/motion_planner)
 
-<<<<<<< HEAD
 
 # Install dynamic_graph.sot.motion_planner
 SET(PYTHON_MODULE dynamic_graph/sot/motion_planner)
