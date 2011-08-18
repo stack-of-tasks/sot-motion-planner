@@ -17,7 +17,12 @@
 
 import time
 import signal, os
+import sys
 
+length = 10000
+
+if len(sys.argv) > 1:
+  length = sys.argv[1]
 
 print("Run legs_follower_graph.py  v1.9.")
 
@@ -216,15 +221,15 @@ class LFollower:
 
         self.trace.add('legs-follower.outputStart','start')
         self.trace.add('legs-follower.outputYaw','yaw')
-        self.trace.add('corba.FR_steps','steps')
-        self.trace.add('corba.FR_outputGoal','goal')
+        self.trace.add('corba.planner_steps','steps')
+        self.trace.add('corba.planner_outputGoal','goal')
         self.trace.add('corba.waist','waistMocap')
         self.trace.add('corba.table','tableMocap')
         self.trace.add('corba.bar','barMocap')
         self.trace.add('corba.chair','chairMocap')
 	self.trace.add('corba.helmet','chairMocap')
-	self.trace.add('corba.FR_outputLabyrinth', 'labyrinth')
-	self.trace.add('corba.FR_outputObs','obstacles')
+	self.trace.add('corba.planner_outputLabyrinth', 'labyrinth')
+	self.trace.add('corba.planner_outputObs','obstacles')
 
         self.trace.add(robot.dynamic.name + '.left-ankle',
                        robot.dynamic.name + '-left-ankle')
@@ -235,15 +240,15 @@ class LFollower:
 	robot.device.after.addSignal('legs-follower.zmp')
 	robot.device.after.addSignal('legs-follower.outputStart')
 	robot.device.after.addSignal('legs-follower.outputYaw')
-	robot.device.after.addSignal('corba.FR_steps')
-	robot.device.after.addSignal('corba.FR_outputGoal')
+	robot.device.after.addSignal('corba.planner_steps')
+	robot.device.after.addSignal('corba.planner_outputGoal')
 	robot.device.after.addSignal('corba.waist')
 	robot.device.after.addSignal('corba.table')
 	robot.device.after.addSignal('corba.bar')
 	robot.device.after.addSignal('corba.chair')
 	robot.device.after.addSignal('corba.helmet')
-	robot.device.after.addSignal('corba.FR_outputLabyrinth')
-	robot.device.after.addSignal('corba.FR_outputObs')
+	robot.device.after.addSignal('corba.planner_outputLabyrinth')
+	robot.device.after.addSignal('corba.planner_outputObs')
         robot.device.after.addSignal(robot.dynamic.name + '.left-ankle')
 	robot.device.after.addSignal(robot.dynamic.name + '.right-ankle')
 	robot.device.after.addSignal('trace.triger')
@@ -251,42 +256,42 @@ class LFollower:
 
     def plugPlanner(self):
         print("Plug planner.")
-	plug(corba.FR_radQ, self.legsFollower.inputRef)
-	plug(self.legsFollower.outputStart, corba.FR_inputStart)
-        plug(corba.waistTimestamp, corba.FR_timestamp)
-	plug(corba.table, corba.FR_table)
-	plug(corba.waist, corba.FR_waist)
-	plug(corba.bar, corba.FR_bar)
-	plug(corba.chair, corba.FR_chair)
-	plug(corba.helmet, corba.FR_inputGoal)
-        plug(corba.torus1, corba.FR_torus1)
-	plug(corba.torus2, corba.FR_torus2)
-        plug(corba.signal('left-foot'), corba.FR_foot)
-        plug(corba.signal('left-footTimestamp'), corba.FR_footTimestamp)
+	plug(corba.planner_radQ, self.legsFollower.inputRef)
+	plug(self.legsFollower.outputStart, corba.planner_inputStart)
+        plug(corba.waistTimestamp, corba.planner_timestamp)
+	plug(corba.table, corba.planner_table)
+	plug(corba.waist, corba.planner_waist)
+	plug(corba.bar, corba.planner_bar)
+	plug(corba.chair, corba.planner_chair)
+	plug(corba.helmet, corba.planner_inputGoal)
+        plug(corba.torus1, corba.planner_torus1)
+	plug(corba.torus2, corba.planner_torus2)
+        plug(corba.signal('left-foot'), corba.planner_foot)
+        plug(corba.signal('left-footTimestamp'), corba.planner_footTimestamp)
 	return
 
     def plugPlannerWithoutMocap(self):
         print("Plug planner without mocap.")
-	plug(corba.FR_radQ, self.legsFollower.inputRef)
-	plug(self.legsFollower.outputStart, corba.FR_inputStart)
+	plug(corba.planner_radQ, self.legsFollower.inputRef)
+	plug(self.legsFollower.outputStart, corba.planner_inputStart)
 	return
 
     def plugViewer(self):
         print("Plug viewer.")
-	plug(self.legsFollower.ldof, corba.viewer_inputLdof)
-	plug(self.legsFollower.outputStart, corba.viewer_inputStart)
-	plug(self.legsFollower.com, corba.viewer_inputCom)
-	plug(self.legsFollower.outputYaw, corba.viewer_inputYaw)
-	plug(corba.FR_steps, corba.viewer_inputSteps)
-	plug(corba.FR_outputGoal, corba.viewer_inputGoal)
-	plug(corba.table, corba.viewer_inputTable)
-	plug(corba.waist, corba.viewer_inputWaist)
-	plug(corba.chair, corba.viewer_inputChair)
-	plug(corba.bar, corba.viewer_inputBar)
-        plug(corba.torus1, corba.viewer_inputTorus1)
-	plug(corba.torus2, corba.viewer_inputTorus2)
-	plug(corba.FR_outputLabyrinth, corba.viewer_inputLabyrinth)
-        plug(corba.FR_outputObs, corba.viewer_inputObs)
+	plug(self.legsFollower.ldof, corba.viewer_Ldof)
+	plug(self.legsFollower.outputStart, corba.viewer_Start)
+	plug(self.legsFollower.com, corba.viewer_Com)
+	plug(self.legsFollower.outputYaw, corba.viewer_Yaw)
+	plug(corba.planner_steps, corba.viewer_Steps)
+	plug(corba.planner_outputGoal, corba.viewer_Goal)
+	plug(corba.table, corba.viewer_Table)
+	plug(corba.waist, corba.viewer_Waist)
+	plug(corba.chair, corba.viewer_Chair)
+	plug(corba.bar, corba.viewer_Bar)
+        plug(corba.torus1, corba.viewer_Torus1)
+	plug(corba.torus2, corba.viewer_Torus2)
+	plug(corba.planner_outputLabyrinth, corba.viewer_Labyrinth)
+        plug(corba.planner_outputObs, corba.viewer_Obs)
 	return
 
     def plug(self):
@@ -334,7 +339,14 @@ f = LFollower()
 
 corba.displaySignals()
 
-raw_input("Launch fast-replaning and viewer then press enter to plug.")
+while True:                                                                            
+    try:                                                                               
+        corba.planner_radQ                                                             
+        break                                                                          
+    except:                                                                            
+        time.sleep(0.01)  
+
+#raw_input("Launch fast-replaning and viewer then press enter to plug.")
 corba.displaySignals()
 
 f.plug()
@@ -353,7 +365,7 @@ for i in xrange(5000000):
     if i%1000==0:
       	print i
 
-    if i==10000:
+    if i==length:
         f.stop()
         exit(1)
 
