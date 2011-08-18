@@ -152,7 +152,7 @@ ErrorEstimator::timestampToIndex (const ml::Vector& timestamp)
   long int usec = Double2Long::convert (timestamp (1));
 
   //FIXME: fail at midnight.
-  ptime_t time (day_clock::universal_day (),
+  ptime_t time (date(1970,1,1),
 		seconds (sec) + microseconds (usec));
 
   typedef boost::numeric::converter<size_t, int64_t> Int64_t2Size_t;

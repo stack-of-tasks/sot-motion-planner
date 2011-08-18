@@ -1,0 +1,22 @@
+# The robot turns in place and corrects its trajectory using the
+# motion capture system.
+
+duration: 1
+
+motion:
+  - walk:
+      interval: [0, 1]
+      footsteps:
+      - {x: 0., y: -0.19, theta: 0.1}
+      - {x: 0., y:  0.19, theta: 0.1}
+      - {x: 0., y: -0.19, theta: 0.1}
+      - {x: 0., y:  0.19, theta: 0.1}
+      - {x: 0., y: -0.19, theta: 0.1}
+      - {x: 0., y:  0.19, theta: 0.1}
+      - {x: 0., y: -0.19, theta: 0.1}
+      - {x: 0., y:  0.19, theta: 0.1}
+      - {x: 0., y: -0.19, theta: 0.1}
+      - {x: 0., y:  0.19, theta: 0.1}
+
+control:
+  - mocap:
