@@ -42,9 +42,19 @@ namespace command
 	(dg::nullptr,
 	 MAKE_SIGNAL_STRING
 	 (errorMerger.getName(), true, "Vector", "error_" + errorName));
+
+      ErrorMerger::signalVectorIn_t* signalWeight =
+	new ErrorMerger::signalVectorIn_t
+	(dg::nullptr,
+	 MAKE_SIGNAL_STRING
+	 (errorMerger.getName(), true, "Vector", "weight_" + errorName));
+
+
       errorMerger.errorsIn ().push_back
-	(boost::shared_ptr<ErrorMerger::signalVectorIn_t> (signal));
-      errorMerger.signalRegistration (*signal);
+	(std::make_pair
+	 (boost::shared_ptr<ErrorMerger::signalVectorIn_t> (signal),
+	  boost::shared_ptr<ErrorMerger::signalVectorIn_t> (signalWeight)));
+      errorMerger.signalRegistration (*signal << *signalWeight);
       return Value ();
     }
   } // end of namespace errorMerger.
@@ -76,11 +86,27 @@ ErrorMerger::updateError (ml::Vector& res, int t)
     res.resize (3);
   res.setZero ();
   const unsigned N = errorsIn_.size ();
+
+  double M = 0;
+
   for (unsigned i = 0; i < N; ++i)
-      res += (*errorsIn_[i]) (t);
+    {
+      double w = (*errorsIn_[i].second) (t) (0);
+      if (w >= 1e-6)
+	{
+	  M += w;
+	  res += w * (*errorsIn_[i].first) (t);
+	}
+    }
+
+  if (M < 1e-6)
+    {
+      res.setZero ();
+      return res;
+    }
 
   for (unsigned i = 0; i < 3; ++i)
-    res (i) /= N;
+    res (i) /= M;
   return res;
 }
 

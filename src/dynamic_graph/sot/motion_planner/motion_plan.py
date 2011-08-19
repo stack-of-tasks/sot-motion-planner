@@ -175,6 +175,8 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
                 raise RuntimeError("invalid control element")
             plug(estimator.error,
                  self.errorEstimator.signal("error_" + name))
+            self.errorEstimator.signal("weight_" + name).value = \
+                (control[1]['weight'],)
             self.errorEstimators.append(estimator)
         return True
 

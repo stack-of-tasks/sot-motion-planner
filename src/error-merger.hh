@@ -75,7 +75,8 @@ class ErrorMerger : public dg::Entity
   virtual ~ErrorMerger ();
   /// \}
 
-  std::vector<boost::shared_ptr<signalVectorIn_t> >&
+  std::vector<std::pair<boost::shared_ptr<signalVectorIn_t>,
+			boost::shared_ptr<signalVectorIn_t> > >&
   errorsIn ()
   {
     return errorsIn_;
@@ -86,7 +87,8 @@ protected:
   ml::Vector& updateError (ml::Vector& res, int);
 
 private:
-  std::vector<boost::shared_ptr<signalVectorIn_t> > errorsIn_;
+  std::vector<std::pair<boost::shared_ptr<signalVectorIn_t>,
+			boost::shared_ptr<signalVectorIn_t> > > errorsIn_;
   signalVectorOut_t errorOut_;
 };
 

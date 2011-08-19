@@ -16,5 +16,6 @@ motion:
 
 control:
   - mocap:
+      weight: 1.
       tracked-body: left-ankle
       perceived-body: left-foot
