@@ -16,4 +16,6 @@ motion:
 
 control:
   - virtual-sensor:
-      obstacle-position: {x: 0., y: -0.19, z: 0.}
+      obstacle-position:
+        planned:   {x: 1., y: 0., z: 0.}
+        estimated: {x: 0., y: 0., z: 0.}

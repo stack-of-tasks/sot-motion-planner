@@ -60,6 +60,9 @@ SET(FEET_FOLLOWER_SOURCES
 
   posture-error.cc
   waist-yaw.cc
+
+  virtual-sensor.cc
+  error-merger.cc
   )
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)

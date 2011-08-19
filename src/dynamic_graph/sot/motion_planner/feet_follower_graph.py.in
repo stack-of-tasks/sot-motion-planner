@@ -243,6 +243,9 @@ class FeetFollowerGraph(object):
         self.trace.start()
         self.feetFollower.start()
 
+    def __str__(self):
+        return "feet follower"
+
 class FeetFollowerFromFileGraph(FeetFollowerGraph):
     defaultTrajectoryDirectory = '@TRAJECTORY_PATH@'
 
@@ -257,6 +260,9 @@ class FeetFollowerFromFileGraph(FeetFollowerGraph):
         self.feetFollower.setComZ(0.814)
         self.feetFollower.readTrajectory(trajectoryPath)
         self.setup()
+
+    def __str__(self):
+        return "feet follower from file"
 
 
 class FeetFollowerAnalyticalPgGraph(FeetFollowerGraph):
@@ -287,6 +293,9 @@ class FeetFollowerAnalyticalPgGraph(FeetFollowerGraph):
                 self.feetFollower.pushStep(step)
             self.feetFollower.generateTrajectory()
             self.setup()
+
+    def __str__(self):
+        return "feet follower analytical pg"
 
 __all__ = [
     "FeetFollowerGraph",

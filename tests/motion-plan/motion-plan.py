@@ -27,11 +27,12 @@ if not len(args):
 
 motionPlan = MotionPlan(args[0], robot, solver)
 
-def play(f, maxIter = 4000, afterStart = None):
-    if f:
-        while not f.canStart():
-            robot.device.increment(timeStep)
-        f.start()
+def play(plan, maxIter = 4000, afterStart = None):
+    global motionPlan
+
+    while not plan.canStart():
+        robot.device.increment(timeStep)
+    plan.start()
     print("start")
     if afterStart:
         afterStart()
@@ -49,12 +50,9 @@ def play(f, maxIter = 4000, afterStart = None):
         if clt:
             clt.updateElementConfig(
                 'hrp', robot.smallToFull(robot.device.state.value))
-    if f:
-        f.trace.dump()
+
+        if plan.feetFollower:
+            plan.feetFollower.trace.dump()
 
 motionPlan.displayMotion()
-
-if len(motionPlan.motion) and len(motionPlan.motion[0]) == 2:
-    play(motionPlan.motion[0][1])
-else:
-    play(None)
+play(motionPlan)
