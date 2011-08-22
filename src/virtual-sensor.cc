@@ -30,8 +30,12 @@
 
 VirtualSensor::VirtualSensor (const std::string& name)
   : dg::Entity (name),
-    plannedIn_ (dg::nullptr,
-		MAKE_SIGNAL_STRING (name, true, "Vector", "planned")),
+    expectedRobotPositionIn_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING (name, true, "Vector", "expectedRobotPosition")),
+    robotPositionIn_ (dg::nullptr,
+		      MAKE_SIGNAL_STRING (name, true, "Vector", "robotPosition")),
+
     expectedObstaclePositionIn_
     (dg::nullptr,
      MAKE_SIGNAL_STRING (name, true, "MatrixHomo",
@@ -46,7 +50,8 @@ VirtualSensor::VirtualSensor (const std::string& name)
     (INIT_SIGNAL_OUT
      ("positionTimestamp", VirtualSensor::updatePositionTimestamp, "Vector"))
 {
-  signalRegistration (plannedIn_
+  signalRegistration (expectedRobotPositionIn_
+		      << robotPositionIn_
 		      << expectedObstaclePositionIn_
 		      << obstaclePositionIn_
 		      << positionOut_
@@ -65,14 +70,19 @@ VirtualSensor::updatePosition (ml::Vector& res, int t)
     res.resize (3);
   res.setZero ();
 
-  const sot::MatrixHomogeneous& planned = plannedIn_ (t);
+  const sot::MatrixHomogeneous& expectedRobotPosition =
+    expectedRobotPositionIn_ (t);
+  const sot::MatrixHomogeneous& robotPosition = robotPositionIn_ (t);
   const sot::MatrixHomogeneous& expectedObstaclePosition =
     expectedObstaclePositionIn_ (t);
   const sot::MatrixHomogeneous& obstaclePosition =
     obstaclePositionIn_ (t);
 
   sot::MatrixHomogeneous estimatedPosition =
-    obstaclePosition.inverse () * expectedObstaclePosition* planned;
+    robotPosition
+    * obstaclePosition.inverse ()
+    * expectedObstaclePosition
+    * expectedRobotPosition.inverse ();
 
   res = MatrixHomogeneousToXYTheta (estimatedPosition);
   return res;

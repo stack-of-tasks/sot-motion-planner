@@ -335,7 +335,10 @@ class MotionPlan(object):
         virtualSensor = VirtualSensor('virtualSensor')
 
         #FIXME: should be more generic.
-        plug(self.motion[0][1].feetFollower.waist, virtualSensor.planned)
+        plug(self.motion[0][1].feetFollower.waist,
+             virtualSensor.expectedRobotPosition)
+        plug(self.robot.dynamic.waist,
+             virtualSensor.robotPosition)
 
         reference = virtualSensorData['obstacle-position']['planned']
         position = virtualSensorData['obstacle-position']['estimated']

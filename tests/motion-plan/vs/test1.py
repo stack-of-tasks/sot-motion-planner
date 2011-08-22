@@ -20,7 +20,7 @@ from dynamic_graph.sot.motion_planner import \
 
 vs = VirtualSensor('vs')
 
-def test(vs, position, estimated, planned):
+def test(vs, position, expectedPosition, estimated, planned):
     vs.expectedObstaclePosition.value = (
         (1., 0., 0., planned[0]),
         (0., 1., 0., planned[1]),
@@ -33,7 +33,13 @@ def test(vs, position, estimated, planned):
         (0., 0., 1., estimated[2]),
         (0., 0., 0., 1.), )
 
-    vs.planned.value = (
+    vs.expectedRobotPosition.value = (
+        (1., 0., 0., expectedPosition[0]),
+        (0., 1., 0., expectedPosition[1]),
+        (0., 0., 1., expectedPosition[2]),
+        (0., 0., 0., 1.), )
+
+    vs.robotPosition.value = (
         (1., 0., 0., position[0]),
         (0., 1., 0., position[1]),
         (0., 0., 1., position[2]),
@@ -44,6 +50,7 @@ def test(vs, position, estimated, planned):
 
     print("---")
     print("planned robot pos     = " + str(position))
+    print("expected robot pos     = " + str(expectedPosition))
     print("estimated feature pos = " + str(estimated))
     print("planned feature pos   = " + str(planned))
     print("position              = " + str(vs.position.value))
@@ -51,7 +58,7 @@ def test(vs, position, estimated, planned):
 
     return vs.position.value
 
-print test(vs, [0., 0., 0.], [0., 0., 0.], [0., 0., 0.]) == (0., 0., 0.)
-print test(vs, [1., 2., 0.], [0., 0., 0.], [0., 0., 0.]) == (1., 2., 0.)
+print test(vs, [0., 0., 0.], [0., 0., 0.], [0., 0., 0.], [0., 0., 0.]) == (0., 0., 0.)
+print test(vs, [1., 2., 0.], [1., 2., 0.],[0., 0., 0.], [0., 0., 0.]) == (1., 2., 0.)
 
-print test(vs, [5., 4., 0.], [1., 0., 0.], [2., 0., 0.]) == (6., 4., 0.)
+print test(vs, [5., 4., 0.], [5., 4., 0.], [1., 0., 0.], [2., 0., 0.]) == (6., 4., 0.)
