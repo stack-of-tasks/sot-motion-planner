@@ -82,12 +82,14 @@ WalkMovement::WalkMovement
  const sot::DiscretizedTrajectory& com,
  const sot::DiscretizedTrajectory& zmp,
  const sot::DiscretizedTrajectory& waistYaw,
+ const sot::DiscretizedTrajectory& waist,
  const sot::MatrixHomogeneous& wMw_traj)
   : leftFoot (leftFoot),
     rightFoot (rightFoot),
     com (com),
     zmp (zmp),
     waistYaw (waistYaw),
+    waist (waist),
     wMw_traj (wMw_traj)
 {}
 
@@ -99,6 +101,7 @@ FeetFollower::FeetFollower (const std::string& name)
     com_ (3),
     zmp_ (3),
     waistYaw_ (),
+    waist_ (),
     leftAnkle_ (),
     rightAnkle_ (),
     comZ_ (0.),
@@ -112,6 +115,8 @@ FeetFollower::FeetFollower (const std::string& name)
     zmpOut_ (INIT_SIGNAL_OUT ("zmp", FeetFollower::updateZmp, "Vector")),
     waistYawOut_ (INIT_SIGNAL_OUT
 		  ("waistYaw", FeetFollower::updateWaistYaw, "MatrixHomo")),
+    waistOut_ (INIT_SIGNAL_OUT
+	       ("waist", FeetFollower::updateWaist, "MatrixHomo")),
     leftAnkleOut_
     (INIT_SIGNAL_OUT
      ("left-ankle", FeetFollower::updateLeftAnkle, "MatrixHomo")),
@@ -119,12 +124,13 @@ FeetFollower::FeetFollower (const std::string& name)
     (INIT_SIGNAL_OUT
      ("right-ankle", FeetFollower::updateRightAnkle, "MatrixHomo"))
 {
-  signalRegistration (zmpOut_ << comOut_ << waistYawOut_
+  signalRegistration (zmpOut_ << comOut_ << waistYawOut_ << waistOut_
 		      << leftAnkleOut_ << rightAnkleOut_);
 
   zmpOut_.setNeedUpdateFromAllChildren (true);
   comOut_.setNeedUpdateFromAllChildren (true);
   waistYawOut_.setNeedUpdateFromAllChildren (true);
+  waistOut_.setNeedUpdateFromAllChildren (true);
   leftAnkleOut_.setNeedUpdateFromAllChildren (true);
   rightAnkleOut_.setNeedUpdateFromAllChildren (true);
 
@@ -196,6 +202,16 @@ FeetFollower::updateWaistYaw (sot::MatrixHomogeneous& res, int t)
   res = waistYaw_;
   return res;
 }
+
+sot::MatrixHomogeneous&
+FeetFollower::updateWaist (sot::MatrixHomogeneous& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = waist_;
+  return res;
+}
+
 
 sot::MatrixHomogeneous&
 FeetFollower::updateLeftAnkle (sot::MatrixHomogeneous& res, int t)

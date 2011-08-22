@@ -92,6 +92,7 @@ struct WalkMovement
 			 const sot::DiscretizedTrajectory& com,
 			 const sot::DiscretizedTrajectory& zmp,
 			 const sot::DiscretizedTrajectory& waistYaw,
+			 const sot::DiscretizedTrajectory& waist,
 			 const sot::MatrixHomogeneous& wMs);
 
   /// \brief Left foot trajectory.
@@ -108,6 +109,9 @@ struct WalkMovement
 
   /// \brief Waist yaw reference trajectory.
   sot::DiscretizedTrajectory waistYaw;
+
+  /// \brief Waist reference trajectory.
+  sot::DiscretizedTrajectory waist;
 
   /// \brief Trajectory frame position in the world frame (wMw_traj).
   ///
@@ -156,6 +160,7 @@ class FeetFollower : public dg::Entity
   ml::Vector& updateCoM (ml::Vector& res, int t);
   ml::Vector& updateZmp (ml::Vector& res, int t);
   sot::MatrixHomogeneous& updateWaistYaw (sot::MatrixHomogeneous& res, int t);
+  sot::MatrixHomogeneous& updateWaist (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateLeftAnkle (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateRightAnkle (sot::MatrixHomogeneous& res, int t);
   double getTime () const;
@@ -216,6 +221,7 @@ protected:
   ml::Vector com_;
   ml::Vector zmp_;
   sot::MatrixHomogeneous waistYaw_;
+  sot::MatrixHomogeneous waist_;
   sot::MatrixHomogeneous leftAnkle_;
   sot::MatrixHomogeneous rightAnkle_;
 
@@ -231,6 +237,7 @@ protected:
   signalCoM_t comOut_;
   signalCoM_t zmpOut_;
   signalFoot_t waistYawOut_;
+  signalFoot_t waistOut_;
   signalFoot_t leftAnkleOut_;
   signalFoot_t rightAnkleOut_;
 

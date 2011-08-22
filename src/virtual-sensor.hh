@@ -56,7 +56,7 @@ protected:
   ml::Vector& updatePositionTimestamp (ml::Vector& res, int);
 
 private:
-  signalVectorIn_t robotStateIn_;
+  signalMatrixHomoIn_t plannedIn_;
   signalMatrixHomoIn_t expectedObstaclePositionIn_;
   signalMatrixHomoIn_t obstaclePositionIn_;
   signalVectorOut_t positionOut_;

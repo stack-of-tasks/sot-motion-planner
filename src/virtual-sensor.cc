@@ -26,11 +26,12 @@
 
 #include "common.hh"
 #include "virtual-sensor.hh"
+#include "time.hh"
 
 VirtualSensor::VirtualSensor (const std::string& name)
   : dg::Entity (name),
-    robotStateIn_ (dg::nullptr,
-		   MAKE_SIGNAL_STRING (name, true, "Vector", "robotState")),
+    plannedIn_ (dg::nullptr,
+		MAKE_SIGNAL_STRING (name, true, "Vector", "planned")),
     expectedObstaclePositionIn_
     (dg::nullptr,
      MAKE_SIGNAL_STRING (name, true, "MatrixHomo",
@@ -45,12 +46,13 @@ VirtualSensor::VirtualSensor (const std::string& name)
     (INIT_SIGNAL_OUT
      ("positionTimestamp", VirtualSensor::updatePositionTimestamp, "Vector"))
 {
-  signalRegistration (robotStateIn_
+  signalRegistration (plannedIn_
 		      << expectedObstaclePositionIn_
-		      << obstaclePositionIn_ 
+		      << obstaclePositionIn_
 		      << positionOut_
 		      << positionTimestampOut_);
   positionOut_.setNeedUpdateFromAllChildren (true);
+  positionTimestampOut_.setNeedUpdateFromAllChildren (true);
 }
 
 VirtualSensor::~VirtualSensor ()
@@ -59,24 +61,18 @@ VirtualSensor::~VirtualSensor ()
 ml::Vector&
 VirtualSensor::updatePosition (ml::Vector& res, int t)
 {
-  if (res.size () != 6)
-    res.resize (6);
+  if (res.size () != 3)
+    res.resize (3);
   res.setZero ();
 
-  const ml::Vector& robotState = robotStateIn_ (t);
+  const sot::MatrixHomogeneous& planned = plannedIn_ (t);
   const sot::MatrixHomogeneous& expectedObstaclePosition =
     expectedObstaclePositionIn_ (t);
   const sot::MatrixHomogeneous& obstaclePosition =
     obstaclePositionIn_ (t);
 
-  ml::Vector pose (3);
-  pose (0) = robotState (0);
-  pose (1) = robotState (1);
-  pose (2) = robotState (5);
-  sot::MatrixHomogeneous robotPosition = XYThetaToMatrixHomogeneous(pose);
-
   sot::MatrixHomogeneous estimatedPosition =
-    obstaclePosition * expectedObstaclePosition.inverse () * robotPosition;
+    obstaclePosition.inverse () * expectedObstaclePosition* planned;
 
   res = MatrixHomogeneousToXYTheta (estimatedPosition);
   return res;
@@ -85,24 +81,7 @@ VirtualSensor::updatePosition (ml::Vector& res, int t)
 ml::Vector&
 VirtualSensor::updatePositionTimestamp (ml::Vector& res, int)
 {
-  using namespace boost::gregorian;
-  using namespace boost::posix_time;
-
-  typedef boost::posix_time::ptime ptime_t;
-
-  if (res.size () != 2)
-    res.resize (2);
-
-  ptime_t time =
-    boost::posix_time::microsec_clock::universal_time ();
-  int64_t sec = time.time_of_day ().total_seconds();
-  int64_t usec =
-    time.time_of_day ().total_microseconds () - sec * 1000000;
-
-  typedef boost::numeric::converter<double, int64_t> Int64_t2Double;
-
-  res (0) = Int64_t2Double::convert (sec);
-  res (1) = Int64_t2Double::convert (usec);
+  sot::motionPlanner::timestamp (res);
   return res;
 }
 

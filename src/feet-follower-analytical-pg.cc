@@ -14,12 +14,17 @@
 // received a copy of the GNU Lesser General Public License along with
 // dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+#include <boost/filesystem/fstream.hpp>
+
 #include "discretized-trajectory.hh"
 
 #include "feet-follower-analytical-pg.hh"
 
-const double FeetFollowerAnalyticalPg::STEP = 0.005;
+#include <dynamic-graph/command-setter.h>
 
+using ::dynamicgraph::command::Setter;
+
+const double FeetFollowerAnalyticalPg::STEP = 0.005;
 
 FeetFollowerAnalyticalPg::FeetFollowerAnalyticalPg (const std::string& name)
   : FeetFollower (name),
@@ -58,6 +63,12 @@ FeetFollowerAnalyticalPg::FeetFollowerAnalyticalPg (const std::string& name)
     "    Clear list of steps\n";
   addCommand ("clearSteps",
 	      new command::ClearSteps (*this, docstring));
+
+  docstring = "set waist trajectory file";
+  addCommand ("setWaistFile",
+	      new Setter<FeetFollowerAnalyticalPg, std::string>
+	      (*this,
+	       &FeetFollowerAnalyticalPg::setWaistFile, docstring));
 }
 
 FeetFollowerAnalyticalPg::~FeetFollowerAnalyticalPg ()
@@ -82,6 +93,7 @@ FeetFollowerAnalyticalPg::impl_update ()
   const Trajectory::vector_t& zmp = trajectories_->zmp (t);
   const Trajectory::vector_t& com = trajectories_->com (t);
   const Trajectory::vector_t& waistYaw = trajectories_->waistYaw (t);
+  const Trajectory::vector_t& waist = trajectories_->waist (t);
 
   if (leftFoot.size () != 4 || rightFoot.size () != 4
       || com.size () != 3 || zmp.size () != 3)
@@ -124,6 +136,9 @@ FeetFollowerAnalyticalPg::impl_update ()
   xytheta (2) = theta.value ();
   waistYaw_ = XYThetaToMatrixHomogeneous (xytheta);
 
+  for (unsigned i = 0; i < 4; ++i)
+    for (unsigned j = 0; j < 4; ++j)
+      waist_ (i, j) = waist (i * 4 + j);
 
   if (started_)
     ++index_;
@@ -252,6 +267,14 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   std::vector<vector_t> comData;
   std::vector<vector_t> zmpData;
   std::vector<vector_t> waistYawData;
+  std::vector<vector_t> waistData;
+
+  leftFootData.reserve (stepFeatures.size);
+  rightFootData.reserve (stepFeatures.size);
+  comData.reserve (stepFeatures.size);
+  zmpData.reserve (stepFeatures.size);
+  waistYawData.reserve (stepFeatures.size);
+  waistData.reserve (stepFeatures.size);
 
   for (unsigned i = 0; i < stepFeatures.size; ++i)
     {
@@ -296,6 +319,31 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
       waistYawData.push_back (waistYaw);
     }
 
+  if (boost::filesystem::exists (waistFile_))
+    {
+      boost::filesystem::ifstream file(waistFile_);
+      vector_t waistPosition (16);
+      while (file.good ())
+	{
+	  for (unsigned i = 0; i < 16; ++i)
+	    file >> waistPosition (i);
+	  waistData.push_back(waistPosition);
+	}
+    }
+  else
+    std::cerr << "warning: waist file '"
+	      << waistFile_
+	      <<"' does not exist" << std::endl;
+
+  if (waistData.size () != stepFeatures.size)
+    {
+      boost::format fmt ("warning: bad waist size (%1% != %2%)");
+      fmt % waistData.size () % stepFeatures.size;
+      std::cerr << fmt.str () << std::endl;
+      waistData.resize (stepFeatures.size, vector_t (16));
+    }
+
+
   // Reset the movement.
   index_ = 0;
 
@@ -321,6 +369,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
      sot::DiscretizedTrajectory (range, comData, "com"),
      sot::DiscretizedTrajectory (range, zmpData, "zmp"),
      sot::DiscretizedTrajectory (range, waistYawData, "waist-yaw"),
+     sot::DiscretizedTrajectory (range, waistData, "waist"),
      wMw_traj);
 
 

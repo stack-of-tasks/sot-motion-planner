@@ -63,6 +63,7 @@ SET(FEET_FOLLOWER_SOURCES
 
   virtual-sensor.cc
   error-merger.cc
+  time.cc
   )
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)

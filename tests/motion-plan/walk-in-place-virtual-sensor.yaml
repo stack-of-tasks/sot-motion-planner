@@ -13,16 +13,11 @@ motion:
       - {x: 0., y:  0.19, theta: 0.}
       - {x: 0., y: -0.19, theta: 0.}
       - {x: 0., y:  0.19, theta: 0.}
+      waist-trajectory: walk-in-place-waist.dat
 
 control:
   - virtual-sensor:
-      weight: 0.5
+      weight: 1.
       obstacle-position:
-        planned:   {x: 0.01, y: 0., z: 0.}
-        estimated: {x: 0., y: 0., z: 0.}
-
-  - virtual-sensor:
-      weight: 0.5
-      obstacle-position:
-        planned:   {x: 0.01, y: 0., z: 0.}
-        estimated: {x: 0., y: 0., z: 0.}
+        planned:   {x: 0.02, y: 0., z: 0.}
+        estimated: {x: 0.01, y: 0., z: 0.}

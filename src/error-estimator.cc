@@ -24,6 +24,7 @@
 #include "common.hh"
 #include "error-estimator.hh"
 #include "set-reference-trajectory.hh"
+#include "time.hh"
 
 static const int STEPS_PER_SECOND = 200;
 
@@ -143,27 +144,14 @@ ErrorEstimator::~ErrorEstimator ()
 size_t
 ErrorEstimator::timestampToIndex (const ml::Vector& timestamp)
 {
-  using namespace boost::gregorian;
-  using namespace boost::posix_time;
-
-  typedef boost::numeric::converter<long int, double> Double2Long;
-
-  long int sec = Double2Long::convert (timestamp (0));
-  long int usec = Double2Long::convert (timestamp (1));
-
-  //FIXME: fail at midnight.
-  ptime_t time (date(1970,1,1),
-		seconds (sec) + microseconds (usec));
-
-  typedef boost::numeric::converter<size_t, int64_t> Int64_t2Size_t;
+  ptime_t time = sot::motionPlanner::timestampToDateTime(timestamp);
 
   typedef boost::tuple<ptime_t, int, sot::MatrixHomogeneous> pair_t;
-
-  for (unsigned i = 0; i < plannedPositions_.size (); ++i)
+  for (int i = plannedPositions_.size () - 1; i >= 0; --i)
     {
-      const pair_t& e = plannedPositions_[plannedPositions_.size () - 1 - i];
+      const pair_t& e = plannedPositions_[i];
       if (boost::get<0> (e) < time)
-	return plannedPositions_.size () - 1 - i;
+	return i;
     }
   return 0;
 }
@@ -238,21 +226,21 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
 }
 
 sot::MatrixHomogeneous&
-ErrorEstimator::updateDbgPositionWorldFrame (sot::MatrixHomogeneous& res, int t)
+ErrorEstimator::updateDbgPositionWorldFrame (sot::MatrixHomogeneous& res, int)
 {
   res = dbgPositionWorldFrameValue_;
   return res;
 }
 
 sot::MatrixHomogeneous&
-ErrorEstimator::updateDbgPlanned (sot::MatrixHomogeneous& res, int t)
+ErrorEstimator::updateDbgPlanned (sot::MatrixHomogeneous& res, int)
 {
   res = dbgPlannedValue_;
   return res;
 }
 
 ml::Vector&
-ErrorEstimator::updateDbgIndex (ml::Vector& res, int t)
+ErrorEstimator::updateDbgIndex (ml::Vector& res, int)
 {
   res = dbgIndexValue_;
   return res;

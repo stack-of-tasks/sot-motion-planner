@@ -42,6 +42,7 @@ def play(plan, maxIter = 4000, afterStart = None):
     # Main.
     #  Main loop
     #logCfg = open("/tmp/cfg.dat", "w")
+#    f = open("/tmp/waist.dat", "w")
 
     for i in xrange(maxIter):
         robot.device.increment(timeStep)
@@ -50,9 +51,18 @@ def play(plan, maxIter = 4000, afterStart = None):
         if clt:
             clt.updateElementConfig(
                 'hrp', robot.smallToFull(robot.device.state.value))
-
-        if plan.feetFollower:
-            plan.feetFollower.trace.dump()
+#        print 'A'
+#        print plan.control[0][2].position.value
+#        print 'A2'
+#        print robot.device.state.value[0:2]
+#        print 'B'
+#        print plan.feetFollower.errorEstimationStrategy.errorEstimator.error.value
+#        for i in range(4):
+#            for j in range(4):
+#                f.write(str(robot.dynamic.waist.value[i][j]) + ' ')
+#        f.write('\n')
+    if plan.feetFollower:
+        plan.feetFollower.trace.dump()
 
 motionPlan.displayMotion()
 play(motionPlan)

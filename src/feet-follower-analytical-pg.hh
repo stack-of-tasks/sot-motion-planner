@@ -18,6 +18,7 @@
 # define SOT_MOTION_PLANNER_FEET_FOLLOWER_ANALYTICAL_PG_HH
 # include <string>
 
+# include <boost/filesystem/path.hpp>
 # include <boost/optional.hpp>
 
 # include <dynamic-graph/command.h>
@@ -93,6 +94,12 @@ public:
     return trajectories_->leftFoot.trajectorySize ();
   }
 
+  void
+  setWaistFile (const std::string& waistFile)
+  {
+    waistFile_ = boost::filesystem::path (waistFile);
+  }
+
 private:
   virtual void impl_update ();
 
@@ -101,6 +108,7 @@ private:
 
   boost::optional<WalkMovement> trajectories_;
   unsigned index_;
+  boost::filesystem::path waistFile_;
 };
 
 #endif //! SOT_MOTION_PLANNER_FEET_FOLLOWER_ANALYTICAL_PG_HH

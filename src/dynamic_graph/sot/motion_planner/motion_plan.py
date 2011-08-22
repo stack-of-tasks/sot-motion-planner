@@ -35,6 +35,11 @@ from dynamic_graph.sot.motion_planner.error_estimation_strategy \
 
 from dynamic_graph.corba_server import CorbaServer
 
+def addTrace(robot, trace, entityName, signalName):
+    trace.add(entityName + '.' + signalName,
+              entityName + '-' + signalName)
+    robot.device.after.addSignal(entityName + '.' + signalName)
+
 # Random mathematics tools.
 def matrixToTuple(M):
     tmp = M.tolist()
@@ -90,11 +95,10 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
         estimator = ErrorEstimator(name)
         estimator.setReferenceTrajectory(
             self.feetFollowerWithCorrection.referenceTrajectory.name)
-        plug(self.robot.dynamic.waist, estimator.planned)
 
-        #WRONG WRONG WRONG
-        plug(self.feetFollowerWithCorrection.referenceTrajectory.signal
-             ('left-ankle'), estimator.planned)
+        # FIXME: not generic enough.
+        plug(self.feetFollowerWithCorrection.referenceTrajectory.waist,
+             estimator.planned)
 
         estimator.setSensorToWorldTransformation(I)
 
@@ -178,6 +182,20 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
             self.errorEstimator.signal("weight_" + name).value = \
                 (control[1]['weight'],)
             self.errorEstimators.append(estimator)
+
+            if self.motionPlan.trace:
+                addTrace(self.motionPlan.robot, 
+                         self.motionPlan.trace,
+                         name, 'error')
+                addTrace(self.motionPlan.robot, 
+                         self.motionPlan.trace,
+                         name, 'dbgPositionWorldFrame')
+                addTrace(self.motionPlan.robot, 
+                         self.motionPlan.trace,
+                         name, 'dbgPlanned')
+                addTrace(self.motionPlan.robot, 
+                         self.motionPlan.trace,
+                         name, 'dbgIndex')
         return True
 
     def interactiveStart(self):
@@ -210,6 +228,8 @@ class MotionPlan(object):
     motion = []
     control = []
 
+    trace = None
+
     def __init__(self, filename, robot, solver):
         self.robot = robot
         self.solver = solver
@@ -233,10 +253,15 @@ class MotionPlan(object):
 
     def loadMotionWalk(self, motionWalk):
         steps = convertToNPFootstepsStack(motionWalk['footsteps'])
+        waistFile = None
+        if 'waist-trajectory' in motionWalk:
+            waistFile = motionWalk['waist-trajectory']
         feetFollower = FeetFollowerAnalyticalPgGraph(
-            self.robot, self.solver, steps)
+            self.robot, self.solver, steps,
+            waistFile=waistFile)
         self.motion.append([motionWalk, feetFollower])
         print("successfully loaded walk motion")
+        self.trace = feetFollower.trace
 
     def loadMotionTask(self, motionTask):
         if not 'interval' in motionTask or len(motionTask['interval']) != 2:
@@ -308,7 +333,9 @@ class MotionPlan(object):
 
     def loadControlVirtualSensor(self, virtualSensorData):
         virtualSensor = VirtualSensor('virtualSensor')
-        plug(self.robot.device.state, virtualSensor.robotState)
+
+        #FIXME: should be more generic.
+        plug(self.motion[0][1].feetFollower.waist, virtualSensor.planned)
 
         reference = virtualSensorData['obstacle-position']['planned']
         position = virtualSensorData['obstacle-position']['estimated']
@@ -325,6 +352,9 @@ class MotionPlan(object):
                      (0., 0., 0., 1.),)
         self.control.append(['virtual-sensor',
                              virtualSensorData, virtualSensor])
+
+        if self.trace:
+            addTrace(self.robot, self.trace, 'virtualSensor', 'position')
 
 
     def loadControl(self):
