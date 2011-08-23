@@ -22,6 +22,7 @@
 #include <boost/bind.hpp>
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/numeric/conversion/converter.hpp>
 
 #include <jrl/mal/boost.hh>
 #include <dynamic-graph/entity.h>
@@ -60,6 +61,28 @@ namespace command
     return Value ();
   }
 
+  SetFootsteps::SetFootsteps
+  (FeetFollowerWithCorrection& entity, const std::string& docstring)
+    : Command
+      (entity,
+       boost::assign::list_of (Value::DOUBLE) (Value::VECTOR),
+       docstring)
+  {}
+
+  Value SetFootsteps::doExecute ()
+  {
+    FeetFollowerWithCorrection& entity =
+      static_cast<FeetFollowerWithCorrection&> (owner ());
+
+    std::vector<Value> values = getParameterValues ();
+    double time = values[0].value ();
+    ml::Vector footsteps = values[1].value ();
+
+    entity.footstepsTime () = time;
+    entity.footsteps () = footsteps;
+    return Value ();
+  }
+
 } // end of namespace command.
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN(FeetFollowerWithCorrection,
@@ -78,7 +101,13 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
     corrections_ (),
     maxErrorX_ (0.1),
     maxErrorY_ (0.1),
-    maxErrorTheta_ (3.14 / 12.)
+    maxErrorTheta_ (3.14 / 12.),
+    footstepsTime_ (),
+    footsteps_ (),
+    dbgFootstepsOut_ (INIT_SIGNAL_OUT
+		      ("dbgFootsteps",
+		       FeetFollowerWithCorrection::updateDbgFootsteps,
+		       "Vector"))
 
 {
   leftAnkleOut_.addDependency (offsetIn_);
@@ -91,7 +120,9 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
   comOut_.addDependency (positionIn_);
   zmpOut_.addDependency (positionIn_);
 
-  signalRegistration (offsetIn_ << positionIn_);
+  dbgFootstepsOut_.setNeedUpdateFromAllChildren (true);
+
+  signalRegistration (offsetIn_ << positionIn_ << dbgFootstepsOut_);
 
   std::string docstring = "";
   addCommand ("setReferenceTrajectory",
@@ -100,10 +131,20 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
 
   addCommand ("setSafetyLimits",
 	      new command::SetSafetyLimits (*this, docstring));
+
+  addCommand ("setFootsteps",
+	      new command::SetFootsteps (*this, docstring));
 }
 
 FeetFollowerWithCorrection::~FeetFollowerWithCorrection ()
 {}
+
+ml::Vector&
+FeetFollowerWithCorrection::updateDbgFootsteps (ml::Vector& res, int)
+{
+  res = footsteps_;
+  return res;
+}
 
 void
 FeetFollowerWithCorrection::impl_update ()
@@ -455,10 +496,43 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     return;
   corrections_.push_back (correction);
 
+  updateFootsteps (time, XYThetaToMatrixHomogeneous (errorW));
+
   std::cout
     << "Adding new correction, offset = " << error
     << ", t = " << t_
     << ", " << (leftFirst ? 'l' : 'r') << std::endl;
+}
+
+void
+FeetFollowerWithCorrection::updateFootsteps
+(const double& time, const sot::MatrixHomogeneous& error)
+{
+  ml::Vector xytheta (3);
+
+  typedef boost::numeric::converter<unsigned, double> Double2Unsigned;
+
+  unsigned modifiedStep =
+    Double2Unsigned::convert
+    (std::floor(time / footstepsTime_));
+  if (modifiedStep > 0)
+    modifiedStep += 1;
+
+  for (unsigned i = 0; i < footsteps_.size (); i += 3)
+    {
+      if (i / 3 == modifiedStep)
+	{
+	  for (unsigned j = 0; j < 3; ++j)
+	    xytheta (j) = footsteps_ (i + j);
+	  sot::MatrixHomogeneous step = XYThetaToMatrixHomogeneous (xytheta);
+
+	  step = error * step;
+	  xytheta = MatrixHomogeneousToXYTheta (step);
+
+	  for (unsigned j = 0; j < 3; ++j)
+	    footsteps_ (i + j) = xytheta (j);
+	}
+    }
 }
 
 void

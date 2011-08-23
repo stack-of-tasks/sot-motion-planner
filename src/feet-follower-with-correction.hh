@@ -66,6 +66,8 @@ class FeetFollowerWithCorrection : public FeetFollower
 public:
   /// \brief Vector input signal.
   typedef dg::SignalPtr<ml::Vector, int> signalVectorIn_t;
+  /// \brief Vector output signal.
+  typedef dg::SignalTimeDependent<ml::Vector, int> signalVectorOut_t;
 
   typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalMatrixHomoIn_t;
 
@@ -107,9 +109,31 @@ public:
     return referenceTrajectory_->trajectorySize ();
   }
 
+  ml::Vector& footsteps ()
+  {
+    return footsteps_;
+  }
+  const ml::Vector& footsteps () const
+  {
+    return footsteps_;
+  }
+
+  double& footstepsTime ()
+  {
+    return footstepsTime_;
+  }
+  const double& footstepsTime () const
+  {
+    return footstepsTime_;
+  }
+
 protected:
   virtual void impl_update ();
   void updateCorrection ();
+
+  ml::Vector& updateDbgFootsteps (ml::Vector& res, int);
+  void updateFootsteps (const double& time,
+			const sot::MatrixHomogeneous& error);
 
   void computeNewCorrection ();
 
@@ -129,6 +153,10 @@ private:
   double maxErrorX_;
   double maxErrorY_;
   double maxErrorTheta_;
+
+  double footstepsTime_;
+  ml::Vector footsteps_;
+  signalVectorOut_t dbgFootstepsOut_;
 };
 
 namespace command
@@ -141,6 +169,14 @@ namespace command
   public:
     SetSafetyLimits (FeetFollowerWithCorrection& entity,
 		     const std::string& docstring);
+    virtual Value doExecute ();
+  };
+
+  class SetFootsteps : public Command
+  {
+  public:
+    SetFootsteps (FeetFollowerWithCorrection& entity,
+		  const std::string& docstring);
     virtual Value doExecute ();
   };
 } // end of namespace command.

@@ -73,6 +73,14 @@ def convertToNPFootstepsStack(footsteps):
                     step['x'], step['y'], step['theta']))
     return tuple(res)
 
+def makeFootsteps(footsteps):
+    res = []
+    for step in footsteps:
+        res.append(step['x'])
+        res.append(step['y'])
+        res.append(step['theta'])
+    return tuple(res)
+
 class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
     localizationPlannedBody = 'waist'
     errorEstimators = []
@@ -236,6 +244,7 @@ class MotionPlan(object):
     duration = 0
     motion = []
     control = []
+    footsteps = []
 
     trace = None
 
@@ -247,7 +256,7 @@ class MotionPlan(object):
         self.robot = robot
         self.solver = solver
         self.plan = yaml.load(open(filename, "r"))
-        self.duration = self.plan['duration']
+        self.duration = float(self.plan['duration'])
 
         self.loadMotion()
         self.loadControl()
@@ -261,6 +270,9 @@ class MotionPlan(object):
                     maxX = self.maxX, maxY = self.maxY,
                     maxTheta = self.maxTheta)
                 self.feetFollower.errorEstimationStrategy.motionPlan = self
+                #FIXME: not enough generic
+                self.feetFollower.feetFollower.setFootsteps(
+                    2., makeFootsteps(self.footsteps))
             else:
                 self.feetFollower = self.motion[0][1]
         else:
@@ -268,6 +280,8 @@ class MotionPlan(object):
 
     def loadMotionWalk(self, motionWalk):
         steps = convertToNPFootstepsStack(motionWalk['footsteps'])
+        #FIXME: handle multiple walk movement.
+        self.footsteps = motionWalk['footsteps']
         waistFile = None
         if 'waist-trajectory' in motionWalk:
             waistFile = motionWalk['waist-trajectory']

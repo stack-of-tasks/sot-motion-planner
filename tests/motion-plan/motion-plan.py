@@ -20,7 +20,6 @@ import os
 os.system("rm /tmp/feet_follower_*.dat")
 
 from dynamic_graph.sot.dynamics.tools import *
-
 from dynamic_graph.sot.motion_planner import *
 
 logWaist = False
@@ -38,8 +37,89 @@ if not len(args):
 
 motionPlan = MotionPlan(args[0], robot, solver)
 
-def play(plan, maxIter = 4000, afterStart = None):
-    global motionPlan, logWaist
+def createObject(clt, name, obj):
+    if not clt:
+        return
+    elements = clt.listElement()
+    if name in elements:
+        clt.destroyElement(name)
+    clt.createElement('object', name,
+                      os.environ['HOME'] + '/.robotviewer/' + obj + '.py')
+    clt.enableElement(name)
+
+def drawFootsteps(clt, plan, robot, startLeft, startRight, create=True):
+    if not plan.feetFollower:
+        return
+
+    footstepsSignal = plan.feetFollower.feetFollower.dbgFootsteps
+    footstepsSignal.recompute(footstepsSignal.time + 1)
+
+    footsteps = [{'x': 0., 'y': 0., 'theta': 0.},
+                 {'x': 0., 'y': +0.19, 'theta': 0.}]
+    i = 0
+    stepX = 0
+    stepY = 0
+    stepTheta = 0
+    for step in footstepsSignal.value:
+        if i == 0:
+            stepX = step
+        elif i == 1:
+            stepY = step
+        elif i == 2:
+            stepTheta = step
+        else:
+            raise RuntimeError
+
+        if i == 2:
+            i = 0
+            footsteps.append({'x': stepX,
+                              'y': stepY,
+                              'theta': stepTheta})
+        else:
+            i = i + 1
+
+    i = 0
+    x = startRight[0]
+    y = startRight[1]
+
+    for step in footsteps:
+        x += step['x']
+        y += step['y']
+        name = 'step_' + str(i)
+        if create:
+            model = 'left-footstep'
+            if i % 2 == 1:
+                model = 'right-footstep'
+            createObject(clt, name, model)
+        clt.updateElementConfig(
+            name, [x, y, 0, 0, 0, 0])
+        i = i + 1
+
+def drawObstacles(clt, plan, robot):
+    i = 0
+    for control in plan.control:
+        if control[0] == 'virtual-sensor':
+            namePlanned = 'obstaclePlanned' + str(i)
+            nameReal = 'obstacleReal' + str(i)
+            createObject(clt, namePlanned, 'disk')
+            createObject(clt, nameReal, 'disk2')
+
+            posPlanned = control[2].expectedObstaclePosition.value
+            posReal = control[2].obstaclePosition.value
+
+            clt.updateElementConfig(namePlanned,
+            [posPlanned[0][3], posPlanned[1][3], posPlanned[2][3], 0, 0, 0])
+            clt.updateElementConfig(nameReal,
+            [posReal[0][3], posReal[1][3], posReal[2][3], 0, 0, 0])
+
+            i = i + 1
+
+
+def play(plan, afterStart = None):
+    global logWaist
+
+    maxIter = int(plan.duration / 0.005)
+    print maxIter
 
     while not plan.canStart():
         robot.device.increment(timeStep)
@@ -50,16 +130,29 @@ def play(plan, maxIter = 4000, afterStart = None):
     print("started")
 
     t = 0
+    startLeft = (robot.dynamic.signal('left-ankle').value[0][3],
+                 robot.dynamic.signal('left-ankle').value[1][3])
+    startRight = (robot.dynamic.signal('right-ankle').value[0][3],
+                  robot.dynamic.signal('right-ankle').value[1][3])
+
     # Main.
     #  Main loop
     #logCfg = open("/tmp/cfg.dat", "w")
     f = open("/tmp/waist.dat", "w")
+
+    if clt:
+        elements = clt.listElement()
+        if not 'hrp' in elements:
+            raise RuntimeError
+        drawFootsteps(clt, plan, robot, startLeft, startRight)
+        drawObstacles(clt, plan, robot)
 
     for i in xrange(maxIter):
         robot.device.increment(timeStep)
 
         #log(logCfg)
         if clt:
+            drawFootsteps(clt, plan, robot, startLeft, startRight, False)
             clt.updateElementConfig(
                 'hrp', robot.smallToFull(robot.device.state.value))
 
