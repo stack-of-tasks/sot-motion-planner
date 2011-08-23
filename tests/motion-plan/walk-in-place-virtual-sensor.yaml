@@ -2,6 +2,8 @@
 # motion capture system.
 
 duration: 1
+maximum-correction-per-step: {x: 0.04, y: 0.04, theta: 0.1}
+#maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
 
 motion:
   - walk:
@@ -21,13 +23,13 @@ motion:
 
 control:
   - virtual-sensor:
-      weight: 1.
+      weight: .5
       obstacle-position:
         planned:   {x: 0.60, y: 0., z: 0.}
         estimated: {x: 0.55, y: 0., z: 0.}
 
   - virtual-sensor:
-      weight: 1.
+      weight: 0.5
       obstacle-position:
         planned:   {x: 0.55, y: 0., z: 0.}
         estimated: {x: 0.60, y: 0., z: 0.}

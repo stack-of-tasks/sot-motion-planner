@@ -81,8 +81,7 @@ VirtualSensor::updatePosition (ml::Vector& res, int t)
   sot::MatrixHomogeneous estimatedPosition =
     robotPosition
     * obstaclePosition.inverse ()
-    * expectedObstaclePosition
-    * expectedRobotPosition.inverse ();
+    * expectedObstaclePosition;
 
   res = MatrixHomogeneousToXYTheta (estimatedPosition);
   return res;

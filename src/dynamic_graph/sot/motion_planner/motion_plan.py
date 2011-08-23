@@ -77,6 +77,10 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
     localizationPlannedBody = 'waist'
     errorEstimators = []
 
+    # reference toward the motion plan, added after this object
+    # construction and before starting the error estimation.
+    motionPlan = None
+
     def __init__(self, feetFollowerWithCorrection, robot, corba = None):
         ErrorEstimationStrategy.__init__(self,
                                          robot, feetFollowerWithCorrection)
@@ -235,6 +239,10 @@ class MotionPlan(object):
 
     trace = None
 
+    maxX = FeetFollowerGraphWithCorrection.maxX
+    maxY = FeetFollowerGraphWithCorrection.maxY
+    maxTheta = FeetFollowerGraphWithCorrection.maxTheta
+
     def __init__(self, filename, robot, solver):
         self.robot = robot
         self.solver = solver
@@ -249,7 +257,9 @@ class MotionPlan(object):
             if len(self.control):
                 self.feetFollower = FeetFollowerGraphWithCorrection(
                     robot, solver, self.motion[0][1],
-                    MotionPlanErrorEstimationStrategy)
+                    MotionPlanErrorEstimationStrategy,
+                    maxX = self.maxX, maxY = self.maxY,
+                    maxTheta = self.maxTheta)
                 self.feetFollower.errorEstimationStrategy.motionPlan = self
             else:
                 self.feetFollower = self.motion[0][1]
@@ -315,6 +325,11 @@ class MotionPlan(object):
     def loadMotion(self):
         if not 'motion' in self.plan or not self.plan['motion']:
             return
+
+        if 'maximum-correction-per-step' in self.plan:
+            self.maxX = self.plan['maximum-correction-per-step']['x']
+            self.maxY = self.plan['maximum-correction-per-step']['y']
+            self.maxTheta = self.plan['maximum-correction-per-step']['theta']
 
         for motion in self.plan['motion']:
             if 'walk' in motion:
