@@ -47,7 +47,8 @@ def createObject(clt, name, obj):
                       os.environ['HOME'] + '/.robotviewer/' + obj + '.py')
     clt.enableElement(name)
 
-def drawFootsteps(clt, plan, robot, startLeft, startRight, create=True):
+def drawFootsteps(clt, plan, robot, startLeft, startRight,
+                  create=True, filename=None):
     if not plan.feetFollower:
         return
 
@@ -78,6 +79,14 @@ def drawFootsteps(clt, plan, robot, startLeft, startRight, create=True):
         else:
             i = i + 1
 
+    if filename:
+        f = open('/tmp/' + str(filename), 'w')
+        for step in footsteps:
+            f.write(str(step['x'])
+                    + ' ' + str(step['y'])
+                    + ' ' + str(step['theta'])
+                    + '\n')
+
     i = 0
     x = startRight[0]
     y = startRight[1]
@@ -94,6 +103,35 @@ def drawFootsteps(clt, plan, robot, startLeft, startRight, create=True):
         clt.updateElementConfig(
             name, [x, y, 0, 0, 0, 0])
         i = i + 1
+
+def drawFootstepsFromFile(clt, filename,  startRight, suffix='',
+                          create = True):
+    f = open('/tmp/' + str(filename))
+
+    footsteps = []
+    for line in f:
+        values = line.split()
+        footsteps.append({'x': float(values[0]),
+                          'y': float(values[1]),
+                          'theta': float(values[2])})
+
+    i = 0
+    x = startRight[0]
+    y = startRight[1]
+
+    for step in footsteps:
+        x += step['x']
+        y += step['y']
+        name = 'step_' + str(i) + str(suffix)
+        if create:
+            model = 'left-footstep'
+            if i % 2 == 1:
+                model = 'right-footstep'
+            createObject(clt, name, model)
+        clt.updateElementConfig(
+            name, [x, y, 0, 0, 0, 0])
+        i = i + 1
+
 
 def drawObstacles(clt, plan, robot):
     i = 0
@@ -144,8 +182,11 @@ def play(plan, afterStart = None):
         elements = clt.listElement()
         if not 'hrp' in elements:
             raise RuntimeError
-        drawFootsteps(clt, plan, robot, startLeft, startRight)
+        drawFootsteps(clt, plan, robot, startLeft, startRight,
+                      filename='footsteps-orig.dat')
         drawObstacles(clt, plan, robot)
+
+        #drawFootstepsFromFile(clt, 'toto.dat', startRight, 'final')
 
     for i in xrange(maxIter):
         robot.device.increment(timeStep)
@@ -162,6 +203,9 @@ def play(plan, afterStart = None):
 
     if plan.feetFollower:
         plan.feetFollower.trace.dump()
+    if clt:
+        drawFootsteps(clt, plan, robot, startLeft, startRight, False,
+                      filename='footsteps-final.dat')
 
 motionPlan.displayMotion()
 play(motionPlan)

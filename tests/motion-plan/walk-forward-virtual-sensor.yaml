@@ -1,0 +1,47 @@
+# The robot walks forward while avoiding collision with an obstacle on
+# the floor.
+
+duration: 30
+maximum-correction-per-step: {x: 0.04, y: 0.07, theta: 0.1}
+#maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
+
+motion:
+  - walk:
+      interval: [0, 1]
+      footsteps:
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y:  0.19, theta: 0.}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y:  0.19, theta: 0.}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y:  0.19, theta: 0.}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y:  0.19, theta: 0.}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y:  0.19, theta: 0.}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y:  0.19, theta: 0.}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y:  0.19, theta: 0.}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y:  0.19, theta: 0.}
+      waist-trajectory: walk-forward-virtual-sensor-waist.dat
+
+control:
+  - virtual-sensor:
+      weight: 1.
+      obstacle-position:
+        planned:   {x: 0.35, y: -0.5, z: 0.}
+        estimated: {x: 0.45, y: -0.2, z: 0.}
+
+  - virtual-sensor:
+      weight: 1.
+      obstacle-position:
+        planned:   {x: 1.4, y: -0.4, z: 0.}
+        estimated: {x: 1.5, y: -0.1, z: 0.}
+
+  - virtual-sensor:
+      weight: 1.
+      obstacle-position:
+        planned:   {x: 1., y: 0.4, z: 0.}
+        estimated: {x: 1., y: 0.7, z: 0.}
