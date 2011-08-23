@@ -15,6 +15,10 @@
 # received a copy of the GNU Lesser General Public License along with
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+import os
+
+os.system("rm /tmp/feet_follower_*.dat")
+
 from dynamic_graph.sot.dynamics.tools import *
 
 from dynamic_graph.sot.motion_planner import *

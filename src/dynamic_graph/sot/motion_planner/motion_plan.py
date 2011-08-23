@@ -184,18 +184,23 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
             self.errorEstimators.append(estimator)
 
             if self.motionPlan.trace:
-                addTrace(self.motionPlan.robot, 
+                addTrace(self.motionPlan.robot,
                          self.motionPlan.trace,
                          name, 'error')
-                addTrace(self.motionPlan.robot, 
+                addTrace(self.motionPlan.robot,
                          self.motionPlan.trace,
                          name, 'dbgPositionWorldFrame')
-                addTrace(self.motionPlan.robot, 
+                addTrace(self.motionPlan.robot,
                          self.motionPlan.trace,
                          name, 'dbgPlanned')
-                addTrace(self.motionPlan.robot, 
+                addTrace(self.motionPlan.robot,
                          self.motionPlan.trace,
                          name, 'dbgIndex')
+
+        if self.motionPlan.trace:
+            addTrace(self.motionPlan.robot,
+                     self.motionPlan.trace,
+                     self.errorEstimator.name, 'error')
         return True
 
     def interactiveStart(self):
@@ -332,7 +337,8 @@ class MotionPlan(object):
         raise NotImplementedError
 
     def loadControlVirtualSensor(self, virtualSensorData):
-        virtualSensor = VirtualSensor('virtualSensor')
+        virtualSensor = VirtualSensor(
+            'virtualSensor' + str(id(virtualSensorData)))
 
         #FIXME: should be more generic.
         plug(self.motion[0][1].feetFollower.waist,
@@ -357,7 +363,7 @@ class MotionPlan(object):
                              virtualSensorData, virtualSensor])
 
         if self.trace:
-            addTrace(self.robot, self.trace, 'virtualSensor', 'position')
+            addTrace(self.robot, self.trace, virtualSensor.name, 'position')
 
 
     def loadControl(self):
