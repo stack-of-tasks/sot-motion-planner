@@ -1,0 +1,218 @@
+# The robot walks following a square pattern
+# and ends back to its initial position.
+
+duration: 60
+maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
+
+motion:
+  - walk:
+      interval: [0, 1]
+      footsteps:
+      - &r {x: 0.15, y: -0.19, theta: 0.}
+      - &l {x: 0.15, y:  0.19, theta: 0.}
+      - *r
+      - *l
+      - *r
+      - *l # 0.9
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 1.8
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 2.7
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 3.6
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 4.5
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 5.4
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 6.3
+
+      - &rr {x: 0., y:  -0.19, theta: 0.392699082}
+      - &lr {x: 0., y:  0.19, theta: 0.392699082}
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 0.9
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 1.8
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 2.7
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 3.6
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 4.5
+
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 0.9
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 1.8
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 2.7
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 3.6
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 4.5
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 5.4
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 6.3
+
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 0.9
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 1.8
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 2.7
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 3.6
+      - *r
+      - *l
+      - *r
+      - *l
+      - *r
+      - *l # 4.5
+
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+      - *rr
+      - *lr
+
+
+
+
+control:
+  - mocap:
+      weight: 1.
+      tracked-body: left-ankle
+      perceived-body: left-foot

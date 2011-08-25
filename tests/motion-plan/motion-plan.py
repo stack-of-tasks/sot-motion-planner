@@ -16,6 +16,8 @@
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import numpy as np
+from math import cos, sin, atan2
 
 os.system("rm /tmp/feet_follower_*.dat")
 
@@ -37,15 +39,18 @@ if not len(args):
 
 motionPlan = MotionPlan(args[0], robot, solver)
 
+elements = []
+if clt:
+    elements = clt.listElements()
+
 def createObject(clt, name, obj):
+    global elements
     if not clt:
         return
-    elements = clt.listElement()
-    if name in elements:
-        clt.destroyElement(name)
-    clt.createElement('object', name,
-                      os.environ['HOME'] + '/.robotviewer/' + obj + '.py')
-    clt.enableElement(name)
+    if not name in elements:
+        clt.createElement('object', name,
+                          os.environ['HOME'] + '/.robotviewer/' + obj + '.py')
+        clt.enableElement(name)
 
 def drawFootsteps(clt, plan, robot, startLeft, startRight,
                   create=True, filename=None):
@@ -88,12 +93,15 @@ def drawFootsteps(clt, plan, robot, startLeft, startRight,
                     + '\n')
 
     i = 0
-    x = startRight[0]
-    y = startRight[1]
+    pos = startRight
 
     for step in footsteps:
-        x += step['x']
-        y += step['y']
+        pos = pos * np.matrix([
+                [cos (step['theta']), -sin(step['theta']), 0., step['x']],
+                [sin (step['theta']),  cos(step['theta']), 0., step['y']],
+                [               0.,                        0., 1.,      0.],
+                [               0.,                        0., 0.,      1.]],
+                              dtype = np.float)
         name = 'step_' + str(i)
         if create:
             model = 'left-footstep'
@@ -101,7 +109,7 @@ def drawFootsteps(clt, plan, robot, startLeft, startRight,
                 model = 'right-footstep'
             createObject(clt, name, model)
         clt.updateElementConfig(
-            name, [x, y, 0, 0, 0, 0])
+            name, [pos[0,3], pos[1,3], 0, 0, 0, atan2(pos[1,0], pos[0,0])])
         i = i + 1
 
 def drawFootstepsFromFile(clt, filename,  startRight, suffix='',
@@ -129,7 +137,7 @@ def drawFootstepsFromFile(clt, filename,  startRight, suffix='',
                 model = 'right-footstep'
             createObject(clt, name, model)
         clt.updateElementConfig(
-            name, [x, y, 0, 0, 0, 0])
+            name, [x, y, 0, 0, 0, step['theta']])
         i = i + 1
 
 
@@ -168,10 +176,8 @@ def play(plan, afterStart = None):
     print("started")
 
     t = 0
-    startLeft = (robot.dynamic.signal('left-ankle').value[0][3],
-                 robot.dynamic.signal('left-ankle').value[1][3])
-    startRight = (robot.dynamic.signal('right-ankle').value[0][3],
-                  robot.dynamic.signal('right-ankle').value[1][3])
+    startLeft = robot.dynamic.signal('left-ankle').value
+    startRight = robot.dynamic.signal('right-ankle').value
 
     # Main.
     #  Main loop
@@ -179,7 +185,6 @@ def play(plan, afterStart = None):
     f = open("/tmp/waist.dat", "w")
 
     if clt:
-        elements = clt.listElement()
         if not 'hrp' in elements:
             raise RuntimeError
         drawFootsteps(clt, plan, robot, startLeft, startRight,
