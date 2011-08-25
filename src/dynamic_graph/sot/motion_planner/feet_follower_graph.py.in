@@ -22,16 +22,7 @@ from dynamic_graph.sot.motion_planner import \
     WaistYaw
 from dynamic_graph.tracer_real_time import TracerRealTime
 
-def translationToSE3(t):
-    return ((1., 0., 0., t[0]),
-            (0., 1., 0., t[1]),
-            (0., 0., 1., t[2]),
-            (0., 0., 0., 1.  ))
-
-def oneVector(i):
-    r = [0.,] * 36
-    r[i] = 1.
-    return tuple(r)
+from dynamic_graph.sot.motion_planner.math import *
 
 class FeetFollowerGraph(object):
     """

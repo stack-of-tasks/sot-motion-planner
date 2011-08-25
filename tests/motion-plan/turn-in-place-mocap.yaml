@@ -1,7 +1,7 @@
 # The robot turns in place and corrects its trajectory using the
 # motion capture system.
 
-duration: 1
+duration: 10
 
 motion:
   - walk:

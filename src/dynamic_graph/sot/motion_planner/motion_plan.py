@@ -33,33 +33,14 @@ from dynamic_graph.sot.motion_planner import \
 from dynamic_graph.sot.motion_planner.error_estimation_strategy \
     import ErrorEstimationStrategy, MotionCaptureErrorEstimationStrategy
 
+from dynamic_graph.sot.motion_planner.math import *
+
 from dynamic_graph.corba_server import CorbaServer
 
 def addTrace(robot, trace, entityName, signalName):
     trace.add(entityName + '.' + signalName,
               entityName + '-' + signalName)
     robot.device.after.addSignal(entityName + '.' + signalName)
-
-# Random mathematics tools.
-def matrixToTuple(M):
-    tmp = M.tolist()
-    res = []
-    for i in tmp:
-        res.append(tuple(i))
-    return tuple(res)
-
-def XYThetaToHomogeneousMatrix(x):
-    theta = x[2]
-    return np.matrix(
-        (( cos (theta),-sin (theta), 0., x[0]),
-         ( sin (theta), cos (theta), 0., x[1]),
-         (          0.,          0., 1., 0.),
-         (          0.,          0., 0., 1.))
-        )
-def HomogeneousMatrixToXYZTheta(x):
-    x = np.mat(x)
-    return (x[0,3], x[1,3], x[2,3], atan2(x[1,0], x[0,0]))
-
 
 def convertToNPFootstepsStack(footsteps):
     slide2 = -0.760000

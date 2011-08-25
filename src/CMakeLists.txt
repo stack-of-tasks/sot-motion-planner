@@ -95,6 +95,8 @@ SET(FILES
   error_estimation_strategy.py
   feet_follower_graph_with_correction.py
   motion_plan.py
+  math.py
+  robot_viewer.py
   )
 
 FOREACH(FILE ${FILES})
