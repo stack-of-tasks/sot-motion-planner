@@ -1,0 +1,137 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright 2011, Florent Lamiraux, Thomas Moulard, JRL, CNRS/AIST
+#
+# This file is part of dynamic-graph.
+# dynamic-graph is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public License
+# as published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+#
+# dynamic-graph is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Lesser Public License for more details.  You should have
+# received a copy of the GNU Lesser General Public License along with
+# dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
+
+import numpy as np
+from ..math import acos, atan2, cos, sin, pi, sqrt
+
+# Random mathematics tools.
+def matrixToTuple(M):
+    tmp = M.tolist()
+    res = []
+    for i in tmp:
+        res.append(tuple(i))
+    return tuple(res)
+
+def XYThetaToHomogeneousMatrix(x):
+    theta = x[2]
+    return np.matrix(
+        (( cos (theta),-sin (theta), 0., x[0]),
+         ( sin (theta), cos (theta), 0., x[1]),
+         (          0.,          0., 1., 0.),
+         (          0.,          0., 0., 1.))
+        )
+def HomogeneousMatrixToXYZTheta(x):
+    x = np.mat(x)
+    return (x[0,3], x[1,3], x[2,3], atan2(x[1,0], x[0,0]))
+
+# Vector3
+def makeVector3(x = 0., y = 0., z = 0.):
+    return np.array([x, y, z], dtype=np.dtype(np.float))
+
+# Rotation matrices
+def makeRotationMatrix():
+    return np.asmatrix(np.identity(3, dtype=np.dtype(np.float)))
+
+def hat(a):
+    return np.matrix(
+        [[ 0,    -a[2],  a[1]],
+         [ a[2],  0,    -a[0]],
+         [-a[1],  a[0],  0   ]],
+        dtype = np.dtype(np.float)
+        )
+
+# Homogeneous matrices
+def makeHomogeneousMatrix(R = None, t = None):
+    res = np.asmatrix(np.identity(4, dtype=np.dtype(np.float)))
+    if not R is None:
+        res[0:3,0:3] = R
+    if not t is None:
+        res[0:3,3:] = map(lambda x: [x], t)
+    return res
+
+def getR(H):
+    return H[0:3,0:3]
+def getT(H):
+    return np.array([H[0,3], H[1,3], H[2,3]], dtype=np.float)
+
+def inverseHomogeneousMatrix(H):
+    return np.linalg.inv(H)
+
+# rotation vector representation
+def makeRotationVector(x = 0., y = 0., z = 0.):
+    return makeVector3(x, y, z)
+
+def rotationVectorToRotationMAtrix(rotationVector):
+    norm = np.linalg.norm(rotationVector)
+    norm_square = norm * norm
+    sin_norm = sin(norm)
+    one_minus_cos_norm = 1 - cos(norm)
+    hat_ = hat(rotationVector)
+    hat_square = hat_ * hat_
+
+    m = makeRotationMatrix() # returns identity.
+    m += hat_ / norm * sin_norm
+    m += hat_square / norm_square * one_minus_cos_norm
+    return m
+
+def rotationMatrixToRotationVector(rotationMatrix):
+    theta = acos (.5 * (rotationMatrix.trace()[0,0] - 1))
+    v = makeRotationVector()
+    v[0] = rotationMatrix[2,1] - rotationMatrix[1,2]
+    v[1] = rotationMatrix[0,2] - rotationMatrix[2,0]
+    v[2] = rotationMatrix[1,0] - rotationMatrix[0,1]
+    v *= theta / (2. * sin(theta))
+    return v
+
+# roll, pitch, yaw
+def yaw(rotationMatrix):
+    return atan2(rotationMatrix[1,0], rotationMatrix[0,0])
+
+def pitch(rotationMatrix):
+    return atan2(-rotationMatrix[2,0],
+                  sqrt(rotationMatrix[2,1]**2 + rotationMatrix[2,2]**2))
+
+def roll(rotationMatrix):
+    return atan2(rotationMatrix[2,1], rotationMatrix[2,2])
+
+def tx(m):
+    return m[0,3]
+def ty(m):
+    return m[1,3]
+def tz(m):
+    return m[2,3]
+
+def pose(m):
+    return [tx(m), ty(m), tz(m), roll(m), pitch(m), yaw(m)]
+
+def matrixToTuple(M):
+    tmp = M.tolist()
+    res = []
+    for i in tmp:
+        res.append(tuple(i))
+    return tuple(res)
+
+def translationToSE3(t):
+    return ((1., 0., 0., t[0]),
+            (0., 1., 0., t[1]),
+            (0., 0., 1., t[2]),
+            (0., 0., 0., 1.  ))
+
+def oneVector(i):
+    r = [0.,] * 36
+    r[i] = 1.
+    return tuple(r)
