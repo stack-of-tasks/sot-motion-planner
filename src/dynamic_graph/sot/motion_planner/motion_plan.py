@@ -226,6 +226,7 @@ class MotionPlan(object):
     motion = []
     control = []
     footsteps = []
+    environment = {}
 
     trace = None
 
@@ -239,6 +240,7 @@ class MotionPlan(object):
         self.plan = yaml.load(open(filename, "r"))
         self.duration = float(self.plan['duration'])
 
+        self.loadEnvironment()
         self.loadMotion()
         self.loadControl()
 
@@ -258,6 +260,16 @@ class MotionPlan(object):
                 self.feetFollower = self.motion[0][1]
         else:
             self.feetFollower = None
+
+    def loadEnvironment(self):
+        if not 'environment' in self.plan:
+            return
+
+        for obj in self.plan['environment']:
+            self.environment[obj['object']['name']] = {
+                'planned': obj['object']['planned'],
+                'estimated': obj['object']['estimated'],
+                }
 
     def loadMotionWalk(self, motionWalk):
         steps = convertToNPFootstepsStack(motionWalk['footsteps'])
@@ -302,6 +314,17 @@ class MotionPlan(object):
                      (0., 1., 0., reference['y']),
                      (0., 0., 1., reference['z']),
                      (0., 0., 0., 1.),)
+
+            selec = ''
+            if 'translation' in motionTask and motionTask['translation']:
+                selec += '111'
+            else:
+                selec += '000'
+            if 'rotation' in motionTask and motionTask['rotation']:
+                selec += '111'
+            else:
+                selec += '000'
+            self.robot.features[body].selec.value = selec
             self.solver.sot.push(self.robot.tasks[body].name)
         elif type_ == 'feature-com':
             self.robot.comTask.controlGain.value = gain
@@ -356,8 +379,9 @@ class MotionPlan(object):
         plug(self.robot.dynamic.waist,
              virtualSensor.robotPosition)
 
-        reference = virtualSensorData['obstacle-position']['planned']
-        position = virtualSensorData['obstacle-position']['estimated']
+        reference = self.environment[
+            virtualSensorData['object-name']]['planned']['position']
+        position = virtualSensorData['position']
 
         virtualSensor.expectedObstaclePosition.value = \
                     ((1., 0., 0., reference['x']),

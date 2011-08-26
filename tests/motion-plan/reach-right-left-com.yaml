@@ -1,7 +1,7 @@
 # The robot walks in place and corrects its trajectory using the
 # motion capture system.
 
-duration: 1
+duration: 10
 
 motion:
 # Make sure the feet do not move.
@@ -11,12 +11,16 @@ motion:
       operational-point: left-ankle
       gain: 1.
       reference: static
+      translation: on
+      rotation: on
   - task:
       interval: [0, 1]
       type: feature-point-6d
       operational-point: right-ankle
       gain: 1.
       reference: static
+      translation: on
+      rotation: on
 
 # Com.
   - task:
@@ -31,6 +35,9 @@ motion:
       operational-point: right-wrist
       gain: 0.25
       reference: {x: 0.5, y: -0.3, z: 0.8}
+      translation: on
+      rotation: off
+
 # Reaching task.
   - task:
       interval: [0, 1]
@@ -38,3 +45,5 @@ motion:
       operational-point: left-wrist
       gain: 0.25
       reference: {x: 0.5, y: 0.3, z: 0.8}
+      translation: on
+      rotation: off

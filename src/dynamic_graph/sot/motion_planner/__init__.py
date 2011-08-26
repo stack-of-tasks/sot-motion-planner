@@ -23,3 +23,4 @@ from feet_follower import \
     WaistYaw, VirtualSensor
 
 from motion_plan import MotionPlan
+from motion_plan_viewer import MotionPlanViewer

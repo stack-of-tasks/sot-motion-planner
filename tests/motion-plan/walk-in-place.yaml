@@ -1,6 +1,6 @@
 # The robot walks in place.
 
-duration: 1
+duration: 10
 
 motion:
   - walk:

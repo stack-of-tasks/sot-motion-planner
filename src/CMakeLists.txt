@@ -95,6 +95,7 @@ SET(FILES
   error_estimation_strategy.py
   feet_follower_graph_with_correction.py
   motion_plan.py
+  motion_plan_viewer.py
   math.py
   robot_viewer.py
   )

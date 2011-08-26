@@ -1,9 +1,18 @@
 # The robot walks in place and corrects its trajectory using the
 # motion capture system.
 
-duration: 1
+duration: 10
 maximum-correction-per-step: {x: 0.04, y: 0.04, theta: 0.1}
 #maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
+
+environment:
+  - object:
+      name: table
+      planned:
+        model: disk.py
+        position: {x: 0.60, y: 0., z: 0.}
+      estimated:
+        model: disk2.py
 
 motion:
   - walk:
@@ -24,6 +33,5 @@ motion:
 control:
   - virtual-sensor:
       weight: 0.5
-      obstacle-position:
-        planned:   {x: 0.60, y: 0., z: 0.}
-        estimated: {x: 0.55, y: 0., z: 0.}
+      object-name: table
+      position: {x: 0.55, y: 0., z: 0.}
