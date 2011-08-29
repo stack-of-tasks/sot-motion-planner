@@ -43,24 +43,59 @@ def addTrace(robot, trace, entityName, signalName):
     robot.device.after.addSignal(entityName + '.' + signalName)
 
 def convertToNPFootstepsStack(footsteps):
-    slide2 = -0.760000
+    minSlides = (-1.52, -0.76)
+
     res = []
     for step in footsteps:
-        if len(res) == 0:
-            slide1 = 0
-        else:
-            slide1 = -1.520000
-        res.append((slide1, 0.24, 0.25, slide2,
-                    step['x'], step['y'], step['theta']))
+        slide1 = step.get('slide1')
+        slide2 = step.get('slide2')
+
+        if not slide1:
+            if len(res) == 0:
+                slide1 = 0.
+            else:
+                slide1 = minSlides[0]
+        if not slide2:
+            slide2 = minSlides[1]
+        res.append((slide1,
+                    step.get('horizontal-distance', 0.24),
+                    step.get('height', 0.25), 
+                    slide2,
+                    step.get('x', 0.), step.get('y', 0.),
+                    step.get('theta', 0.)))
     return tuple(res)
 
 def makeFootsteps(footsteps):
     res = []
     for step in footsteps:
-        res.append(step['x'])
-        res.append(step['y'])
-        res.append(step['theta'])
+        res.append(step.get('x', 0.))
+        res.append(step.get('y', 0.))
+        res.append(step.get('theta', 0.))
     return tuple(res)
+
+class Pose6d(object):
+    x = 0.
+    y = 0.
+    z = 0.
+    rx = 0.
+    ry = 0.
+    rz = 0.
+
+    def __init__(self, yamlData):
+        self.x = yamlData.get('x', 0.)
+        self.y = yamlData.get('y', 0.)
+        self.z = yamlData.get('z', 0.)
+        self.rx = yamlData.get('rx', 0.)
+        self.ry = yamlData.get('ry', 0.)
+        self.rz = yamlData.get('rz', 0.)
+
+    def rotationMatrix(self):
+        return rollPitchYawToRotationMatrix(self.x , self.y , self.z,
+                                            self.rx, self.ry, self.rz)
+
+    def dgRotationMatrix(self):
+        return matrixToTuple(self.rotationMatrix())
+
 
 class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
     localizationPlannedBody = 'waist'
@@ -309,11 +344,9 @@ class MotionPlan(object):
                 self.robot.features[body]._reference.position.value = \
                     self.robot.dynamic.signal(body).value
             else:
+                p = Pose6d(reference)
                 self.robot.features[body]._reference.position.value = \
-                    ((1., 0., 0., reference['x']),
-                     (0., 1., 0., reference['y']),
-                     (0., 0., 1., reference['z']),
-                     (0., 0., 0., 1.),)
+                    p.dgRotationMatrix()
 
             selec = ''
             if 'translation' in motionTask and motionTask['translation']:
@@ -345,9 +378,9 @@ class MotionPlan(object):
             return
 
         if 'maximum-correction-per-step' in self.plan:
-            self.maxX = self.plan['maximum-correction-per-step']['x']
-            self.maxY = self.plan['maximum-correction-per-step']['y']
-            self.maxTheta = self.plan['maximum-correction-per-step']['theta']
+            self.maxX = self.plan['maximum-correction-per-step'].get('x', 0.)
+            self.maxY = self.plan['maximum-correction-per-step'].get('y', 0.)
+            self.maxTheta = self.plan['maximum-correction-per-step'].get('theta', 0.)
 
         for motion in self.plan['motion']:
             if 'walk' in motion:
@@ -383,16 +416,12 @@ class MotionPlan(object):
             virtualSensorData['object-name']]['planned']['position']
         position = virtualSensorData['position']
 
+        r = Pose6d(reference)
+        p = Pose6d(reference)
         virtualSensor.expectedObstaclePosition.value = \
-                    ((1., 0., 0., reference['x']),
-                     (0., 1., 0., reference['y']),
-                     (0., 0., 1., reference['z']),
-                     (0., 0., 0., 1.),)
+            r.dgRotationMatrix()
         virtualSensor.obstaclePosition.value = \
-                    ((1., 0., 0., position['x']),
-                     (0., 1., 0., position['y']),
-                     (0., 0., 1., position['z']),
-                     (0., 0., 0., 1.),)
+            p.dgRotationMatrix()
         self.control.append(['virtual-sensor',
                              virtualSensorData, virtualSensor])
 

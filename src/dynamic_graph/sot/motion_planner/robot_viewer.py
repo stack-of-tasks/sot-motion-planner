@@ -31,32 +31,39 @@ def drawFootsteps(clt, plan, robot, startLeft, startRight, elements,
     if not plan.feetFollower:
         return
 
-    footstepsSignal = plan.feetFollower.feetFollower.dbgFootsteps
-    footstepsSignal.recompute(footstepsSignal.time + 1)
 
     footsteps = [{'x': 0., 'y': 0., 'theta': 0.},
                  {'x': 0., 'y': +0.19, 'theta': 0.}]
-    i = 0
-    stepX = 0
-    stepY = 0
-    stepTheta = 0
-    for step in footstepsSignal.value:
-        if i == 0:
-            stepX = step
-        elif i == 1:
-            stepY = step
-        elif i == 2:
-            stepTheta = step
-        else:
-            raise RuntimeError
 
-        if i == 2:
-            i = 0
-            footsteps.append({'x': stepX,
-                              'y': stepY,
-                              'theta': stepTheta})
-        else:
-            i = i + 1
+    try:
+        footstepsSignal = plan.feetFollower.feetFollower.dbgFootsteps
+        footstepsSignal.recompute(footstepsSignal.time + 1)
+
+        i = 0
+        stepX = 0
+        stepY = 0
+        stepTheta = 0
+        for step in footstepsSignal.value:
+            if i == 0:
+                stepX = step
+            elif i == 1:
+                stepY = step
+            elif i == 2:
+                stepTheta = step
+            else:
+                raise RuntimeError
+
+            if i == 2:
+                i = 0
+                footsteps.append({'x': stepX,
+                                  'y': stepY,
+                                  'theta': stepTheta})
+            else:
+                i = i + 1
+    except AttributeError:
+        # If correction is not used, just print footsteps
+        # from the plan.
+        footsteps += plan.footsteps
 
     if filename:
         f = open('/tmp/' + str(filename), 'w')

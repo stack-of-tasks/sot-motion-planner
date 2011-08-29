@@ -17,6 +17,7 @@
 
 from __future__ import print_function
 import logging
+import yaml
 
 from dynamic_graph.sot.dynamics.tools import *
 from dynamic_graph.sot.motion_planner import *
@@ -45,10 +46,11 @@ def initializeLogging():
     logger.addHandler(ch)
     return logger
 
-logger = initializeLogging()
-
-
-motionPlan = MotionPlan(args[0], robot, solver)
-if clt:
-    motionPlanViewer = MotionPlanViewer(motionPlan, robot, clt, logger)
-    motionPlanViewer.play()
+try:
+    logger = initializeLogging()
+    motionPlan = MotionPlan(args[0], robot, solver)
+    if clt:
+        motionPlanViewer = MotionPlanViewer(motionPlan, robot, clt, logger)
+        motionPlanViewer.play()
+except yaml.YAMLError, e:
+    print("failed to parse YAML file: " + str(e))

@@ -135,3 +135,24 @@ def oneVector(i):
     r = [0.,] * 36
     r[i] = 1.
     return tuple(r)
+
+
+def rollPitchYawToRotationMatrix(tx = 0., ty = 0., tz = 0.,
+                                 roll = 0., pitch = 0., yaw = 0.):
+    """Transformation order is roll then pitch then yaw then translation."""
+
+    cr = cos(roll)
+    cp = cos(pitch)
+    cy = cos(yaw)
+
+    sr = sin(roll)
+    sp = sin(pitch)
+    sy = sin(yaw)
+
+    return np.matrix(
+        [[cy * cp, cy * sp * sr - sy * sr, cy * sp * cr + sy * sp, tx],
+         [sy * cp, sy * sp * sr + cy * cr, sy * sp * cr - cy * cr, ty],
+         [-sp    , cp * cr               , cp * cr               , tz],
+         [0.     , 0.                    , 0.                    , 1.],],
+        dtype = np.dtype(np.float)
+        )

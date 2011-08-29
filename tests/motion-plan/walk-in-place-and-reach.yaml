@@ -21,6 +21,5 @@ motion:
       operational-point: left-wrist
       gain: 0.1
       reference: {x: 0., y: 0., z: 0.5}
-
-control:
-  - mocap:
+      rotation: on
+      translation: on
