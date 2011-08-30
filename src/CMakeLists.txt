@@ -124,6 +124,7 @@ SET(PYTHON_MODULE dynamic_graph/sot/motion_planner/motion_plan/control)
 SET(FILES
   __init__.py
   abstract.py
+  constant.py
   hueblob.py
   mocap.py
   virtual_sensor.py

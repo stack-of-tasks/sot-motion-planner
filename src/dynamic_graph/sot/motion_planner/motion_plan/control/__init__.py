@@ -16,6 +16,7 @@
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 from dynamic_graph.sot.motion_planner.motion_plan.control.abstract import *
+from dynamic_graph.sot.motion_planner.motion_plan.control.constant import *
 from dynamic_graph.sot.motion_planner.motion_plan.control.hueblob import *
 from dynamic_graph.sot.motion_planner.motion_plan.control.mocap import *
 from dynamic_graph.sot.motion_planner.motion_plan.control.virtual_sensor import *

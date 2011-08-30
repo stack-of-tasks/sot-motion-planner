@@ -122,7 +122,7 @@ class MotionPlan(object):
         if not 'control' in self.plan or not self.plan['control']:
             return
 
-        controlClasses = [ControlMocap, ControlViSP,
+        controlClasses = [ControlConstant, ControlMocap, ControlViSP,
                           ControlHueblob, ControlVirtualSensor]
 
         for control in self.plan['control']:

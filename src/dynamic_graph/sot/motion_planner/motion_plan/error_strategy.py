@@ -17,7 +17,7 @@
 
 from dynamic_graph import plug
 from dynamic_graph.sot.motion_planner.feet_follower import \
-    ErrorMerger
+    ErrorMerger, ErrorEstimator
 
 from dynamic_graph.sot.motion_planner.error_estimation_strategy \
     import ErrorEstimationStrategy
@@ -50,13 +50,20 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
                                                      self.feetFollowerWithCorrection)
             else:
                 estimator = control.start(name, self.feetFollowerWithCorrection)
-            plug(estimator.error,
-                 self.errorEstimator.signal("error_" + name))
+
+            if type(estimator) == ErrorEstimator:
+                plug(estimator.error,
+                     self.errorEstimator.signal("error_" + name))
+                self.errorEstimators.append(estimator)
+            else:
+                # If this is not an error estimator, we suppose it is a constant
+                # value that can be used to set the signal.
+                self.errorEstimator.signal("error_" + name).value = estimator
+
             self.errorEstimator.signal("weight_" + name).value = \
                 (control.weight,)
-            self.errorEstimators.append(estimator)
 
-            if self.motionPlan.trace:
+            if self.motionPlan.trace and type(estimator) == ErrorEstimator:
                 addTrace(self.motionPlan.robot,
                          self.motionPlan.trace,
                          name, 'error')
