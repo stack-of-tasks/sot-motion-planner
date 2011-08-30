@@ -17,17 +17,19 @@
 
 import os
 from dynamic_graph.sot.motion_planner.math import *
+from dynamic_graph.sot.motion_planner.motion_plan import *
 
 def createObject(clt, name, obj, elements):
     if not clt:
         return
     if not name in elements:
         clt.createElement('object', name,
-                          os.environ['HOME'] + '/.robotviewer/' + obj + '.py')
+                          os.environ['HOME'] + '/.robotviewer/' + obj)
+        elements.append(name)
         clt.enableElement(name)
 
 def drawFootsteps(clt, plan, robot, startLeft, startRight, elements,
-                  create=True, filename=None):
+                  create = True, filename = None):
     if not plan.feetFollower:
         return
 
@@ -82,9 +84,9 @@ def drawFootsteps(clt, plan, robot, startLeft, startRight, elements,
             (step['x'], step['y'], step['theta']))
         name = 'step_' + str(i)
         if create:
-            model = 'left-footstep'
+            model = 'left-footstep.py'
             if i % 2 == 1:
-                model = 'right-footstep'
+                model = 'right-footstep.py'
             createObject(clt, name, model, elements)
         clt.updateElementConfig(name, pose(pos))
         i = i + 1
@@ -120,18 +122,26 @@ def drawFootstepsFromFile(clt, filename,  startRight, elements, suffix='',
 def drawObstacles(clt, plan, robot, elements):
     i = 0
     for control in plan.control:
-        if control[0] == 'virtual-sensor':
-            namePlanned = 'obstaclePlanned' + str(i)
-            nameReal = 'obstacleReal' + str(i)
-            createObject(clt, namePlanned, 'disk', elements)
-            createObject(clt, nameReal, 'disk2', elements)
+        if type(control) != ControlVirtualSensor:
+            continue
+        namePlanned = 'obstaclePlanned' + str(i)
+        nameReal = 'obstacleReal' + str(i)
+        obj = plan.environment[control.objectName]
 
-            posPlanned = control[2].expectedObstaclePosition.value
-            posReal = control[2].obstaclePosition.value
+        filenameFmt = '{0}/.robotviewer/{1}'
+        filename = filenameFmt.format(os.environ['HOME'],
+                                      obj.plannedModel)
+        filenameEstimated = filenameFmt.format(os.environ['HOME'],
+                                               obj.estimatedModel)
 
-            clt.updateElementConfig(namePlanned,
-            [posPlanned[0][3], posPlanned[1][3], posPlanned[2][3], 0, 0, 0])
-            clt.updateElementConfig(nameReal,
-            [posReal[0][3], posReal[1][3], posReal[2][3], 0, 0, 0])
+        createObject(clt, namePlanned, obj.plannedModel, elements)
+        createObject(clt, nameReal, obj.estimatedModel, elements)
 
-            i = i + 1
+        posPlanned = np.matrix(control.virtualSensor.expectedObstaclePosition.value)
+        posReal = np.matrix(control.virtualSensor.obstaclePosition.value)
+
+        clt.updateElementConfig(namePlanned,
+                                Pose6d.fromRotationMatrix(posPlanned).pose())
+        clt.updateElementConfig(nameReal,
+                                Pose6d.fromRotationMatrix(posReal).pose())
+        i = i + 1

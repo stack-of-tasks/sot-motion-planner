@@ -17,7 +17,7 @@
 
 from dynamic_graph import plug
 from dynamic_graph.sot.core import FeatureGeneric, Task, RobotSimu
-from dynamic_graph.sot.motion_planner import \
+from dynamic_graph.sot.motion_planner.feet_follower import \
     FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError, \
     WaistYaw
 from dynamic_graph.tracer_real_time import TracerRealTime

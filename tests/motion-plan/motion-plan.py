@@ -20,7 +20,8 @@ import logging
 import yaml
 
 from dynamic_graph.sot.dynamics.tools import *
-from dynamic_graph.sot.motion_planner import *
+from dynamic_graph.sot.motion_planner.motion_plan import *
+from dynamic_graph.sot.motion_planner.motion_plan.viewer import *
 
 (options, args) = parser.parse_args()
 
@@ -49,6 +50,7 @@ def initializeLogging():
 try:
     logger = initializeLogging()
     motionPlan = MotionPlan(args[0], robot, solver)
+    print(motionPlan)
     if clt:
         motionPlanViewer = MotionPlanViewer(motionPlan, robot, clt, logger)
         motionPlanViewer.play()

@@ -94,8 +94,6 @@ SET(FILES
   __init__.py
   error_estimation_strategy.py
   feet_follower_graph_with_correction.py
-  motion_plan.py
-  motion_plan_viewer.py
   math.py
   robot_viewer.py
   )
@@ -106,6 +104,47 @@ ENDFOREACH()
 
 PYTHON_INSTALL_BUILD("${PYTHON_MODULE}"
   "feet_follower_graph.py" "${PYTHON_SITELIB}")
+
+# Install dynamic_graph.sot.motion_planner.motion_plan
+SET(PYTHON_MODULE dynamic_graph/sot/motion_planner/motion_plan)
+SET(FILES
+  __init__.py
+  environment.py
+  error_strategy.py
+  tools.py
+  viewer.py
+)
+
+FOREACH(FILE ${FILES})
+  PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")
+ENDFOREACH()
+
+# Install dynamic_graph.sot.motion_planner.motion_plan.control
+SET(PYTHON_MODULE dynamic_graph/sot/motion_planner/motion_plan/control)
+SET(FILES
+  __init__.py
+  abstract.py
+  hueblob.py
+  mocap.py
+  virtual_sensor.py
+  visp.py
+  )
+FOREACH(FILE ${FILES})
+  PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")
+ENDFOREACH()
+
+
+# Install dynamic_graph.sot.motion_planner.motion_plan.motion
+SET(PYTHON_MODULE dynamic_graph/sot/motion_planner/motion_plan/motion)
+SET(FILES
+  __init__.py
+  abstract.py
+  task.py
+  walk.py
+  )
+FOREACH(FILE ${FILES})
+  PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")
+ENDFOREACH()
 
 # Install dynamic_graph.sot.motion_planner.test
 SET(PYTHON_MODULE dynamic_graph/sot/motion_planner/test)

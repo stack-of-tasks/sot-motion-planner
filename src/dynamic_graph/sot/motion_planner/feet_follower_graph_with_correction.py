@@ -21,7 +21,7 @@ from dynamic_graph.sot.core import RobotSimu
 
 from dynamic_graph import plug
 from dynamic_graph.sot.core import FeatureGeneric, Task, RobotSimu
-from dynamic_graph.sot.motion_planner import \
+from dynamic_graph.sot.motion_planner.feet_follower import \
     FeetFollowerWithCorrection, Randomizer, ErrorEstimator
 from dynamic_graph.sot.motion_planner.feet_follower_graph import \
     FeetFollowerGraph

@@ -151,8 +151,49 @@ def rollPitchYawToRotationMatrix(tx = 0., ty = 0., tz = 0.,
 
     return np.matrix(
         [[cy * cp, cy * sp * sr - sy * sr, cy * sp * cr + sy * sp, tx],
-         [sy * cp, sy * sp * sr + cy * cr, sy * sp * cr - cy * cr, ty],
-         [-sp    , cp * cr               , cp * cr               , tz],
+         [sy * cp, sy * sp * sr + cy * cr, sy * sp * cr - cy * sr, ty],
+         [-sp    , cp * sr               , cp * cr               , tz],
          [0.     , 0.                    , 0.                    , 1.],],
         dtype = np.dtype(np.float)
         )
+
+class Pose6d(object):
+    x = 0.
+    y = 0.
+    z = 0.
+    rx = 0.
+    ry = 0.
+    rz = 0.
+
+    @staticmethod
+    def fromRotationMatrix(m):
+        x = m[0, 3]
+        y = m[1, 3]
+        z = m[2, 3]
+
+        rx = roll(m)
+        ry = pitch(m)
+        rz = yaw(m)
+        return Pose6d({'x': x, 'y': y, 'z': z, 'rx': rx, 'ry': ry, 'rz': rz})
+
+    def __init__(self, yamlData):
+        self.x = yamlData.get('x', 0.)
+        self.y = yamlData.get('y', 0.)
+        self.z = yamlData.get('z', 0.)
+        self.rx = yamlData.get('rx', 0.)
+        self.ry = yamlData.get('ry', 0.)
+        self.rz = yamlData.get('rz', 0.)
+
+    def rotationMatrix(self):
+        return rollPitchYawToRotationMatrix(self.x , self.y , self.z,
+                                            self.rx, self.ry, self.rz)
+
+    def dgRotationMatrix(self):
+        return matrixToTuple(self.rotationMatrix())
+
+    def pose(self):
+        return [self.x, self.y, self.z, self.rx, self.ry, self.rz]
+
+    def __str__(self):
+        return "Pose6d({0}, {1}, {2}, {3}, {4}, {5})".format(
+            self.x, self.y, self.z, self.rx, self.ry, self.rz)
