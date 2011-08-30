@@ -100,6 +100,11 @@ class MotionPlan(object):
         if not 'motion' in self.plan or not self.plan['motion']:
             return
 
+        if 'maximum-correction-per-step' in self.plan:
+            self.maxX = self.plan['maximum-correction-per-step']['x']
+            self.maxY = self.plan['maximum-correction-per-step']['y']
+            self.maxTheta = self.plan['maximum-correction-per-step']['theta']
+
         motionClasses = [MotionWalk, MotionTask]
 
         for motion in self.plan['motion']:
