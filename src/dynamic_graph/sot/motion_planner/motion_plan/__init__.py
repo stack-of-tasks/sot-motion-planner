@@ -54,17 +54,24 @@ class MotionPlan(object):
     maxY = FeetFollowerGraphWithCorrection.maxY
     maxTheta = FeetFollowerGraphWithCorrection.maxTheta
 
-    def __init__(self, filename, robot, solver):
+    def __init__(self, filename, robot, solver, logger):
         self.robot = robot
         self.solver = solver
+        self.logger = logger
+
+        self.logger.info('loading motion plan file \'{0}\''.format(filename))
         self.plan = yaml.load(open(filename, "r"))
+
         self.duration = float(self.plan['duration'])
 
         # Create CORBA server if required.
         self.corba = CorbaServer('corba_server')
 
+        self.logger.debug('loading environment')
         self.loadEnvironment()
+        self.logger.debug('loading motion elements')
         self.loadMotion()
+        self.logger.debug('loading control elements')
         self.loadControl()
 
         # For now, only 1 feet follower is allowed (must start at t=0).
@@ -86,6 +93,8 @@ class MotionPlan(object):
         else:
             self.feetFollower = None
 
+        self.logger.debug('motion plan created with success')
+
     def loadEnvironment(self):
         if not 'environment' in self.plan:
             return
@@ -95,6 +104,7 @@ class MotionPlan(object):
             checkDict('name', obj['object'])
             self.environment[obj['object']['name']] = \
                 EnvironmentObject(self, obj['object'])
+            self.logger.debug('adding object \'{0}\''.format(obj['object']['name']))
 
     def loadMotion(self):
         if not 'motion' in self.plan or not self.plan['motion']:
@@ -116,6 +126,7 @@ class MotionPlan(object):
             if not cls:
                 raise RuntimeError('invalid motion element')
             self.motion.append(cls(self, data))
+            self.logger.debug('adding motion element \'{0}\''.format(tag))
 
 
     def loadControl(self):
@@ -133,6 +144,7 @@ class MotionPlan(object):
             if not cls:
                 raise RuntimeError('invalid control element')
             self.control.append(cls(self, data))
+            self.logger.debug('adding control element \'{0}\''.format(tag))
 
     def __str__(self):
         res  = 'Motion:\n'
@@ -150,6 +162,7 @@ class MotionPlan(object):
         return res
 
     def start(self):
+        self.logger.info('execution starts')
         if self.feetFollower:
             self.feetFollower.start()
 

@@ -49,7 +49,7 @@ def initializeLogging():
 
 try:
     logger = initializeLogging()
-    motionPlan = MotionPlan(args[0], robot, solver)
+    motionPlan = MotionPlan(args[0], robot, solver, logger)
     print(motionPlan)
     if clt:
         motionPlanViewer = MotionPlanViewer(motionPlan, robot, clt, logger)
