@@ -1,25 +1,145 @@
-# The robot walks following a square pattern
-# and ends back to its initial position.
+# The robot walks while avoiding obstacles in a constrained environment
+# and finishes its motion at its starting point.
 
-duration: 60
+duration: 120
 maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
 
 environment:
   - object:
+      name: shelf
+      planned:
+        model: shelf.py
+        position: {x: 1.5, y: -0.25, rz: 0.785}
+      estimated:
+        model: shelf.py
+
+  - object:
+      name: chair
+      planned:
+        model: chair.py
+        position: {x: 1.5, y: 1.25, rz: 0.}
+      estimated:
+        model: chair.py
+
+  - object:
+      name: light
+      planned:
+        model: light.py
+        position: {x: 1.8, y: -0.1, rz: 0.}
+      estimated:
+        model: light.py
+
+  - object:
       name: table
       planned:
-        model: disk.py
-        position: {x: 0., y: 0., theta: 0.}
+        model: table.py
+        position: {x: 2.6, y: 0.8, rz: -0.785}
       estimated:
-        model: disk2.py
+        model: table.py
+
+  - object:
+      name: stand
+      planned:
+        model: stand.py
+        position: {x: 1.2, y: -1.1}
+      estimated:
+        model: stand.py
+
+
+
+
 
 motion:
   - walk:
       interval: [0, 1]
       footsteps:
       - {x: 0.15, y: -0.19, theta: 0.}
-      - {x: 0.15, y: +0.19, theta: 0.1}
+      - {x: 0.15, y: +0.19, theta: 0.}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.05, y: +0.19, theta: 0.}
+      - {x: 0.05, y: -0.19, theta: 0.}
+      - {x: 0.15, y: +0.19, theta: 0.2}
+      - {x: 0.15, y: -0.19, theta: 0.2}
+      - {x: 0.15, y: +0.19, theta: 0.2}
+      - {x: 0.15, y: -0.19, theta: 0.2}
+      - {x: 0.20, y: +0.19, theta: 0.}
+      - {x: 0.0, y: -0.19, theta: -0.2}
+      - {x: 0.0, y: +0.19, theta: -0.2}
+      - {x: 0.0, y: -0.19, theta: -0.1}
+      - {x: 0.0, y: +0.19, theta: -0.1}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y: +0.19, theta: 0.}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y: +0.19, theta: -0.2}
+      - {x: 0.15, y: -0.19, theta: -0.2}
+      - {x: 0.15, y: +0.19, theta: -0.2}
+      - {x: 0.15, y: -0.19, theta: -0.2}
+      - {x: 0.15, y: +0.19, theta: -0.2}
+      - {x: 0.1, y: -0.19, theta: 0.}
+      - {x: 0.1, y: +0.19, theta: 0.}
 
+      - {x: 0.05, y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+      - {x: 0., y: +0.15, theta: 0.}
+      - {x: 0., y: -0.25, theta: 0.}
+
+      - {x: 0.0, y: +0.19, theta: -0.2}
+      - {x: 0.0, y: -0.19, theta: -0.2}
+      - {x: 0.0, y: +0.19, theta: -0.2}
+      - {x: 0.0, y: -0.19, theta: -0.2}
+      - {x: 0.0, y: +0.19, theta: -0.2}
+      - {x: 0.0, y: -0.19, theta: -0.2}
+      - {x: 0.0, y: +0.19, theta: -0.2}
+      - {x: 0.0, y: -0.19, theta: -0.2}
+      - {x: 0.15, y: +0.19, theta: -0.2}
+      - {x: 0.15, y: -0.19, theta: -0.2}
+      - {x: 0.15, y: +0.19, theta: -0.2}
+      - {x: 0.15, y: -0.19, theta: -0.1}
+      - {x: 0.15, y: +0.19, theta: -0.1}
+      - {x: 0.15, y: -0.19, theta: 0.}
+      - {x: 0.15, y: +0.19, theta: -0.2}
+      - {x: 0.15, y: -0.19, theta: -0.2}
+      - {x: 0.15, y: +0.19, theta: -0.2}
+      - {x: 0.15, y: -0.19, theta: -0.2}
+      - {x: 0.15, y: +0.19, theta: -0.2}
+      - {x: 0.15, y: -0.19, theta: -0.2}
+      - {x: 0.2, y: +0.19, theta: -0.2}
+      - {x: 0.2, y: -0.19, theta: -0.2}
+      - {x: 0.2, y: +0.19, theta: -0.1}
+      - {x: 0.00, y: -0.19, theta: -0.2}
+      - {x: 0.00, y: +0.19, theta: -0.2}
+      - {x: 0.00, y: -0.19, theta: -0.2}
+      - {x: 0.00, y: +0.19, theta: -0.2}
+      - {x: 0.00, y: -0.19, theta: -0.2}
 control:
   - mocap:
       weight: 1.
