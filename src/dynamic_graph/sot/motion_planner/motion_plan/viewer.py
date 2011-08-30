@@ -79,6 +79,10 @@ class MotionPlanViewer(object):
         self.enableRobot = enableRobot
         self.elements = client.listElements()
 
+        #FIXME: does not work for now, ""race condition"" between the GL/CORBA
+        # thread in robot-viewer.
+        #self.cleanObjects()
+
         self.initialAnklePositions = (
             self.robot.dynamic.signal('left-ankle').value,
             self.robot.dynamic.signal('right-ankle').value
@@ -98,11 +102,17 @@ class MotionPlanViewer(object):
         self.shouldExit = True
         self.reset()
 
+    def cleanObjects(self):
+        for obj in self.elements:
+            if obj != self.robotElementName:
+                self.client.destroyElement(obj)
+
+
     def createObject(self, name, filename, cfg = None):
-        if name in self.elements:
-            return
-        self.client.createElement('object', name, filename)
-        self.client.enableElement(name)
+        if not name in self.elements:
+            self.client.createElement('object', name, filename)
+            self.client.enableElement(name)
+            self.elements.append(name)
         if cfg:
             self.client.updateElementConfig(name, cfg)
 
