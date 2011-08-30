@@ -2,7 +2,7 @@
 # and finishes its motion at its starting point.
 
 duration: 120
-maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
+#maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
 
 environment:
   - object:
@@ -44,10 +44,6 @@ environment:
         position: {x: 1.2, y: -1.1}
       estimated:
         model: stand.py
-
-
-
-
 
 motion:
   - walk:
@@ -140,8 +136,13 @@ motion:
       - {x: 0.00, y: -0.19, theta: -0.2}
       - {x: 0.00, y: +0.19, theta: -0.2}
       - {x: 0.00, y: -0.19, theta: -0.2}
+
 control:
   - mocap:
-      weight: 1.
+      weight: 0.
       tracked-body: left-ankle
       perceived-body: left-foot
+
+  - constant:
+      weight: 0.
+      error: {x: 1., y: 0., theta: 0.}
