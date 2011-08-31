@@ -15,6 +15,7 @@
 # received a copy of the GNU Lesser General Public License along with
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 import yaml
 import numpy as np
 
@@ -33,6 +34,24 @@ from dynamic_graph.sot.motion_planner.motion_plan.error_strategy import *
 from dynamic_graph.sot.motion_planner.motion_plan.motion import *
 from dynamic_graph.sot.motion_planner.motion_plan.tools import *
 
+def initializeLogging():
+    logger = logging.getLogger('motion-plan')
+    logger.setLevel(logging.INFO)
+
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    # create formatter
+    fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    formatter = logging.Formatter(fmt)
+
+    # add formatter to ch
+    ch.setFormatter(formatter)
+
+    # add ch to logger
+    logger.addHandler(ch)
+    return logger
 
 
 class MotionPlan(object):
@@ -54,7 +73,10 @@ class MotionPlan(object):
     maxY = FeetFollowerGraphWithCorrection.maxY
     maxTheta = FeetFollowerGraphWithCorrection.maxTheta
 
-    def __init__(self, filename, robot, solver, logger):
+    def __init__(self, filename, robot, solver, logger = None):
+        if not logger:
+            logger = initializeLogging()
+
         self.robot = robot
         self.solver = solver
         self.logger = logger

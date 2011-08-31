@@ -25,6 +25,8 @@ from dynamic_graph.sot.motion_planner.error_estimation_strategy \
 from dynamic_graph.sot.motion_planner.motion_plan.tools import *
 
 class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
+    errorEstimatorId = 0
+
     localizationPlannedBody = 'waist'
     errorEstimators = []
 
@@ -41,7 +43,9 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
 
     def start(self, interactive = False):
         for control in self.motionPlan.control:
-            name = 'error_estimator' + str(id(control))
+            name = 'error_estimator' + \
+                str(MotionPlanErrorEstimationStrategy.errorEstimatorId)
+            MotionPlanErrorEstimationStrategy.errorEstimatorId += 1
             self.errorEstimator.addErrorEstimation(name)
 
             estimator = None

@@ -16,7 +16,6 @@
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
-import logging
 import yaml
 
 from dynamic_graph.sot.dynamics.tools import *
@@ -28,28 +27,8 @@ from dynamic_graph.sot.motion_planner.motion_plan.viewer import *
 if not len(args):
     raise RuntimeError("motion plan needed")
 
-def initializeLogging():
-    logger = logging.getLogger('motion-plan')
-    logger.setLevel(logging.INFO)
-
-    # create console handler and set level to debug
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-
-    # create formatter
-    fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    formatter = logging.Formatter(fmt)
-
-    # add formatter to ch
-    ch.setFormatter(formatter)
-
-    # add ch to logger
-    logger.addHandler(ch)
-    return logger
-
 try:
-    logger = initializeLogging()
-    motionPlan = MotionPlan(args[0], robot, solver, logger)
+    motionPlan = MotionPlan(args[0], robot, solver)
     print(motionPlan)
     if clt:
         motionPlanViewer = MotionPlanViewer(motionPlan, robot, clt, logger)
