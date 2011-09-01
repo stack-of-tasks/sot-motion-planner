@@ -147,6 +147,16 @@ FeetFollowerWithCorrection::updateDbgFootsteps (ml::Vector& res, int)
 }
 
 void
+FeetFollowerWithCorrection::updateVelocities ()
+{
+  //FIXME: for now just forward velocity without correction.
+  referenceTrajectory_->updateLeftAnkleVelocity (leftAnkleVelocity_, t_);
+  referenceTrajectory_->updateRightAnkleVelocity (rightAnkleVelocity_, t_);
+  referenceTrajectory_->updateCoMVelocity (comVelocity_, t_);
+  referenceTrajectory_->updateWaistYawVelocity (waistYawVelocity_, t_);
+}
+
+void
 FeetFollowerWithCorrection::impl_update ()
 {
   if (!referenceTrajectory_)
@@ -186,6 +196,8 @@ FeetFollowerWithCorrection::impl_update ()
   xytheta (0) = xytheta (1) = 0.;
   xytheta (2) = theta.value ();
   waistYaw_ = XYThetaToMatrixHomogeneous (xytheta);
+
+  updateVelocities ();
 }
 
 void

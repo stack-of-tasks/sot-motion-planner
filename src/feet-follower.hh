@@ -145,7 +145,9 @@ class FeetFollower : public dg::Entity
 {
  public:
   typedef dg::SignalTimeDependent<ml::Vector, int> signalCoM_t;
+  typedef dg::SignalTimeDependent<ml::Vector, int> signalCoMVelocity_t;
   typedef dg::SignalTimeDependent<sot::MatrixHomogeneous, int> signalFoot_t;
+  typedef dg::SignalTimeDependent<ml::Vector, int> signalFootVelocity_t;
 
   explicit FeetFollower (const std::string& name);
   virtual ~FeetFollower ();
@@ -163,6 +165,12 @@ class FeetFollower : public dg::Entity
   sot::MatrixHomogeneous& updateWaist (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateLeftAnkle (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateRightAnkle (sot::MatrixHomogeneous& res, int t);
+
+  ml::Vector& updateCoMVelocity (ml::Vector& res, int t);
+  ml::Vector& updateWaistYawVelocity (ml::Vector& res, int t);
+  ml::Vector& updateLeftAnkleVelocity (ml::Vector& res, int t);
+  ml::Vector& updateRightAnkleVelocity (ml::Vector& res, int t);
+
   double getTime () const;
 
   /// \brief Returns the current time index on the trajectory.
@@ -192,6 +200,26 @@ class FeetFollower : public dg::Entity
   signalFoot_t& rightAnkleOut ()
   {
     return rightAnkleOut_;
+  }
+
+  signalCoMVelocity_t& comVelocityOut ()
+  {
+    return comVelocityOut_;
+  }
+
+  signalFootVelocity_t& waistYawVelocityOut ()
+  {
+    return waistYawVelocityOut_;
+  }
+
+  signalFootVelocity_t& leftAnkleVelocityOut ()
+  {
+    return leftAnkleVelocityOut_;
+  }
+
+  signalFootVelocity_t& rightAnkleVelocityOut ()
+  {
+    return rightAnkleVelocityOut_;
   }
 
   bool started () const
@@ -225,6 +253,11 @@ protected:
   sot::MatrixHomogeneous leftAnkle_;
   sot::MatrixHomogeneous rightAnkle_;
 
+  ml::Vector comVelocity_;
+  ml::Vector waistYawVelocity_;
+  ml::Vector leftAnkleVelocity_;
+  ml::Vector rightAnkleVelocity_;
+
   double comZ_;
   sot::MatrixHomogeneous leftFootToAnkle_;
   sot::MatrixHomogeneous rightFootToAnkle_;
@@ -240,6 +273,11 @@ protected:
   signalFoot_t waistOut_;
   signalFoot_t leftAnkleOut_;
   signalFoot_t rightAnkleOut_;
+
+  signalCoMVelocity_t comVelocityOut_;
+  signalFootVelocity_t waistYawVelocityOut_;
+  signalFootVelocity_t leftAnkleVelocityOut_;
+  signalFootVelocity_t rightAnkleVelocityOut_;
 
   void setComZ(const double& v)
   {

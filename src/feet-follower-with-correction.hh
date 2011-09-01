@@ -130,6 +130,7 @@ public:
 protected:
   virtual void impl_update ();
   void updateCorrection ();
+  void updateVelocities ();
 
   ml::Vector& updateDbgFootsteps (ml::Vector& res, int);
   void updateFootsteps (const double& time,

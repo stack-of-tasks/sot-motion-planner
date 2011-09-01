@@ -136,6 +136,14 @@ class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
         plug(self.feetFollower.signal('waistYaw'),
              self.robot.features['waist'].reference)
 
+        # Replug velocities.
+        plug(self.feetFollower.comVelocity, self.robot.comTask.errorDot)
+        for op in ['left-ankle', 'right-ankle']:
+            plug(self.feetFollower.signal(op + 'Velocity'),
+                 self.robot.tasks[op].errorDot)
+        plug(self.feetFollower.waistYawVelocity,
+             self.robot.tasks['waist'].errorDot)
+
         # Setup error estimation strategy.
         self.errorEstimationStrategy = errorEstimationStrategyType(self, robot)
 

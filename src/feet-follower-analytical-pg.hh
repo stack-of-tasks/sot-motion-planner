@@ -102,6 +102,7 @@ public:
 
 private:
   virtual void impl_update ();
+  void updateVelocities ();
 
   std::vector<ml::Vector> steps_;
   bool leftOrRightFootStable_;

@@ -75,6 +75,50 @@ FeetFollowerAnalyticalPg::~FeetFollowerAnalyticalPg ()
 {}
 
 void
+FeetFollowerAnalyticalPg::updateVelocities ()
+{
+  using sot::Trajectory;
+  using roboptim::Function;
+
+  const double t = (index_) * STEP;
+  const double tnext = (index_ + 1) * STEP;
+
+  if (t >= Function::getUpperBound (trajectories_->leftFoot.getRange ()) or
+      tnext >= Function::getUpperBound (trajectories_->leftFoot.getRange ()))
+    {
+      comVelocity_.setZero ();
+      waistYawVelocity_.setZero ();
+      leftAnkleVelocity_.setZero ();
+      rightAnkleVelocity_.setZero ();
+      return;
+    }
+
+  const Trajectory::vector_t& leftFoot = trajectories_->leftFoot (t);
+  const Trajectory::vector_t& rightFoot = trajectories_->rightFoot (t);
+  const Trajectory::vector_t& com = trajectories_->com (t);
+  const Trajectory::vector_t& waistYaw = trajectories_->waistYaw (t);
+
+  const Trajectory::vector_t& leftFootNext = trajectories_->leftFoot (tnext);
+  const Trajectory::vector_t& rightFootNext = trajectories_->rightFoot (tnext);
+  const Trajectory::vector_t& comNext = trajectories_->com (tnext);
+  const Trajectory::vector_t& waistYawNext = trajectories_->waistYaw (tnext);
+
+  comVelocity_.accessToMotherLib () = (comNext - com) / STEP;
+  waistYawVelocity_.accessToMotherLib () = (waistYawNext - waistYaw) / STEP;
+
+  //FIXME: foot <-> ankle
+  leftAnkleVelocity_.setZero ();
+  leftAnkleVelocity_ (0) = (leftFootNext[0] - leftFoot[0]) / STEP;
+  leftAnkleVelocity_ (1) = (leftFootNext[1] - leftFoot[1]) / STEP;
+  leftAnkleVelocity_ (5) = (leftFootNext[2] - leftFoot[2]) / STEP;
+
+  rightAnkleVelocity_.setZero ();
+  rightAnkleVelocity_ (0) = (rightFootNext[0] - rightFoot[0]) / STEP;
+  rightAnkleVelocity_ (1) = (rightFootNext[1] - rightFoot[1]) / STEP;
+  rightAnkleVelocity_ (5) = (rightFootNext[2] - rightFoot[2]) / STEP;
+}
+
+void
 FeetFollowerAnalyticalPg::impl_update ()
 {
   using sot::Trajectory;
@@ -139,6 +183,8 @@ FeetFollowerAnalyticalPg::impl_update ()
   for (unsigned i = 0; i < 4; ++i)
     for (unsigned j = 0; j < 4; ++j)
       waist_ (i, j) = waist (i * 4 + j);
+
+  updateVelocities ();
 
   if (started_)
     ++index_;

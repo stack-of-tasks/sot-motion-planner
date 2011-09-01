@@ -104,6 +104,10 @@ FeetFollower::FeetFollower (const std::string& name)
     waist_ (),
     leftAnkle_ (),
     rightAnkle_ (),
+    comVelocity_ (3),
+    waistYawVelocity_ (1),
+    leftAnkleVelocity_ (6),
+    rightAnkleVelocity_ (6),
     comZ_ (0.),
     leftFootToAnkle_ (),
     rightFootToAnkle_ (),
@@ -122,10 +126,27 @@ FeetFollower::FeetFollower (const std::string& name)
      ("left-ankle", FeetFollower::updateLeftAnkle, "MatrixHomo")),
     rightAnkleOut_
     (INIT_SIGNAL_OUT
-     ("right-ankle", FeetFollower::updateRightAnkle, "MatrixHomo"))
+     ("right-ankle", FeetFollower::updateRightAnkle, "MatrixHomo")),
+
+    comVelocityOut_ (INIT_SIGNAL_OUT ("comVelocity",
+				      FeetFollower::updateCoMVelocity,
+				      "Vector")),
+    waistYawVelocityOut_ (INIT_SIGNAL_OUT
+			  ("waistYawVelocity",
+			   FeetFollower::updateWaistYawVelocity, "MatrixHomo")),
+    leftAnkleVelocityOut_
+    (INIT_SIGNAL_OUT
+     ("left-ankleVelocity",
+      FeetFollower::updateLeftAnkleVelocity, "MatrixHomo")),
+    rightAnkleVelocityOut_
+    (INIT_SIGNAL_OUT
+     ("right-ankleVelocity",
+      FeetFollower::updateRightAnkleVelocity, "MatrixHomo"))
 {
   signalRegistration (zmpOut_ << comOut_ << waistYawOut_ << waistOut_
-		      << leftAnkleOut_ << rightAnkleOut_);
+		      << leftAnkleOut_ << rightAnkleOut_
+		      << comVelocityOut_ << waistYawVelocityOut_
+		      << leftAnkleVelocityOut_ << rightAnkleVelocityOut_);
 
   zmpOut_.setNeedUpdateFromAllChildren (true);
   comOut_.setNeedUpdateFromAllChildren (true);
@@ -133,6 +154,11 @@ FeetFollower::FeetFollower (const std::string& name)
   waistOut_.setNeedUpdateFromAllChildren (true);
   leftAnkleOut_.setNeedUpdateFromAllChildren (true);
   rightAnkleOut_.setNeedUpdateFromAllChildren (true);
+
+  comVelocityOut_.setNeedUpdateFromAllChildren (true);
+  waistYawVelocityOut_.setNeedUpdateFromAllChildren (true);
+  leftAnkleVelocityOut_.setNeedUpdateFromAllChildren (true);
+  rightAnkleVelocityOut_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
   addCommand ("setComZ", new Setter<FeetFollower, double>
@@ -228,6 +254,42 @@ FeetFollower::updateRightAnkle (sot::MatrixHomogeneous& res, int t)
   if (t > t_)
     update (t);
   res = rightAnkle_;
+  return res;
+}
+
+ml::Vector&
+FeetFollower::updateCoMVelocity (ml::Vector& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = comVelocity_;
+  return res;
+}
+
+ml::Vector&
+FeetFollower::updateWaistYawVelocity (ml::Vector& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = waistYawVelocity_;
+  return res;
+}
+
+ml::Vector&
+FeetFollower::updateLeftAnkleVelocity (ml::Vector& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = leftAnkleVelocity_;
+  return res;
+}
+
+ml::Vector&
+FeetFollower::updateRightAnkleVelocity (ml::Vector& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = rightAnkleVelocity_;
   return res;
 }
 
