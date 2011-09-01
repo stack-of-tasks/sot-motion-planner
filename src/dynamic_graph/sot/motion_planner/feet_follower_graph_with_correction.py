@@ -162,11 +162,11 @@ class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
             start = self.errorEstimationStrategy.interactiveStart
 
         if start():
-            self.robot.comTask.controlGain.value = 180.
-            self.robot.tasks['left-ankle'].controlGain.value = 180.
-            self.robot.tasks['right-ankle'].controlGain.value = 180.
-            self.feetFollowerGraph.postureTask.controlGain.value = 180.
-            self.robot.tasks['waist'].controlGain.value = 180.
+            self.robot.comTask.controlGain.value = self.gain
+            self.robot.tasks['left-ankle'].controlGain.value = self.gain
+            self.robot.tasks['right-ankle'].controlGain.value = self.gain
+            self.feetFollowerGraph.postureTask.controlGain.value = self.gain
+            self.robot.tasks['waist'].controlGain.value = self.gain
             self.feetFollowerGraph.setupTrace()
             if beforeStart:
                 beforeStart()

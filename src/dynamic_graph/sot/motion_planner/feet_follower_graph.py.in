@@ -63,6 +63,17 @@ class FeetFollowerGraph(object):
     """
     trace = None
 
+
+    """
+    Gain used to reach the initial position.
+    """
+    initialGain = 1.
+
+    """
+    Gain used during the motion.
+    """
+    gain = 195.
+
     def __init__(self, robot, solver):
         self.robot = robot
         self.solver = solver
@@ -89,12 +100,10 @@ class FeetFollowerGraph(object):
             self.robot.features['right-ankle'].reference.value)
 
     def setup(self):
-        initialGain = 1.
-
         # Lower the gains to reduce the initial velocity.
-        self.robot.comTask.controlGain.value = initialGain
-        self.robot.tasks['left-ankle'].controlGain.value = initialGain
-        self.robot.tasks['right-ankle'].controlGain.value = initialGain
+        self.robot.comTask.controlGain.value = self.initialGain
+        self.robot.tasks['left-ankle'].controlGain.value = self.initialGain
+        self.robot.tasks['right-ankle'].controlGain.value = self.initialGain
 
         # Make sure the CoM is converging toward the starting
         # CoM of the trajectory.
@@ -132,12 +141,12 @@ class FeetFollowerGraph(object):
         plug(self.postureError.error, self.postureFeature.errorIN)
         self.postureFeature.jacobianIN.value = self.computeJacobianPosture()
         self.postureTask.add(self.postureFeature.name)
-        self.postureTask.controlGain.value = initialGain
+        self.postureTask.controlGain.value = self.initialGain
 
         # Initialize the waist yaw task.
         self.robot.features['waist'].selec.value = '111000'
         plug(self.feetFollower.waistYaw, self.robot.features['waist'].reference)
-        self.robot.tasks['waist'].controlGain.value = initialGain
+        self.robot.tasks['waist'].controlGain.value = self.initialGain
 
         # Tasks
         self.solver.sot.remove(self.robot.tasks['right-ankle'].name)
@@ -205,11 +214,11 @@ class FeetFollowerGraph(object):
             print("Robot has not yet converged to the initial position,"
                   " please wait and try again.")
             return
-        self.robot.comTask.controlGain.value = 180.
-        self.robot.tasks['left-ankle'].controlGain.value = 180.
-        self.robot.tasks['right-ankle'].controlGain.value = 180.
-        self.postureTask.controlGain.value = 180.
-        self.robot.tasks['waist'].controlGain.value = 180.
+        self.robot.comTask.controlGain.value = self.gain
+        self.robot.tasks['left-ankle'].controlGain.value = self.gain
+        self.robot.tasks['right-ankle'].controlGain.value = self.gain
+        self.postureTask.controlGain.value = self.gain
+        self.robot.tasks['waist'].controlGain.value = self.gain
         self.setupTrace()
         if beforeStart:
             beforeStart()
