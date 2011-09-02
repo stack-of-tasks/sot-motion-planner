@@ -15,11 +15,61 @@
 # received a copy of the GNU Lesser General Public License along with
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
-from dynamic_graph.sot.motion_planner.motion_plan.control.abstract import Control
+from dynamic_graph import plug
+from dynamic_graph.sot.motion_planner.feet_follower import \
+    ErrorEstimator
+
+from dynamic_graph.sot.motion_planner.motion_plan.control.abstract \
+    import Control
+
+from dynamic_graph.sot.motion_planner.motion_plan.tools import *
+
+from dynamic_graph.ros import RosExport
 
 class ControlViSP(Control):
     yaml_tag = u'visp'
 
-    def __init__(self, motion, yamlData):
+    def __init__(self, motion, yamlData, ros = None):
+        checkDict('object-name', yamlData)
+        checkDict('position', yamlData)
+
         Control.__init__(self, motion, yamlData)
-        raise NotImplementedError
+
+        self.objectName = yamlData['object-name']
+        self.position = yamlData['position']
+
+        obj = motion.environment.get(self.objectName)
+        if not obj:
+            raise RuntimeError('object does not exist')
+
+        if ros:
+            self.ros = ros
+        else:
+            self.ros = RosExport('rosExport')
+        self.ros.add('matrixHomoStamped', self.objectName, self.position)
+
+    def start(self, name, feetFollowerWithCorrection):
+        I = ((1.,0.,0.,0.), (0.,1.,0.,0.), (0.,0.,1.,0.), (0.,0.,0.,1.))
+        self.estimator = ErrorEstimator(name)
+        self.estimator.setReferenceTrajectory(
+            feetFollowerWithCorrection.referenceTrajectory.name)
+
+        # FIXME: not generic enough.
+        plug(feetFollowerWithCorrection.referenceTrajectory.waist,
+             self.estimator.planned)
+
+        self.estimator.setSensorToWorldTransformation(I)
+
+        #FIXME: write ViSP error estimation entity.
+        #plug(self.ros.signal(self.objectName), self.estimator.position)
+        self.estimator.position.value = (0., 0., 0.)
+        plug(self.ros.signal(self.objectName + 'Timestamp'),
+             self.estimator.positionTimestamp)
+
+        return self.estimator
+
+    def interactiveStart(self, name, feetFollowerWithCorrection):
+        return self.start(name, feetFollowerWithCorrection)
+
+    def __str__(self):
+        return "ViSP moving edge tracker control element"

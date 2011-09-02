@@ -1,0 +1,36 @@
+# Walk in place while tracking a box.
+
+duration: 10
+maximum-correction-per-step: {x: 0.04, y: 0.04, theta: 0.1}
+#maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
+
+environment:
+  - object:
+      name: table
+      planned:
+        model: disk.py
+        position: {x: 0.60, y: 0., z: 0.}
+      estimated:
+        model: disk2.py
+
+motion:
+  - walk:
+      interval: [0, 1]
+      footsteps:
+      - {x: 0., y: -0.19, theta: 0.}
+      - {x: 0., y:  0.19, theta: 0.}
+      - {x: 0., y: -0.19, theta: 0.}
+      - {x: 0., y:  0.19, theta: 0.}
+      - {x: 0., y: -0.19, theta: 0.}
+      - {x: 0., y:  0.19, theta: 0.}
+      - {x: 0., y: -0.19, theta: 0.}
+      - {x: 0., y:  0.19, theta: 0.}
+      - {x: 0., y: -0.19, theta: 0.}
+      - {x: 0., y:  0.19, theta: 0.}
+      waist-trajectory: walk-in-place-waist.dat
+
+control:
+  - visp:
+      weight: 0.5
+      object-name: table
+      position: /tracker_mbt/resultTransform
