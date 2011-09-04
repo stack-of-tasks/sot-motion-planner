@@ -18,6 +18,8 @@
 from dynamic_graph import plug
 from dynamic_graph.sot.motion_planner.feet_follower import \
     ErrorEstimator
+from dynamic_graph.sot.motion_planner.feet_follower import VirtualSensor
+from dynamic_graph.sot.motion_planner.motion_plan.motion import MotionWalk
 
 from dynamic_graph.sot.motion_planner.motion_plan.control.abstract \
     import Control
@@ -42,11 +44,34 @@ class ControlViSP(Control):
         if not obj:
             raise RuntimeError('object does not exist')
 
+        self.virtualSensor = VirtualSensor(
+            'virtualSensor' + str(id(yamlData)))
+
+        #FIXME: should be more generic.
+        feetFollower = find(lambda e: type(e) == MotionWalk, motion.motion)
+        if not feetFollower:
+            raise RuntimeError('control elements needs at least one ' + \
+                                   'walk elelement to apply correction')
+
+        plug(feetFollower.feetFollower.feetFollower.waist,
+             self.virtualSensor.expectedRobotPosition)
+        plug(motion.robot.dynamic.waist,
+             self.virtualSensor.robotPosition)
+
         if ros:
             self.ros = ros
         else:
             self.ros = RosExport('rosExport')
         self.ros.add('matrixHomoStamped', self.objectName, self.position)
+
+        # FIXME: this is inconsistent.
+        # planned is in world frame and localization is relative.
+        self.virtualSensor.expectedObstaclePosition.value = \
+            obj.plannedPosition.dgRotationMatrix()
+
+        plug(self.ros.signal(self.objectName),
+             self.virtualSensor.obstaclePosition)
+
 
     def start(self, name, feetFollowerWithCorrection):
         I = ((1.,0.,0.,0.), (0.,1.,0.,0.), (0.,0.,1.,0.), (0.,0.,0.,1.))
@@ -60,9 +85,8 @@ class ControlViSP(Control):
 
         self.estimator.setSensorToWorldTransformation(I)
 
-        #FIXME: write ViSP error estimation entity.
-        #plug(self.ros.signal(self.objectName), self.estimator.position)
-        self.estimator.position.value = (0., 0., 0.)
+        plug(self.virtualSensor.position, self.estimator.position)
+        #FIXME: is it true?
         plug(self.ros.signal(self.objectName + 'Timestamp'),
              self.estimator.positionTimestamp)
 
