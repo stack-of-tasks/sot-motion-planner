@@ -98,6 +98,14 @@ class ControlMocap(Control):
             raw_input("Body not tracked...")
         return self.start(name, feetFollowerWithCorrection)
 
+    def canStart(self):
+        if not self.corba:
+            return False
+        if len(self.corba.signals()) == 3:
+            return False
+        if len(self.corba.signal('left-foot').value) != 3:
+            return False
+        return True
 
     def __str__(self):
         return "motion capture control element" + \

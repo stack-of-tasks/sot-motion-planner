@@ -184,11 +184,19 @@ class MotionPlan(object):
         return res
 
     def start(self):
+        if not self.canStart():
+            self.logger.info('failed to start')
+            return
         self.logger.info('execution starts')
         if self.feetFollower:
             self.feetFollower.start()
 
     def canStart(self):
+        canStart = reduce(lambda acc, c: c.canStart() and acc,
+                          self.control, True)
+        if not canStart:
+            return False
+
         if self.feetFollower:
             return self.feetFollower.canStart()
         else:

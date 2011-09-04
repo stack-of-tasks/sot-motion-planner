@@ -27,3 +27,6 @@ class Control(object):
 
     def interactiveStart(self):
         raise NotImplementedError
+
+    def canStart(self):
+        return True
