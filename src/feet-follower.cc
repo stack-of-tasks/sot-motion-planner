@@ -105,7 +105,7 @@ FeetFollower::FeetFollower (const std::string& name)
     leftAnkle_ (),
     rightAnkle_ (),
     comVelocity_ (3),
-    waistYawVelocity_ (1),
+    waistYawVelocity_ (3),
     leftAnkleVelocity_ (6),
     rightAnkleVelocity_ (6),
     comZ_ (0.),

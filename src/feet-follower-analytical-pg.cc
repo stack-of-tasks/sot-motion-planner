@@ -104,7 +104,10 @@ FeetFollowerAnalyticalPg::updateVelocities ()
   const Trajectory::vector_t& waistYawNext = trajectories_->waistYaw (tnext);
 
   comVelocity_.accessToMotherLib () = (comNext - com) / STEP;
-  waistYawVelocity_.accessToMotherLib () = (waistYawNext - waistYaw) / STEP;
+
+  waistYawVelocity_ (0) = 0.;
+  waistYawVelocity_ (1) = 0.;
+  waistYawVelocity_ (2) = waistYawNext[0] - waistYaw[0];
 
   //FIXME: foot <-> ankle
   leftAnkleVelocity_.setZero ();
