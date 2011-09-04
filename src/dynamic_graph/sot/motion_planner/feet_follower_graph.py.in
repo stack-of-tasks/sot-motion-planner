@@ -72,7 +72,7 @@ class FeetFollowerGraph(object):
     """
     Gain used during the motion.
     """
-    gain = 195.
+    gain = 175.
 
     def __init__(self, robot, solver):
         self.robot = robot
