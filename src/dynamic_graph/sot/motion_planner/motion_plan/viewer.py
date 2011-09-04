@@ -195,7 +195,11 @@ class MotionPlanViewer(object):
         self.plan.start()
         self.logger.info('execution started')
 
+        previousCfg = None
+
         fmt = 'Playing... {0:>4d}/{1:<4d} ({2:>4d}ms, {3:>4d}ms)'
+        discontinuityFmt = \
+            '/!\\ discontinuity detected! invalid joint {0:<2d} /!\\'
         for n in xrange(nIterations):
             if self.shouldExit:
                 sys.stdout.write('\n')
@@ -206,6 +210,15 @@ class MotionPlanViewer(object):
             controlStartTime = time.clock()
             self.robot.device.increment(self.step)
             endTime = time.clock()
+
+            # Safety checks.
+            cfg = self.robot.device.state.value
+            if previousCfg:
+                d = np.array(cfg)-np.array(previousCfg)
+                for i in xrange(len(d)):
+                    if abs(d[i]) > 0.1:
+                        sys.stdout.write(discontinuityFmt.format(i)+'\n')
+            previousCfg = cfg
 
             # Output.
             tControl = endTime - controlStartTime
