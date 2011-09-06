@@ -1,0 +1,186 @@
+# The robot walks while avoiding obstacles in a constrained environment
+# and finishes its motion at its starting point.
+
+duration: 200
+maximum-correction-per-step: {x: 0.02, y: 0.02, theta: 0.05}
+#maximum-correction-per-step: {x: 0.0, y: 0.0, theta: 0.0}
+
+environment:
+  - object:
+      name: shelf
+      planned:
+        model: shelf.py
+        position: {x: 2.5, y: -0.25, rz: 0.785}
+      estimated:
+        model: shelf.py
+
+  - object:
+      name: chair
+      planned:
+        model: chair.py
+        position: {x: 2.5, y: 1.25, rz: 0.}
+      estimated:
+        model: chair.py
+
+  - object:
+      name: light
+      planned:
+        model: light.py
+        position: {x: 2.8, y: -0.1, rz: 0.}
+      estimated:
+        model: light.py
+
+  - object:
+      name: table
+      planned:
+        model: table.py
+        position: {x: 3.6, y: 0.8, rz: -0.785}
+      estimated:
+        model: table.py
+
+  - object:
+      name: stand
+      planned:
+        model: stand.py
+        position: {x: 2.2, y: -1.1}
+      estimated:
+        model: stand.py
+
+motion:
+  - walk:
+      interval: [0, 1]
+      footsteps:
+      # start
+      - {x: 0.20, y: -0.19, theta: 0., slide1: 0., slide2: -0.76}
+      - {x: 0.20, y: +0.24, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.20, y: -0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.20, y: +0.20, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.20, y: -0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+
+      # between chair and shelve
+      - {x: 0.15, y: +0.19, theta: 0.3, slide1: -0.5, slide2: -0.76}
+      - {x: 0.15, y: -0.27, theta: 0.2, slide1: -0.5, slide2: -0.76}
+
+      - {x: 0.15, y: +0.23, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.15, y: -0.20, theta: -0.1, slide1: -0.5, slide2: -0.76}
+
+      - {x: 0.1, y: +0.27, theta: 0.1, slide1: -0.5, slide2: -0.76}
+      - {x: 0.1, y: -0.22, theta: -0.3, slide1: -0.5, slide2: -0.76}
+
+      - {x: 0.1, y: +0.23, theta: -0.1, slide1: -0.5, slide2: -0.76}
+      - {x: 0.1, y: -0.22, theta: -0.3, slide1: -0.5, slide2: -0.76}
+
+      - {x: 0.2, y: +0.19, theta: 0.1, slide1: -0.5, slide2: -0.76}
+
+      - {x: 0., y: -0.25, theta: 0.4, slide1: -0.5, slide2: -0.76}
+
+      ############## PHASE 2 ##############
+      - {x: 0.2, y: +0.25, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.1, y: -0.15, theta: 0., slide1: -0.5, slide2: -0.76}
+
+      - {x: 0.1, y: +0.23, theta: -0.1, slide1: -0.5, slide2: -0.76}
+      - {x: 0.1, y: -0.22, theta: -0.3, slide1: -0.5, slide2: -0.76}
+
+      - {x: 0.2, y: +0.23, theta: -0.1, slide1: -0.5, slide2: -0.76}
+      - {x: 0. , y: -0.23, theta: -0.1, slide1: -0.5, slide2: -0.76}
+
+      - {x: 0.2, y: +0.23, theta: -0.1, slide1: -0.5, slide2: -0.76}
+      - {x: 0. , y: -0.23, theta: -0.1, slide1: -0.5, slide2: -0.76}
+      - {x: 0.05, y: +0.23, theta: -0.3, slide1: -0.5, slide2: -0.76}
+
+      - {x: 0.05 , y: -0.23, theta: -0.1, slide1: -0.5, slide2: -0.76}
+
+      - {x: 0.20, y: +0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.20, y: -0.24, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.10, y: +0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.10, y: -0.24, theta: 0., slide1: -0.5, slide2: -0.76}
+
+      ############## PHASE 3 ##############
+      - {x: 0.10, y: +0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.10, y: -0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+
+      # between the shelve and the stand
+      - {x: 0., y: +0.19, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: 0., slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: -0.3, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0., y: +0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+
+      # back to start
+      - {x: 0.1, y: -0.19, theta: -0.1, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: +0.19, theta: -0.1, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: -0.19, theta: -0.1, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: +0.19, theta: -0.1, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: -0.19, theta: -0.1, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: +0.19, theta: -0.1, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: -0.19, theta: -0.1, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: +0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: -0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: +0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+
+      - {x: 0.15, y: -0.19, theta: -0.0, slide1: -1.00, slide2: -0.76}
+      - {x: 0.15, y: +0.19, theta: -0.0, slide1: -1.00, slide2: -0.76}
+      - {x: 0.15, y: -0.19, theta: -0.0, slide1: -1.00, slide2: -0.76}
+      - {x: 0.15, y: +0.19, theta: -0.0, slide1: -1.00, slide2: -0.76}
+      - {x: 0.15, y: -0.19, theta: -0.0, slide1: -1.00, slide2: -0.76}
+      - {x: 0.15, y: +0.19, theta: -0.0, slide1: -1.00, slide2: -0.76}
+
+      - {x: 0.1, y: -0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: +0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: -0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: +0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0.1, y: -0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+      - {x: 0.15, y: +0.19, theta: -0.2, slide1: -1.00, slide2: -0.76}
+
+
+      # back to start !
+      - {x: 0.20, y: -0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.20, y: +0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.20, y: -0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.20, y: +0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.20, y: -0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+
+      - {x: 0.0, y: +0.19, theta: -0.3, slide1: -0.5, slide2: -0.76}
+      - {x: 0.0, y: -0.19, theta: -0.3, slide1: -0.5, slide2: -0.76}
+      - {x: 0.0, y: +0.19, theta: -0.3, slide1: -0.5, slide2: -0.76}
+      - {x: 0.0, y: -0.19, theta: -0.3, slide1: -0.5, slide2: -0.76}
+      - {x: 0.0, y: +0.19, theta: -0.3, slide1: -0.5, slide2: -0.76}
+      - {x: 0.0, y: -0.19, theta: -0.18318530717959,
+         slide1: -0.5, slide2: -0.76}
+      - {x: -0.218470008128, y: +0.19, theta: -0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.0, y: -0.25, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.0, y: +0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.0, y: -0.25, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.0, y: +0.170377724512, theta: 0., slide1: -0.5, slide2: -0.76}
+      - {x: 0.0, y: -0.19, theta: 0., slide1: -0.5, slide2: -0.76}
+
+
+control:
+  - mocap:
+      weight: 1.
+      tracked-body: left-ankle
+      perceived-body: left-foot
+
+  - constant:
+      weight: 0.
+      error: {x: 1., y: 1., theta: 1.}
