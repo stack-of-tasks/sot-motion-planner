@@ -68,7 +68,8 @@ class MotionPlanViewer(object):
                  logger,
                  enableObstacles = True,
                  enableFootsteps = True,
-                 enableRobot = True):
+                 enableRobot = True,
+                 logOpPoints = False):
         logger.debug('creating MotionPlanViewer instance')
         self.robot = robot
         self.plan = plan
@@ -78,6 +79,10 @@ class MotionPlanViewer(object):
         self.enableFootsteps = enableFootsteps
         self.enableRobot = enableRobot
         self.elements = client.listElements()
+        self.logOpPoints = logOpPoints
+
+        # Store operational points trajectories.
+        self.positions = {'waist': [], 'gaze': []}
 
         #FIXME: does not work for now, ""race condition"" between the GL/CORBA
         # thread in robot-viewer.
@@ -156,12 +161,29 @@ class MotionPlanViewer(object):
         if self.enableObstacles:
             drawObstacles(self.client, self.plan, self.robot, self.elements)
 
+    def storePositions(self):
+        if not self.logOpPoints:
+            return
+
+        for op in ['waist', 'gaze']:
+            f = open('/tmp/{0}.dat'.format(op), 'w+')
+            for w in self.positions[op]:
+                w = np.matrix(w)
+                for i in xrange(4):
+                    for j in xrange(4):
+                        f.write('{0} '.format(w[i, j]))
+                f.write('\n')
+
+        self.logger.info('saving op points trajectories')
+
     def reset(self):
         self.logger.info('execution interrupted')
 
         # Write traces.
         if self.plan.feetFollower:
             self.plan.feetFollower.trace.dump()
+
+        self.storePositions()
 
         # Try to reset the robot.
         try:
@@ -211,6 +233,9 @@ class MotionPlanViewer(object):
             self.robot.device.increment(self.step)
             endTime = time.clock()
 
+            self.positions['waist'].append(self.robot.dynamic.waist.value)
+            self.positions['gaze'].append(self.robot.dynamic.gaze.value)
+
             # Safety checks.
             cfg = self.robot.device.state.value
             if previousCfg:
@@ -241,5 +266,6 @@ class MotionPlanViewer(object):
                 time.sleep(self.step - tAll)
         sys.stdout.write('\n')
         self.logger.info('execution finished')
+        self.storePositions()
         if self.plan.feetFollower:
             self.plan.feetFollower.trace.dump()

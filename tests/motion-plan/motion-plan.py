@@ -32,7 +32,8 @@ try:
     print(motionPlan)
     if clt:
         motionPlanViewer = MotionPlanViewer(motionPlan, robot, clt,
-                                            motionPlan.logger)
+                                            motionPlan.logger,
+                                            logOpPoints = False)
         motionPlanViewer.play()
 except yaml.YAMLError, e:
     print("failed to parse YAML file: " + str(e))
