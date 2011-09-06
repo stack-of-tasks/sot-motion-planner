@@ -15,6 +15,7 @@
 # received a copy of the GNU Lesser General Public License along with
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 import os
 from dynamic_graph.sot.motion_planner.math import *
 from dynamic_graph.sot.motion_planner.motion_plan import *

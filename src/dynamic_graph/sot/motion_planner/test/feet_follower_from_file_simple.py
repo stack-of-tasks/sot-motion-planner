@@ -15,6 +15,7 @@
 # received a copy of the GNU Lesser General Public License along with
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
 from dynamic_graph.sot.dynamics.tools import *
 from dynamic_graph.sot.motion_planner.feet_follower_graph import *
 from __main__ import robot, solver

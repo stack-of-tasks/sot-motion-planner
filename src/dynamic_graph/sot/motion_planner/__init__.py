@@ -15,6 +15,8 @@
 # received a copy of the GNU Lesser General Public License along with
 # sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+
 from localizer import Localizer
 
 from feet_follower import \
