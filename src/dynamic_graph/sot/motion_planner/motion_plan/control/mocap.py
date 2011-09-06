@@ -53,7 +53,9 @@ class ControlMocap(Control):
         """
         self.corba.signal(self.perceivedBody).recompute(
             self.corba.signal(self.perceivedBody).time + 1)
-        self.robot.dynamic.waist.recompute(self.robot.dynamic.waist.time + 1)
+        self.robot.dynamic.signal(
+            self.trackedBody).recompute(self.robot.dynamic.signal(
+                self.trackedBody).time + 1)
 
         mocapMfoot = XYThetaToHomogeneousMatrix(
             self.corba.signal(self.perceivedBody).value)
@@ -80,7 +82,7 @@ class ControlMocap(Control):
             print ("evart-to-client not launched, abandon.")
             return False
         if len(self.corba.signal(self.perceivedBody).value) != 3:
-            print ("waist not tracked, abandon.")
+            print ("{0} not tracked, abandon.".format(self.perceivedBody))
             return False
 
         sMm = self.computeWorldTransformationFromFoot()
