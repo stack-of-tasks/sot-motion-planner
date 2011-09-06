@@ -1,0 +1,7 @@
+glTranslatef(1,0,0)
+glMaterialfv(GL_FRONT_AND_BACK,  GL_AMBIENT_AND_DIFFUSE, [1,0,0,1])
+glMaterialfv(GL_FRONT_AND_BACK,  GL_SPECULAR           , [1,1,1,1])
+glMaterialfv(GL_FRONT_AND_BACK,  GL_EMISSION           , [1,0,0,1])
+glMaterialfv(GL_FRONT_AND_BACK,  GL_SHININESS          , 10)
+quad = gluNewQuadric()
+gluDisk(quad,0, 0.2,20,20)

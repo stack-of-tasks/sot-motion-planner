@@ -1,0 +1,6 @@
+glMaterialfv(GL_FRONT_AND_BACK,  GL_AMBIENT_AND_DIFFUSE, [0,0,1,1])
+glMaterialfv(GL_FRONT_AND_BACK,  GL_SPECULAR           , [1,1,1,1])
+glMaterialfv(GL_FRONT_AND_BACK,  GL_EMISSION           , [0,0,1,1])
+glMaterialfv(GL_FRONT_AND_BACK,  GL_SHININESS          , 20)
+quad = gluNewQuadric()
+gluSphere(quad,0.05,20,20)
