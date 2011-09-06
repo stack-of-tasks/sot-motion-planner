@@ -62,9 +62,8 @@ namespace command
 
 class FeetFollowerAnalyticalPg : public FeetFollower
 {
+  DYNAMIC_GRAPH_ENTITY_DECL ();
 public:
-  static const std::string CLASS_NAME;
-
   static const double STEP;
 
   explicit FeetFollowerAnalyticalPg (const std::string& name);

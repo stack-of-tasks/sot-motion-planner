@@ -143,7 +143,7 @@ struct WalkMovement
 
 class FeetFollower : public dg::Entity
 {
- public:
+public:
   typedef dg::SignalTimeDependent<ml::Vector, int> signalCoM_t;
   typedef dg::SignalTimeDependent<ml::Vector, int> signalCoMVelocity_t;
   typedef dg::SignalTimeDependent<sot::MatrixHomogeneous, int> signalFoot_t;
@@ -151,11 +151,6 @@ class FeetFollower : public dg::Entity
 
   explicit FeetFollower (const std::string& name);
   virtual ~FeetFollower ();
-
-  virtual const std::string& getClassName ()
-  {
-    return CLASS_NAME;
-  }
 
   void start ();
   void update (int t);

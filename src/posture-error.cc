@@ -38,11 +38,10 @@ using ::dynamicgraph::command::Setter;
 
 class PostureError : public dg::Entity
 {
- public:
+  DYNAMIC_GRAPH_ENTITY_DECL ();
+public:
   typedef dg::SignalPtr<ml::Vector, int> signalIn_t;
   typedef dg::SignalTimeDependent<ml::Vector, int> signalOut_t;
-
-  static const std::string CLASS_NAME;
 
   explicit PostureError (const std::string& name)
     : Entity(name),
@@ -64,11 +63,6 @@ class PostureError : public dg::Entity
 
   virtual ~PostureError ()
   {}
-
-  virtual const std::string& getClassName ()
-  {
-    return CLASS_NAME;
-  }
 
 private:
   ml::Vector& updateError (ml::Vector& res, int t)

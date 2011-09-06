@@ -29,9 +29,8 @@ namespace fs = boost::filesystem;
 
 class FeetFollowerFromFile : public FeetFollower
 {
+  DYNAMIC_GRAPH_ENTITY_DECL ();
 public:
-  static const std::string CLASS_NAME;
-
   static const double STEP;
 
   explicit FeetFollowerFromFile (const std::string& name);

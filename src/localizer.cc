@@ -148,10 +148,9 @@ namespace command
 namespace ublas = boost::numeric::ublas;
 class Localizer : public dg::Entity
 {
+  DYNAMIC_GRAPH_ENTITY_DECL ();
 public:
   typedef dg::SignalTimeDependent<ml::Vector, int> signalOutVector_t;
-
-  static const std::string CLASS_NAME;
 
   explicit Localizer (const std::string& name);
 

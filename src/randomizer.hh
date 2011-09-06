@@ -46,18 +46,12 @@ namespace sot
 
 class Randomizer : public dg::Entity
 {
- public:
-  static const std::string CLASS_NAME;
-
+  DYNAMIC_GRAPH_ENTITY_DECL ();
+public:
   typedef dg::SignalTimeDependent<ml::Vector, int> signalVector_t;
 
   explicit Randomizer (const std::string& name);
   virtual ~Randomizer ();
-
-  virtual const std::string& getClassName ()
-  {
-    return CLASS_NAME;
-  }
 
   void addSignal (const std::string& name, unsigned size);
 

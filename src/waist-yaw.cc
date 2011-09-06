@@ -36,11 +36,10 @@ namespace sot
 
 class WaistYaw : public dg::Entity
 {
- public:
+  DYNAMIC_GRAPH_ENTITY_DECL ();
+public:
   typedef dg::SignalPtr<ml::Vector, int> signalIn_t;
   typedef dg::SignalTimeDependent<ml::Vector, int> signalOut_t;
-
-  static const std::string CLASS_NAME;
 
   explicit WaistYaw (const std::string& name)
     : Entity(name),
@@ -63,11 +62,6 @@ class WaistYaw : public dg::Entity
 
   virtual ~WaistYaw ()
   {}
-
-  virtual const std::string& getClassName ()
-  {
-    return CLASS_NAME;
-  }
 
 private:
   ml::Vector& updateError (ml::Vector& res, int t)

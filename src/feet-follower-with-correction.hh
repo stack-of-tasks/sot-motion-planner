@@ -63,6 +63,7 @@ struct Correction
 /// FIXME: document.
 class FeetFollowerWithCorrection : public FeetFollower
 {
+  DYNAMIC_GRAPH_ENTITY_DECL ();
 public:
   /// \brief Vector input signal.
   typedef dg::SignalPtr<ml::Vector, int> signalVectorIn_t;
@@ -71,15 +72,8 @@ public:
 
   typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalMatrixHomoIn_t;
 
-  static const std::string CLASS_NAME;
-
   explicit FeetFollowerWithCorrection (const std::string& name);
   virtual ~FeetFollowerWithCorrection ();
-
-  virtual const std::string& getClassName ()
-  {
-    return CLASS_NAME;
-  }
 
   virtual boost::optional<const WalkMovement&> walkMovement () const
   {
