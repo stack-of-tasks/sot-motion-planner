@@ -1,7 +1,7 @@
 # The robot walks in place and corrects its trajectory using the
 # motion capture system.
 
-duration: 12
+duration: 24
 
 maximum-correction-per-step: {x: 0.0, y: 0.0, theta: 0.0}
 
