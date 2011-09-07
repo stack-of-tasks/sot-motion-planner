@@ -98,7 +98,7 @@ class ControlMocap(Control):
     def interactiveStart(self, name, feetFollowerWithCorrection):
         while len(self.corba.signals()) == 3:
             raw_input("Press enter after starting evart-to-corba.")
-        while len(self.corba.signal('left-foot').value) != 3:
+        while len(self.corba.signal(self.perceivedBody).value) != 3:
             raw_input("Body not tracked...")
         return self.start(name, feetFollowerWithCorrection)
 
@@ -107,7 +107,7 @@ class ControlMocap(Control):
             return False
         if len(self.corba.signals()) == 3:
             return False
-        if len(self.corba.signal('left-foot').value) != 3:
+        if len(self.corba.signal(self.perceivedBody).value) != 3:
             return False
         return True
 
