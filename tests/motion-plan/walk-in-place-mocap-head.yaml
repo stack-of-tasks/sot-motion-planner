@@ -1,13 +1,15 @@
 # The robot walks in place and corrects its trajectory using the
 # motion capture system.
 
-duration: 10
+duration: 12
 
 maximum-correction-per-step: {x: 0.0, y: 0.0, theta: 0.0}
 
 motion:
   - walk:
       interval: [0, 1]
+      waist-trajectory: walk-in-place-mocap-head-waist.dat
+      gaze-trajectory: walk-in-place-mocap-head-gaze.dat
       footsteps:
       - {x: 0., y: -0.19, theta: 0.}
       - {x: 0., y:  0.19, theta: 0.}
