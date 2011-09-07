@@ -83,6 +83,7 @@ WalkMovement::WalkMovement
  const sot::DiscretizedTrajectory& zmp,
  const sot::DiscretizedTrajectory& waistYaw,
  const sot::DiscretizedTrajectory& waist,
+ const sot::DiscretizedTrajectory& gaze,
  const sot::MatrixHomogeneous& wMw_traj)
   : leftFoot (leftFoot),
     rightFoot (rightFoot),
@@ -90,6 +91,7 @@ WalkMovement::WalkMovement
     zmp (zmp),
     waistYaw (waistYaw),
     waist (waist),
+    gaze (gaze),
     wMw_traj (wMw_traj)
 {}
 
@@ -102,6 +104,7 @@ FeetFollower::FeetFollower (const std::string& name)
     zmp_ (3),
     waistYaw_ (),
     waist_ (),
+    gaze_ (),
     leftAnkle_ (),
     rightAnkle_ (),
     comVelocity_ (3),
@@ -121,6 +124,8 @@ FeetFollower::FeetFollower (const std::string& name)
 		  ("waistYaw", FeetFollower::updateWaistYaw, "MatrixHomo")),
     waistOut_ (INIT_SIGNAL_OUT
 	       ("waist", FeetFollower::updateWaist, "MatrixHomo")),
+    gazeOut_ (INIT_SIGNAL_OUT
+	       ("gaze", FeetFollower::updateGaze, "MatrixHomo")),
     leftAnkleOut_
     (INIT_SIGNAL_OUT
      ("left-ankle", FeetFollower::updateLeftAnkle, "MatrixHomo")),
@@ -143,7 +148,8 @@ FeetFollower::FeetFollower (const std::string& name)
      ("right-ankleVelocity",
       FeetFollower::updateRightAnkleVelocity, "MatrixHomo"))
 {
-  signalRegistration (zmpOut_ << comOut_ << waistYawOut_ << waistOut_
+  signalRegistration (zmpOut_ << comOut_ << waistYawOut_
+		      << waistOut_ << gazeOut_
 		      << leftAnkleOut_ << rightAnkleOut_
 		      << comVelocityOut_ << waistYawVelocityOut_
 		      << leftAnkleVelocityOut_ << rightAnkleVelocityOut_);
@@ -152,6 +158,7 @@ FeetFollower::FeetFollower (const std::string& name)
   comOut_.setNeedUpdateFromAllChildren (true);
   waistYawOut_.setNeedUpdateFromAllChildren (true);
   waistOut_.setNeedUpdateFromAllChildren (true);
+  gazeOut_.setNeedUpdateFromAllChildren (true);
   leftAnkleOut_.setNeedUpdateFromAllChildren (true);
   rightAnkleOut_.setNeedUpdateFromAllChildren (true);
 
@@ -238,6 +245,14 @@ FeetFollower::updateWaist (sot::MatrixHomogeneous& res, int t)
   return res;
 }
 
+sot::MatrixHomogeneous&
+FeetFollower::updateGaze (sot::MatrixHomogeneous& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = gaze_;
+  return res;
+}
 
 sot::MatrixHomogeneous&
 FeetFollower::updateLeftAnkle (sot::MatrixHomogeneous& res, int t)

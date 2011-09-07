@@ -52,6 +52,7 @@ WalkMovement loadFromFile(const fs::path& LeftFootPath,
 			    const fs::path& ZmpPath,
 			    const fs::path& WaistYawPath,
 			    const fs::path& WaistPath,
+			    const fs::path& GazePath,
 			  const double& step)
 {
   return WalkMovement
@@ -67,6 +68,8 @@ WalkMovement loadFromFile(const fs::path& LeftFootPath,
      (WaistYawPath, step, "waist-yaw"),
      sot::DiscretizedTrajectory::loadTrajectoryFromFile
      (WaistPath, step, "waist"),
+     sot::DiscretizedTrajectory::loadTrajectoryFromFile
+     (GazePath, step, "gaze"),
      sot::MatrixHomogeneous ());
 }
 
@@ -95,6 +98,7 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
   fs::path trajectoryZmpPath = trajectoryPath / "zmp.dat";
   fs::path trajectoryWaistYawPath = trajectoryPath / "waist-yaw.dat";
   fs::path trajectoryWaistPath = trajectoryPath / "waist.dat";
+  fs::path trajectoryGazePath = trajectoryPath / "gaze.dat";
 
   if (!fs::is_directory (trajectoryPath))
     {
@@ -144,6 +148,14 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
       return;
     }
 
+  if (!fs::exists (trajectoryGazePath)
+      || fs::is_directory (trajectoryGazePath))
+    {
+      std::cerr << "invalid waist trajectory file" << std::endl;
+      return;
+    }
+
+
 
   trajectories_ = loadFromFile (trajectoryLeftFootPath,
 				trajectoryRightFootPath,
@@ -151,6 +163,7 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
 				trajectoryZmpPath,
 				trajectoryWaistYawPath,
 				trajectoryWaistPath,
+				trajectoryGazePath,
 				STEP);
 
   // Reset the movement.

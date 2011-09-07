@@ -261,7 +261,8 @@ class FeetFollowerAnalyticalPgGraph(FeetFollowerGraph):
         (-0.,  0.24, 0.25,-0., 0.31,-0.00, 0.),
         ]
 
-    def __init__(self, robot, solver, steps = defaultSteps, comZ = None, waistFile = None):
+    def __init__(self, robot, solver, steps = defaultSteps, comZ = None, waistFile = None,
+                 gazeFile = None):
         FeetFollowerGraph.__init__(self, robot, solver)
         self.feetFollower = FeetFollowerAnalyticalPg('feet-follower')
         self.setAnklePosition()
@@ -272,6 +273,8 @@ class FeetFollowerAnalyticalPgGraph(FeetFollowerGraph):
             self.feetFollower.setComZ(self.robot.dynamic.com.value[2])
         if waistFile:
             self.feetFollower.setWaistFile(waistFile)
+        if gazeFile:
+            self.feetFollower.setGazeFile(gazeFile)
         if steps:
             for step in steps:
                 self.feetFollower.pushStep(step)

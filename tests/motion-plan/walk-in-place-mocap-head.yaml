@@ -3,6 +3,8 @@
 
 duration: 10
 
+maximum-correction-per-step: {x: 0.0, y: 0.0, theta: 0.0}
+
 motion:
   - walk:
       interval: [0, 1]
@@ -13,9 +15,15 @@ motion:
       - {x: 0., y:  0.19, theta: 0.}
       - {x: 0., y: -0.19, theta: 0.}
       - {x: 0., y:  0.19, theta: 0.}
+      - {x: 0., y: -0.19, theta: 0.}
+      - {x: 0., y:  0.19, theta: 0.}
+      - {x: 0., y: -0.19, theta: 0.}
+      - {x: 0., y:  0.19, theta: 0.}
+      - {x: 0., y: -0.19, theta: 0.}
+      - {x: 0., y:  0.19, theta: 0.}
 
 control:
   - mocap:
       weight: 1.
-      tracked-body: hrp2-head
-      perceived-body: gaze
+      tracked-body: gaze
+      perceived-body: head

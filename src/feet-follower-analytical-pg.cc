@@ -69,6 +69,12 @@ FeetFollowerAnalyticalPg::FeetFollowerAnalyticalPg (const std::string& name)
 	      new Setter<FeetFollowerAnalyticalPg, std::string>
 	      (*this,
 	       &FeetFollowerAnalyticalPg::setWaistFile, docstring));
+
+  docstring = "set gaze trajectory file";
+  addCommand ("setGazeFile",
+	      new Setter<FeetFollowerAnalyticalPg, std::string>
+	      (*this,
+	       &FeetFollowerAnalyticalPg::setGazeFile, docstring));
 }
 
 FeetFollowerAnalyticalPg::~FeetFollowerAnalyticalPg ()
@@ -141,6 +147,7 @@ FeetFollowerAnalyticalPg::impl_update ()
   const Trajectory::vector_t& com = trajectories_->com (t);
   const Trajectory::vector_t& waistYaw = trajectories_->waistYaw (t);
   const Trajectory::vector_t& waist = trajectories_->waist (t);
+  const Trajectory::vector_t& gaze = trajectories_->gaze (t);
 
   if (leftFoot.size () != 4 || rightFoot.size () != 4
       || com.size () != 3 || zmp.size () != 3)
@@ -185,7 +192,10 @@ FeetFollowerAnalyticalPg::impl_update ()
 
   for (unsigned i = 0; i < 4; ++i)
     for (unsigned j = 0; j < 4; ++j)
-      waist_ (i, j) = waist (i * 4 + j);
+      {
+	waist_ (i, j) = waist (i * 4 + j);
+	gaze_ (i, j) = gaze (i * 4 + j);
+      }
 
   updateVelocities ();
 
@@ -317,6 +327,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   std::vector<vector_t> zmpData;
   std::vector<vector_t> waistYawData;
   std::vector<vector_t> waistData;
+  std::vector<vector_t> gazeData;
 
   leftFootData.reserve (stepFeatures.size);
   rightFootData.reserve (stepFeatures.size);
@@ -324,6 +335,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   zmpData.reserve (stepFeatures.size);
   waistYawData.reserve (stepFeatures.size);
   waistData.reserve (stepFeatures.size);
+  gazeData.reserve (stepFeatures.size);
 
   for (unsigned i = 0; i < stepFeatures.size; ++i)
     {
@@ -384,12 +396,35 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 	      << waistFile_
 	      <<"' does not exist" << std::endl;
 
+  if (boost::filesystem::exists (gazeFile_))
+    {
+      boost::filesystem::ifstream file(gazeFile_);
+      vector_t gazePosition (16);
+      while (file.good ())
+	{
+	  for (unsigned i = 0; i < 16; ++i)
+	    file >> gazePosition (i);
+	  gazeData.push_back(gazePosition);
+	}
+    }
+  else
+    std::cerr << "warning: gaze file '"
+	      << gazeFile_
+	      <<"' does not exist" << std::endl;
+
   if (waistData.size () != stepFeatures.size)
     {
       boost::format fmt ("warning: bad waist size (%1% != %2%)");
       fmt % waistData.size () % stepFeatures.size;
       std::cerr << fmt.str () << std::endl;
       waistData.resize (stepFeatures.size, vector_t (16));
+    }
+  if (gazeData.size () != stepFeatures.size)
+    {
+      boost::format fmt ("warning: bad gaze size (%1% != %2%)");
+      fmt % gazeData.size () % stepFeatures.size;
+      std::cerr << fmt.str () << std::endl;
+      gazeData.resize (stepFeatures.size, vector_t (16));
     }
 
 
@@ -419,6 +454,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
      sot::DiscretizedTrajectory (range, zmpData, "zmp"),
      sot::DiscretizedTrajectory (range, waistYawData, "waist-yaw"),
      sot::DiscretizedTrajectory (range, waistData, "waist"),
+     sot::DiscretizedTrajectory (range, gazeData, "gaze"),
      wMw_traj);
 
 

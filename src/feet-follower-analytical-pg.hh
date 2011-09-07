@@ -99,6 +99,12 @@ public:
     waistFile_ = boost::filesystem::path (waistFile);
   }
 
+  void
+  setGazeFile (const std::string& gazeFile)
+  {
+    gazeFile_ = boost::filesystem::path (gazeFile);
+  }
+
 private:
   virtual void impl_update ();
   void updateVelocities ();
@@ -109,6 +115,7 @@ private:
   boost::optional<WalkMovement> trajectories_;
   unsigned index_;
   boost::filesystem::path waistFile_;
+  boost::filesystem::path gazeFile_;
 };
 
 #endif //! SOT_MOTION_PLANNER_FEET_FOLLOWER_ANALYTICAL_PG_HH

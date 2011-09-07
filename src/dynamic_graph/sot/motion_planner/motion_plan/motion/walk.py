@@ -29,6 +29,7 @@ class MotionWalk(Motion):
 
     footsteps = None
     waistFile = None
+    gazeFile = None
     feetFollower = None
 
     def __init__(self, motion, yamlData):
@@ -41,9 +42,11 @@ class MotionWalk(Motion):
         motion.footsteps = yamlData['footsteps']
 
         self.waistFile = yamlData.get('waist-trajectory')
+        self.gazeFile = yamlData.get('waist-trajectory')
         self.feetFollower = FeetFollowerAnalyticalPgGraph(
             motion.robot, motion.solver, steps,
-            waistFile = self.waistFile)
+            waistFile = self.waistFile,
+            gazeFile = self.gazeFile)
         #FIXME: ...
         motion.trace = self.feetFollower.trace
 
