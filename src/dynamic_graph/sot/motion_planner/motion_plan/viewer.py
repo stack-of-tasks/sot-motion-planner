@@ -71,6 +71,7 @@ class MotionPlanViewer(object):
                  enableObstacles = True,
                  enableFootsteps = True,
                  enableRobot = True,
+                 logCfg = True,
                  logOpPoints = False):
         logger.debug('creating MotionPlanViewer instance')
         self.robot = robot
@@ -81,10 +82,12 @@ class MotionPlanViewer(object):
         self.enableFootsteps = enableFootsteps
         self.enableRobot = enableRobot
         self.elements = client.listElements()
+        self.logCfg = logCfg
         self.logOpPoints = logOpPoints
 
         # Store operational points trajectories.
         self.positions = {'waist': [], 'gaze': [], 'zmp': []}
+        self.configurations = []
 
         #FIXME: does not work for now, ""race condition"" between the GL/CORBA
         # thread in robot-viewer.
@@ -160,18 +163,27 @@ class MotionPlanViewer(object):
             drawObstacles(self.client, self.plan, self.robot, self.elements)
 
     def storePositions(self):
-        if not self.logOpPoints:
-            return
+        if self.logOpPoints:
+            for op in self.storedOpPoints:
+                f = open('/tmp/{0}.dat'.format(op), 'w+')
+                for w in self.positions[op]:
+                    w = np.array(w)
+                    for e in w.flat:
+                        f.write('{0} '.format(e))
+                    f.write('\n')
+            self.logger.info('saving op points trajectories')
 
-        for op in self.storedOpPoints:
-            f = open('/tmp/{0}.dat'.format(op), 'w+')
-            for w in self.positions[op]:
-                w = np.array(w)
-                for e in w.flat:
+        if self.logCfg:
+            f = open('/tmp/movement.pos', 'w+')
+            t = 0.
+            for cfg in self.configurations:
+                cfg = np.array(cfg)
+                t += 0.005
+                f.write('{0} '.format(t))
+                for e in cfg.flat:
                     f.write('{0} '.format(e))
                 f.write('\n')
-
-        self.logger.info('saving op points trajectories')
+            self.logger.info('saving configurations')
 
     def reset(self):
         self.logger.info('execution interrupted')
@@ -234,6 +246,8 @@ class MotionPlanViewer(object):
                 self.robot.dynamic.signal(op).recompute(
                     self.robot.dynamic.signal(op).time + 1)
                 self.positions[op].append(self.robot.dynamic.signal(op).value)
+            self.configurations.append(
+                self.robot.smallToFull(self.robot.device.state.value)[6:])
 
             # Safety checks.
             cfg = self.robot.device.state.value

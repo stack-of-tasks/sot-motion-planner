@@ -168,7 +168,9 @@ class FeetFollowerGraph(object):
             addTrace(self.robot, self.trace,
                      self.feetFollower.name, s)
 
-        for s in self.robot.OperationalPoints + ["com", "zmp"]:
+        for s in self.robot.OperationalPoints + [
+            "com", "zmp", "angularmomentum",
+            "position", "velocity", "acceleration"]:
             addTrace(self.robot, self.trace,
                      self.robot.dynamic.name, s)
 
@@ -184,6 +186,13 @@ class FeetFollowerGraph(object):
                  self.robot.comTask.name, 'error')
         addTrace(self.robot, self.trace,
                  self.robot.device.name, 'zmp')
+
+        if 'velocityDerivator' in self.robot.__dict__:
+            addTrace(self.robot, self.trace,
+                     self.robot.velocityDerivator.name, 'sout')
+        if 'accelerationDerivator' in self.robot.__dict__:
+            addTrace(self.robot, self.trace,
+                     self.robot.accelerationDerivator.name, 'sout')
 
 
     def computeJacobianPosture(self):
