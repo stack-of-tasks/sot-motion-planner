@@ -64,6 +64,8 @@ def checkDict(k, d):
         raise RuntimError('missing key {0}'.format(k))
 
 def searchFile(f, defaultDirectories):
+    if not f:
+        return f
     for e in [''] + defaultDirectories:
         try:
             filename = '{0}/{1}'.format(e, f)
