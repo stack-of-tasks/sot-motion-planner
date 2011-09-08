@@ -117,6 +117,7 @@ class MotionPlanViewer(object):
 
     def createObject(self, name, filename, cfg = None):
         if not name in self.elements:
+            filename = searchFile(filename, self.plan.defaultDirectories)
             self.client.createElement('object', name, filename)
             self.client.enableElement(name)
             self.elements.append(name)
@@ -124,14 +125,10 @@ class MotionPlanViewer(object):
             self.client.updateElementConfig(name, cfg)
 
     def loadEnvironment(self):
-        #FIXME: not generic enough.
-        filenameFmt = '{0}/.robotviewer/{1}'
-
         for (name, obj) in self.plan.environment.items():
             namePlanned = name + '-planned'
             nameEstimated = name + '-estimated'
-            filename = filenameFmt.format(os.environ['HOME'],
-                                          obj.plannedModel)
+            filename = obj.plannedModel
 
             self.createObject(namePlanned, filename, obj.plannedPosition.pose())
 
@@ -141,8 +138,7 @@ class MotionPlanViewer(object):
                     continue
                 if control.objectName != name:
                     continue
-                filename = filenameFmt.format(os.environ['HOME'],
-                                              obj.estimatedModel)
+                filename = obj.estimatedModel
                 self.createObject(nameEstimated, filename,
                                   control.position.pose())
 

@@ -62,3 +62,14 @@ def find(f, seq):
 def checkDict(k, d):
     if not k in d:
         raise RuntimError('missing key {0}'.format(k))
+
+def searchFile(f, defaultDirectories):
+    for e in [''] + defaultDirectories:
+        try:
+            filename = '{0}/{1}'.format(e, f)
+            open(filename, "r")
+            return filename
+        except IOError:
+            pass
+    raise RuntimeError('failed to find file \'{0}\' in {1}'.format(
+            f, defaultDirectories))

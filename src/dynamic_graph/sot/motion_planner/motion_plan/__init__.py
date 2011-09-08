@@ -74,16 +74,20 @@ class MotionPlan(object):
     maxY = FeetFollowerGraphWithCorrection.maxY
     maxTheta = FeetFollowerGraphWithCorrection.maxTheta
 
-    def __init__(self, filename, robot, solver, logger = None):
+    def __init__(self, filename, robot, solver, defaultDirectories,
+                 logger = None):
         if not logger:
             logger = initializeLogging()
+
+        self.defaultDirectories = defaultDirectories
 
         self.robot = robot
         self.solver = solver
         self.logger = logger
 
         self.logger.info('loading motion plan file \'{0}\''.format(filename))
-        self.plan = yaml.load(open(filename, "r"))
+        self.plan = yaml.load(
+            open(searchFile(filename, defaultDirectories), "r"))
 
         self.duration = float(self.plan['duration'])
 
@@ -148,7 +152,7 @@ class MotionPlan(object):
 
             if not cls:
                 raise RuntimeError('invalid motion element')
-            self.motion.append(cls(self, data))
+            self.motion.append(cls(self, data, self.defaultDirectories))
             self.logger.debug('adding motion element \'{0}\''.format(tag))
 
 

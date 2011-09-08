@@ -49,7 +49,7 @@ motion:
       - {x: 0.15, y:  0.19, theta: 0.}
       - {x: 0.15, y: -0.19, theta: 0.}
       - {x: 0.15, y:  0.19, theta: 0.}
-      waist-trajectory: walk-forward-virtual-sensor-waist.dat
+      waist-trajectory: walk-forward-virtual-sensor/waist.dat
 
 control:
   - virtual-sensor:

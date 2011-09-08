@@ -28,7 +28,7 @@ class MotionTask(Motion):
     gain = None
     reference = None
 
-    def __init__(self, motion, yamlData):
+    def __init__(self, motion, yamlData, defaultDirectories):
         checkDict('interval', yamlData)
 
         if len(yamlData['interval']) != 2:

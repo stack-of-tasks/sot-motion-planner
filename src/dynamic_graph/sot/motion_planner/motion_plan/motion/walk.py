@@ -32,7 +32,7 @@ class MotionWalk(Motion):
     gazeFile = None
     feetFollower = None
 
-    def __init__(self, motion, yamlData):
+    def __init__(self, motion, yamlData, defaultDirectories):
         checkDict('footsteps', yamlData)
 
         steps = convertToNPFootstepsStack(yamlData['footsteps'])
@@ -41,9 +41,12 @@ class MotionWalk(Motion):
         #FIXME: handle multiple walk movement.
         motion.footsteps = yamlData['footsteps']
 
-        self.waistFile = yamlData.get('waist-trajectory')
-        self.gazeFile = yamlData.get('gaze-trajectory')
-        self.zmpFile = yamlData.get('zmp-trajectory')
+        self.waistFile = searchFile(yamlData.get('waist-trajectory'),
+                                    defaultDirectories)
+        self.gazeFile = searchFile(yamlData.get('gaze-trajectory'),
+                                    defaultDirectories)
+        self.zmpFile = searchFile(yamlData.get('zmp-trajectory'),
+                                    defaultDirectories)
         self.feetFollower = FeetFollowerAnalyticalPgGraph(
             motion.robot, motion.solver, steps,
             waistFile = self.waistFile,

@@ -27,13 +27,20 @@ from dynamic_graph.sot.motion_planner.motion_plan.viewer import *
 if not len(args):
     raise RuntimeError("motion plan needed")
 
+defaultDirectories = [
+    '@PKG_CONFIG_PKGDATAROOTDIR@',
+    '@PKG_CONFIG_PKGDATAROOTDIR@/obstacle',
+    '@PKG_CONFIG_PKGDATAROOTDIR@/plan',
+    '@PKG_CONFIG_PKGDATAROOTDIR@/trajectory',
+    ]
+
 try:
-    motionPlan = MotionPlan(args[0], robot, solver)
+    motionPlan = MotionPlan(args[0], robot, solver, defaultDirectories)
     print(motionPlan)
     if clt:
         motionPlanViewer = MotionPlanViewer(motionPlan, robot, clt,
                                             motionPlan.logger,
-                                            logOpPoints = False)
+                                            logOpPoints = True)
         motionPlanViewer.play()
 except yaml.YAMLError, e:
     print("failed to parse YAML file: " + str(e))
