@@ -14,4 +14,8 @@
 # sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
 CONFIG_FILES(motion-plan)
-INSTALL(PROGRAMS ${CMAKE_BINARY_DIR}/bin/motion-plan DESTINATION bin)
+CONFIG_FILES(motion-plan-remote)
+INSTALL(PROGRAMS
+  ${CMAKE_BINARY_DIR}/bin/motion-plan
+  ${CMAKE_BINARY_DIR}/bin/motion-plan-remote
+  DESTINATION bin)
