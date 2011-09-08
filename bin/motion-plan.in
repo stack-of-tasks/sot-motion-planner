@@ -16,7 +16,9 @@
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
+import sys
 import yaml
+import omniORB
 
 from dynamic_graph.sot.dynamics.tools import *
 from dynamic_graph.sot.motion_planner.motion_plan import *
@@ -43,4 +45,10 @@ try:
                                             logOpPoints = True)
         motionPlanViewer.play()
 except yaml.YAMLError, e:
-    print("failed to parse YAML file: " + str(e))
+    print("Failed to parse YAML file: " + str(e))
+    sys.exit(1)
+except omniORB.CORBA.TRANSIENT, e:
+    print("Failed to connect to robot-viewer server using omniORB (CORBA).")
+    print("Please, double check that robot-viewer is launched " + \
+              "and your omniORB configuration is correct.")
+    sys.exit(1)
