@@ -11,21 +11,26 @@ motion:
       waist-trajectory: walk-in-place-mocap-head-waist.dat
       gaze-trajectory: walk-in-place-mocap-head-gaze.dat
       footsteps:
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
+      - {x: 0., y: -0.19, theta: 0., slide1: 0., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y: -0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y: -0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y: -0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y: -0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y: -0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
 
 control:
   - mocap:
       weight: 1.
       tracked-body: gaze
       perceived-body: head
+
+#  - mocap:
+#      weight: 1.
+#      tracked-body: left-ankle
+#      perceived-body: left-foot
