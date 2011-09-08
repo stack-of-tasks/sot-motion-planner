@@ -64,6 +64,8 @@ class MotionPlanViewer(object):
     step = 5e-3
     robotElementName = 'hrp'
 
+    storedOpPoints = ['waist', 'gaze', 'zmp']
+
     def __init__(self, plan, robot, client,
                  logger,
                  enableObstacles = True,
@@ -82,7 +84,7 @@ class MotionPlanViewer(object):
         self.logOpPoints = logOpPoints
 
         # Store operational points trajectories.
-        self.positions = {'waist': [], 'gaze': []}
+        self.positions = {'waist': [], 'gaze': [], 'zmp': []}
 
         #FIXME: does not work for now, ""race condition"" between the GL/CORBA
         # thread in robot-viewer.
@@ -165,13 +167,12 @@ class MotionPlanViewer(object):
         if not self.logOpPoints:
             return
 
-        for op in ['waist', 'gaze']:
+        for op in self.storedOpPoints:
             f = open('/tmp/{0}.dat'.format(op), 'w+')
             for w in self.positions[op]:
-                w = np.matrix(w)
-                for i in xrange(4):
-                    for j in xrange(4):
-                        f.write('{0} '.format(w[i, j]))
+                w = np.array(w)
+                for e in w.flat:
+                    f.write('{0} '.format(e))
                 f.write('\n')
 
         self.logger.info('saving op points trajectories')
@@ -233,8 +234,10 @@ class MotionPlanViewer(object):
             self.robot.device.increment(self.step)
             endTime = time.clock()
 
-            self.positions['waist'].append(self.robot.dynamic.waist.value)
-            self.positions['gaze'].append(self.robot.dynamic.gaze.value)
+            for op in self.storedOpPoints:
+                self.robot.dynamic.signal(op).recompute(
+                    self.robot.dynamic.signal(op).time + 1)
+                self.positions[op].append(self.robot.dynamic.signal(op).value)
 
             # Safety checks.
             cfg = self.robot.device.state.value
