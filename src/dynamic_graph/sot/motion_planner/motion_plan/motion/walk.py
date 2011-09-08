@@ -42,11 +42,13 @@ class MotionWalk(Motion):
         motion.footsteps = yamlData['footsteps']
 
         self.waistFile = yamlData.get('waist-trajectory')
-        self.gazeFile = yamlData.get('waist-trajectory')
+        self.gazeFile = yamlData.get('gaze-trajectory')
+        self.zmpFile = yamlData.get('zmp-trajectory')
         self.feetFollower = FeetFollowerAnalyticalPgGraph(
             motion.robot, motion.solver, steps,
             waistFile = self.waistFile,
-            gazeFile = self.gazeFile)
+            gazeFile = self.gazeFile,
+            zmpFile = self.zmpFile)
         #FIXME: ...
         motion.trace = self.feetFollower.trace
 

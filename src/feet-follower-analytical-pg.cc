@@ -75,6 +75,12 @@ FeetFollowerAnalyticalPg::FeetFollowerAnalyticalPg (const std::string& name)
 	      new Setter<FeetFollowerAnalyticalPg, std::string>
 	      (*this,
 	       &FeetFollowerAnalyticalPg::setGazeFile, docstring));
+
+  docstring = "set zmp trajectory file (to use instead of generated one)";
+  addCommand ("setZmpFile",
+	      new Setter<FeetFollowerAnalyticalPg, std::string>
+	      (*this,
+	       &FeetFollowerAnalyticalPg::setZmpFile, docstring));
 }
 
 FeetFollowerAnalyticalPg::~FeetFollowerAnalyticalPg ()
@@ -412,6 +418,24 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 	      << gazeFile_
 	      <<"' does not exist" << std::endl;
 
+  if (boost::filesystem::exists (zmpFile_))
+    {
+      boost::filesystem::ifstream file(zmpFile_);
+      vector_t zmpPosition (3);
+      zmpData.resize (0);
+      while (file.good ())
+	{
+	  for (unsigned i = 0; i < 3; ++i)
+	    file >> zmpPosition (i);
+	  zmpData.push_back(zmpPosition);
+	}
+    }
+  else
+    std::cerr << "warning: zmp file '"
+	      << zmpFile_
+	      <<"' does not exist, using generated trajectory instead."
+	      << std::endl;
+
   if (waistData.size () != stepFeatures.size)
     {
       boost::format fmt ("warning: bad waist size (%1% != %2%)");
@@ -425,6 +449,13 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
       fmt % gazeData.size () % stepFeatures.size;
       std::cerr << fmt.str () << std::endl;
       gazeData.resize (stepFeatures.size, vector_t (16));
+    }
+  if (zmpData.size () != stepFeatures.size)
+    {
+      boost::format fmt ("warning: bad zmp size (%1% != %2%)");
+      fmt % zmpData.size () % stepFeatures.size;
+      std::cerr << fmt.str () << std::endl;
+      zmpData.resize (stepFeatures.size, vector_t (16));
     }
 
 
