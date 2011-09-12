@@ -27,6 +27,8 @@ from dynamic_graph.sot.motion_planner.feet_follower import \
 from dynamic_graph.sot.motion_planner.feet_follower_graph import \
     FeetFollowerGraph
 
+from dynamic_graph.sot.motion_planner.motion_plan.tools import addTrace
+
 from dynamic_graph.corba_server import CorbaServer
 
 class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
@@ -168,7 +170,7 @@ class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
             self.robot.tasks['right-ankle'].controlGain.value = self.gain
             self.feetFollowerGraph.postureTask.controlGain.value = self.gain
             self.robot.tasks['waist'].controlGain.value = self.gain
-            self.feetFollowerGraph.setupTrace()
+            self.setupTrace()
             if beforeStart:
                 beforeStart()
             self.feetFollowerGraph.trace.start()
@@ -178,67 +180,13 @@ class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
 
     def setupTrace(self):
         self.feetFollowerGraph.setupTrace()
-        signals = ['com', 'zmp', 'left-ankle', 'right-ankle', 'waistYaw']
-        for s in signals:
-            self.trace.add(self.referenceTrajectory.name + '.' + s,
-                           self.referenceTrajectory.name + '-' + s)
-
-            self.robot.device.after.addSignal(self.referenceTrajectory.name
-                                              + '.' + s)
-            self.robot.device.after.addSignal(self.feetFollower.name + '.' + s)
-
-        self.trace.add(self.feetFollower.name + '.' + 'offset',
-                       self.feetFollower.name + '-' + 'offset')
-        self.robot.device.after.addSignal(self.feetFollower.name + '.' +
-                                     'offset')
-
-        self.trace.add(self.errorEstimationStrategy.errorEstimator.name +
-                       '.' + 'error',
-                       self.errorEstimationStrategy.errorEstimator.name +
-                       '-' + 'error')
-        self.robot.device.after.addSignal(
-            self.errorEstimationStrategy.errorEstimator.name + '.' + 'error')
-
-        self.trace.add(self.errorEstimationStrategy.errorEstimator.name
-                       + '.' + 'dbgPositionWorldFrame',
-                       self.errorEstimationStrategy.errorEstimator.name
-                       + '-' + 'dbgPositionWorldFrame')
-        self.robot.device.after.addSignal(
-            self.errorEstimationStrategy.errorEstimator.name
-            + '.' + 'dbgPositionWorldFrame')
-
-        self.trace.add(self.errorEstimationStrategy.errorEstimator.name
-                       + '.' + 'dbgPlanned',
-                       self.errorEstimationStrategy.errorEstimator.name
-                       + '-' + 'dbgPlanned')
-        self.robot.device.after.addSignal(
-            self.errorEstimationStrategy.errorEstimator.name
-            + '.' + 'dbgPlanned')
-
-        self.trace.add(self.errorEstimationStrategy.errorEstimator.name
-                       + '.' + 'dbgIndex',
-                       self.errorEstimationStrategy.errorEstimator.name
-                       + '-' + 'dbgIndex')
-        self.robot.device.after.addSignal(
-            self.errorEstimationStrategy.errorEstimator.name + '.' + 'dbgIndex')
-
-        self.trace.add(self.corba.name
-         + '.' + self.errorEstimationStrategy.localizationPerceivedBody,
-                       self.corba.name
-         + '-' + self.errorEstimationStrategy.localizationPerceivedBody)
-        self.robot.device.after.addSignal(
-            self.corba.name + '.' +
-            self.errorEstimationStrategy.localizationPerceivedBody)
-
-        self.trace.add(self.robot.device.name + '.' + 'state',
-                       self.robot.device.name + '-' + 'state')
-        self.robot.device.after.addSignal(
-            self.robot.device.name + '.' + 'state')
-
-        self.trace.add(solver.sot.name + '.' + 'control',
-                       solver.sot.name + '-' + 'control')
-        self.robot.device.after.addSignal(solver.sot.name + '.' + 'control')
-
+        for s in self.tracedSignals['FeetFollower']:
+            addTrace(self.robot, self.trace, self.referenceTrajectory.name, s)
+        for s in self.tracedSignals['FeetFollower'] + ['offset']:
+            addTrace(self.robot, self.trace, self.feetFollower.name, s)
+        for s in ['error']:
+            addTrace(self.robot, self.trace,
+                     self.errorEstimationStrategy.errorEstimator.name, s)
 
 # Only export FeetFollowerGraphWithCorrection.
 __all__ = ["FeetFollowerGraphWithCorrection"]

@@ -37,6 +37,8 @@ class ControlVirtualSensor(Control):
 
         Control.__init__(self, motion, yamlData)
 
+        self.robot = motion.robot
+
         self.objectName = yamlData['object-name']
         self.position = Pose6d(yamlData['position'])
 
@@ -86,6 +88,7 @@ class ControlVirtualSensor(Control):
 
         plug(self.virtualSensor.position, self.estimator.position)
         plug(self.virtualSensor.positionTimestamp, self.estimator.positionTimestamp)
+        self.setupTraceErrorEstimator(self.estimator)
         return self.estimator
 
     def interactiveStart(self, name, feetFollowerWithCorrection):

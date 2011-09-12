@@ -23,11 +23,24 @@ class Control(object):
         checkDict('weight', yamlData)
         self.weight = yamlData['weight']
 
+        self.robot = motion.robot
+        self.trace = motion.trace
+
     def start(self, name, feetFollowerWithCorrection):
         raise NotImplementedError
 
     def interactiveStart(self):
         raise NotImplementedError
+
+    # Configure tracer to store the error estimator entity output.
+    # This should be called before exiting the start() method by
+    # control elements using the error estimator entity to compute the
+    # localization error.
+    def setupTraceErrorEstimator(self, errorEstimator):
+        for s in ['error',
+                  'dbgPositionWorldFrame', 'dbgPlanned', 'dbgIndex',
+                  'dbgDeltaCommand']:
+            addTrace(self.robot, self.trace, errorEstimator.name, s)
 
     def canStart(self):
         return True

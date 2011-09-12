@@ -74,6 +74,16 @@ class FeetFollowerGraph(object):
     """
     gain = 175.
 
+    tracedSignals = {
+        'FeetFollower': ['zmp', 'waist',
+                         'com', 'left-ankle', 'right-ankle', 'waistYaw',
+                         'comVelocity', 'left-ankleVelocity',
+                         'right-ankleVelocity', 'waistYawVelocity'],
+        'Robot': ["com", "zmp", "angularmomentum",
+                  "position", "velocity", "acceleration"],
+        'Device': ['zmp', 'control', 'state']
+        }
+
     def __init__(self, robot, solver):
         self.robot = robot
         self.solver = solver
@@ -160,41 +170,38 @@ class FeetFollowerGraph(object):
         self.solver.sot.push(self.robot.tasks['waist'].name)
 
     def setupTrace(self):
-        # Feature sdes input.
-        for s in ['zmp', 'waist',
-                  'com', 'left-ankle', 'right-ankle', 'waistYaw',
-                  'comVelocity', 'left-ankleVelocity',
-                  'right-ankleVelocity', 'waistYawVelocity']:
+        # Feet follower
+        for s in self.tracedSignals['FeetFollower']:
             addTrace(self.robot, self.trace,
                      self.feetFollower.name, s)
 
-        for s in self.robot.OperationalPoints + [
-            "com", "zmp", "angularmomentum",
-            "position", "velocity", "acceleration"]:
+        # Geometry
+        for s in self.robot.OperationalPoints + self.tracedSignals['Robot']:
             addTrace(self.robot, self.trace,
                      self.robot.dynamic.name, s)
 
+        # Robot features
         for s in self.robot.OperationalPoints:
             addTrace(self.robot, self.trace,
                      self.robot.features[s]._reference.name, 'position')
             addTrace(self.robot, self.trace,
                      self.robot.tasks[s].name, 'error')
 
+        # Com
         addTrace(self.robot, self.trace,
                  self.robot.featureComDes.name, 'errorIN')
         addTrace(self.robot, self.trace,
                  self.robot.comTask.name, 'error')
 
-        addTrace(self.robot, self.trace,
-                 self.robot.device.name, 'zmp')
-        addTrace(self.robot, self.trace,
-                 self.robot.device.name, 'control')
-        addTrace(self.robot, self.trace,
-                 self.robot.device.name, 'state')
+        # Device
+        for s in self.tracedSignals['Device']:
+            addTrace(self.robot, self.trace,
+                     self.robot.device.name, s)
         if type(self.robot.device) != RobotSimu:
             addTrace(self.robot, self.trace,
                      self.robot.device.name, 'robotState')
 
+        # Misc
         if 'velocityDerivator' in self.robot.__dict__:
             addTrace(self.robot, self.trace,
                      self.robot.velocityDerivator.name, 'sout')

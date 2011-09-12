@@ -106,6 +106,7 @@ class ControlMocap(Control):
         plug(self.corba.signal(
                 self.perceivedBody + 'Timestamp'),
              self.estimator.positionTimestamp)
+        self.setupTrace(self.estimator)
         return self.estimator
 
     def interactiveStart(self, name, feetFollowerWithCorrection):
@@ -123,6 +124,11 @@ class ControlMocap(Control):
         if len(self.corba.signal(self.perceivedBody).value) != 3:
             return False
         return True
+
+    def setupTrace(self, errorEstimator):
+        self.setupTraceErrorEstimator(self.estimator)
+        for s in [self.perceivedBody, self.perceivedBody + 'Timestamp']:
+            addTrace(self.robot, self.trace, self.corba.name, s)
 
     def __str__(self):
         return "motion capture control element" + \
