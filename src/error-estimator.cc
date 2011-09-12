@@ -268,8 +268,21 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
   rpy.toMatrix (deltaRotation);
   dbgDeltaCommandValue_.buildFrom(deltaRotation, deltaTranslation);
 
-  //FIXME: is the transfo correct?
-  planned = planned * dbgDeltaCommandValue_;
+  // dbgDeltaCommandValue_ is the reference body position computed
+  // using the real command w.r.t the reference body position computed
+  // using the planned command.
+  //
+  // This computation is done supposing that the free floating is
+  // fixed at position zero. In fact, this is the left-ankle which
+  // position is fixed. Therefore the command modification introduces
+  // an inverse waist movement. The relative position of the waist
+  // and sensors are fixed, therefore the sensor and waist can be
+  // considered as a rigid body. By consequence, the transformation
+  // can also be applied to the sensor position.
+  // The next line update the planned position to take into account
+  // the perturbation introduced by the difference between the real
+  // and planned command.
+  planned = planned * dbgDeltaCommandValue_.inverse ();
 
 
   // Compute the error.
