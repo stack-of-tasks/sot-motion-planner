@@ -78,6 +78,12 @@ class ControlVirtualSensor(Control):
 
         self.estimator.setSensorToWorldTransformation(I)
 
+        # This does not matter as the real/planned command is the same.
+        plug(self.robot.dynamic.signal('Jleft-ankle'),
+             self.estimator.referencePointJacobian)
+        self.estimator.plannedCommand.value = self.robot.device.state.value
+        self.estimator.realCommand.value = self.robot.device.state.value
+
         plug(self.virtualSensor.position, self.estimator.position)
         plug(self.virtualSensor.positionTimestamp, self.estimator.positionTimestamp)
         return self.estimator

@@ -18,6 +18,7 @@
 from __future__ import print_function
 
 from dynamic_graph import plug
+from dynamic_graph.sot.core import RobotSimu
 from dynamic_graph.sot.motion_planner.feet_follower import \
     ErrorEstimator
 
@@ -88,6 +89,18 @@ class ControlMocap(Control):
         sMm = self.computeWorldTransformationFromFoot()
 
         self.estimator.setSensorToWorldTransformation(sMm)
+
+        #FIXME: we should change the reference point accordingly
+        # with the current contact point.
+        plug(self.robot.dynamic.signal('Jleft-ankle'),
+             self.estimator.referencePointJacobian)
+
+        self.estimator.plannedCommand.value = self.robot.device.state.value
+        if type(self.robot.device) == RobotSimu:
+            self.estimator.realCommand.value = self.robot.device.state.value
+        else:
+            self.estimator.realCommand.value = self.robot.device.robotState.value
+
         plug(self.corba.signal(self.perceivedBody),
              self.estimator.position)
         plug(self.corba.signal(

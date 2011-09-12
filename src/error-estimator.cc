@@ -20,6 +20,7 @@
 #include <boost/foreach.hpp>
 
 #include <dynamic-graph/command-setter.h>
+#include <sot/core/vector-roll-pitch-yaw.hh>
 
 #include "common.hh"
 #include "error-estimator.hh"
@@ -85,6 +86,20 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
     planned_ (dg::nullptr,
 	    MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "planned")),
     error_ (INIT_SIGNAL_OUT ("error", ErrorEstimator::updateError, "Vector")),
+
+    plannedCommand_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING (name, true, "Vector",
+			 "plannedCommand")),
+    realCommand_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING (name, true, "Vector",
+			 "realCommand")),
+    referencePointJacobian_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING (name, true, "Matrix",
+			 "referencePointJacobian")),
+
     dbgPositionWorldFrame_ (
 			    INIT_SIGNAL_OUT
 			    ("dbgPositionWorldFrame",
@@ -111,6 +126,8 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
     started_ (false)
 {
   signalRegistration (position_ << positionTimestamp_ << planned_ << error_
+		      << plannedCommand_ << realCommand_
+		      << referencePointJacobian_
 		      << dbgPositionWorldFrame_
 		      << dbgPlanned_
 		      << dbgIndex_);
@@ -198,10 +215,38 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
   if (index >= plannedPositions_.size ())
     return res;
 
+  // Sensor position w.r.t the world frame.
   sot::MatrixHomogeneous planned = boost::get<2> (plannedPositions_[index]);
+  // Sensor position localization w.r.t the world frame.
   sot::MatrixHomogeneous estimated = wMsensor_ *
     XYThetaToMatrixHomogeneous (position_ (t));
 
+  // Take into account the difference between the planned and real command.
+  const ml::Vector& plannedCommand (plannedCommand_ (t));
+  const ml::Vector& realCommand (realCommand_ (t));
+  const ml::Matrix& referencePointJacobian (referencePointJacobian_ (t));
+
+  ml::Vector delta =
+    (realCommand - plannedCommand) * referencePointJacobian;
+
+  ml::Vector deltaTranslation (3);
+  sot::MatrixRotation deltaRotation;
+
+  sot::VectorRollPitchYaw rpy;
+  for (unsigned i = 0; i < 3; ++i)
+    {
+      deltaTranslation (i) = delta (i);
+      rpy (i) = delta(i + 3);
+    }
+  rpy.toMatrix (deltaRotation);
+  sot::MatrixHomogeneous deltaHomo;
+  deltaHomo.buildFrom(deltaRotation, deltaTranslation);
+
+  //FIXME: is the transfo correct?
+  planned = planned * deltaHomo;
+
+
+  // Compute the error.
   sot::MatrixHomogeneous error = estimated.inverse () * planned;
   ml::Vector error_xytheta = MatrixHomogeneousToXYTheta (error);
 

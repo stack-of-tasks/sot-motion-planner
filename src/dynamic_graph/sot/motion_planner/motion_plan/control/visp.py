@@ -17,6 +17,7 @@
 
 from __future__ import print_function
 from dynamic_graph import plug
+from dynamic_graph.sot.core import RobotSimu
 from dynamic_graph.sot.motion_planner.feet_follower import \
     ErrorEstimator
 from dynamic_graph.sot.motion_planner.feet_follower import VirtualSensor
@@ -85,6 +86,17 @@ class ControlViSP(Control):
              self.estimator.planned)
 
         self.estimator.setSensorToWorldTransformation(I)
+
+        #FIXME: we should change the reference point accordingly
+        # with the current contact point.
+        plug(self.robot.dynamic.signal('Jleft-ankle'),
+             self.estimator.referencePointJacobian)
+
+        self.estimator.plannedCommand.value = self.robot.device.state.value
+        if type(self.robot.device) == RobotSimu:
+            self.estimator.realCommand.value = self.robot.device.state.value
+        else:
+            self.estimator.realCommand.value = self.robot.device.robotState.value
 
         plug(self.virtualSensor.position, self.estimator.position)
         #FIXME: is it true?

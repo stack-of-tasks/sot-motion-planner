@@ -120,6 +120,8 @@ class ErrorEstimator : public dg::Entity
   typedef dg::SignalPtr<ml::Vector, int> signalVectorIn_t;
   /// \brief Input homogeneous matrix signal.
   typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalMatrixHomoIn_t;
+  /// \brief Input matrix signal.
+  typedef dg::SignalPtr<ml::Matrix, int> signalMatrixIn_t;
   /// \brief Output vector signal.
   typedef dg::SignalTimeDependent<ml::Vector, int> signalVectorOut_t;
   /// \brief Output vector signal.
@@ -177,6 +179,21 @@ protected:
   signalMatrixHomoIn_t planned_;
   /// \brief Planned robot position in the real robot frame.
   signalVectorOut_t error_;
+
+  /// \brief Planned comnand.
+  signalVectorIn_t plannedCommand_;
+
+  /// \brief Real comnand.
+  ///
+  /// This data can be given by the OpenHRP device to take into
+  /// account perturbations introduced by the stabilizer.
+  signalVectorIn_t realCommand_;
+
+  /// \brief Jacobian of the reference point where error
+  /// is computed.
+  ///
+  /// It is usually the current contact point (i.e. left-ankle).
+  signalMatrixIn_t referencePointJacobian_;
 
   signalMatrixHomoOut_t dbgPositionWorldFrame_;
   signalMatrixHomoOut_t dbgPlanned_;

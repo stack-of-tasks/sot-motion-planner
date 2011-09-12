@@ -184,8 +184,16 @@ class FeetFollowerGraph(object):
                  self.robot.featureComDes.name, 'errorIN')
         addTrace(self.robot, self.trace,
                  self.robot.comTask.name, 'error')
+
         addTrace(self.robot, self.trace,
                  self.robot.device.name, 'zmp')
+        addTrace(self.robot, self.trace,
+                 self.robot.device.name, 'control')
+        addTrace(self.robot, self.trace,
+                 self.robot.device.name, 'state')
+        if type(self.robot.device) != RobotSimu:
+            addTrace(self.robot, self.trace,
+                     self.robot.device.name, 'robotState')
 
         if 'velocityDerivator' in self.robot.__dict__:
             addTrace(self.robot, self.trace,
