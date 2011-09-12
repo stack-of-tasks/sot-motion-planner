@@ -39,7 +39,8 @@ class Control(object):
     def setupTraceErrorEstimator(self, errorEstimator):
         for s in ['error',
                   'dbgPositionWorldFrame', 'dbgPlanned', 'dbgIndex',
-                  'dbgDeltaCommand']:
+                  'dbgDeltaCommand', 'dbgDeltaState',
+                  'plannedCommand', 'realCommand']:
             addTrace(self.robot, self.trace, errorEstimator.name, s)
 
     def canStart(self):

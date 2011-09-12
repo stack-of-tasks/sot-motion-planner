@@ -121,11 +121,17 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
 		      ("dbgDeltaCommand",
 		       ErrorEstimator::updateDbgDeltaCommand,
 		       "MatrixHomo")),
+    dbgDeltaState_ (
+		    INIT_SIGNAL_OUT
+		    ("dbgDeltaState",
+		     ErrorEstimator::updateDbgDeltaState,
+		     "Vector")),
 
     dbgPositionWorldFrameValue_ (),
     dbgPlannedValue_ (),
     dbgIndexValue_ (2),
     dbgDeltaCommandValue_ (),
+    dbgDeltaStateValue_ (),
 
     referenceTrajectory_ (dg::nullptr),
     plannedPositions_ (),
@@ -137,13 +143,15 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
 		      << dbgPositionWorldFrame_
 		      << dbgPlanned_
 		      << dbgIndex_
-		      << dbgDeltaCommand_);
+		      << dbgDeltaCommand_
+		      << dbgDeltaState_);
   error_.setNeedUpdateFromAllChildren (true);
 
   dbgPositionWorldFrame_.setNeedUpdateFromAllChildren (true);
   dbgPlanned_.setNeedUpdateFromAllChildren (true);
   dbgIndex_.setNeedUpdateFromAllChildren (true);
   dbgDeltaCommand_.setNeedUpdateFromAllChildren (true);
+  dbgDeltaState_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
   addCommand ("setReferenceTrajectory",
@@ -230,12 +238,23 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
     XYThetaToMatrixHomogeneous (position_ (t));
 
   // Take into account the difference between the planned and real command.
-  const ml::Vector& plannedCommand (plannedCommand_ (t));
-  const ml::Vector& realCommand (realCommand_ (t));
+  ml::Vector plannedCommand (plannedCommand_ (t));
+  ml::Vector realCommand (realCommand_ (t));
   const ml::Matrix& referencePointJacobian (referencePointJacobian_ (t));
 
-  ml::Vector delta =
-    (realCommand - plannedCommand) * referencePointJacobian;
+  const unsigned qSize = std::min (realCommand.size (), plannedCommand.size ());
+  realCommand.resize (qSize, false);
+  plannedCommand.resize (qSize, false);
+
+  // Nullify free floating.
+  for (unsigned i = 0; i < 6; ++i)
+    {
+      plannedCommand (i) = 0.;
+      realCommand (i) = 0.;
+    }
+
+  dbgDeltaStateValue_ =
+    referencePointJacobian * (realCommand - plannedCommand);
 
   ml::Vector deltaTranslation (3);
   sot::MatrixRotation deltaRotation;
@@ -243,8 +262,8 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
   sot::VectorRollPitchYaw rpy;
   for (unsigned i = 0; i < 3; ++i)
     {
-      deltaTranslation (i) = delta (i);
-      rpy (i) = delta(i + 3);
+      deltaTranslation (i) = dbgDeltaStateValue_ (i);
+      rpy (i) = dbgDeltaStateValue_ (i + 3);
     }
   rpy.toMatrix (deltaRotation);
   dbgDeltaCommandValue_.buildFrom(deltaRotation, deltaTranslation);
@@ -302,6 +321,13 @@ sot::MatrixHomogeneous&
 ErrorEstimator::updateDbgDeltaCommand (sot::MatrixHomogeneous& res, int)
 {
   res = dbgDeltaCommandValue_;
+  return res;
+}
+
+ml::Vector&
+ErrorEstimator::updateDbgDeltaState (ml::Vector& res, int)
+{
+  res = dbgDeltaStateValue_;
   return res;
 }
 

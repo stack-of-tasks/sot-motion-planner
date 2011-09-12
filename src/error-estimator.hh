@@ -151,6 +151,9 @@ class ErrorEstimator : public dg::Entity
   sot::MatrixHomogeneous&
   updateDbgDeltaCommand (sot::MatrixHomogeneous& res, int);
 
+  ml::Vector&
+  updateDbgDeltaState (ml::Vector& res, int);
+
   /// \brief Set the optional maximum error.
   void setSafetyLimits (const double& maxErrorX,
 			const double& maxErrorY,
@@ -202,11 +205,13 @@ protected:
   signalMatrixHomoOut_t dbgPlanned_;
   signalVectorOut_t dbgIndex_;
   signalMatrixHomoOut_t dbgDeltaCommand_;
+  signalVectorOut_t dbgDeltaState_;
 
   sot::MatrixHomogeneous dbgPositionWorldFrameValue_;
   sot::MatrixHomogeneous dbgPlannedValue_;
   ml::Vector dbgIndexValue_;
   sot::MatrixHomogeneous dbgDeltaCommandValue_;
+  ml::Vector dbgDeltaStateValue_;
 
   /// \brief Pointer to the reference trajectory.
   FeetFollower* referenceTrajectory_;
