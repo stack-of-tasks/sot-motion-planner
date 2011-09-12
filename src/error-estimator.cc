@@ -143,6 +143,7 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
   dbgPositionWorldFrame_.setNeedUpdateFromAllChildren (true);
   dbgPlanned_.setNeedUpdateFromAllChildren (true);
   dbgIndex_.setNeedUpdateFromAllChildren (true);
+  dbgDeltaCommand_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
   addCommand ("setReferenceTrajectory",
