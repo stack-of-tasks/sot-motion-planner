@@ -116,10 +116,16 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
 	       ("dbgIndex",
 		ErrorEstimator::updateDbgIndex,
 		"Vector")),
+    dbgDeltaCommand_ (
+		      INIT_SIGNAL_OUT
+		      ("dbgDeltaCommand",
+		       ErrorEstimator::updateDbgDeltaCommand,
+		       "MatrixHomo")),
 
     dbgPositionWorldFrameValue_ (),
     dbgPlannedValue_ (),
     dbgIndexValue_ (2),
+    dbgDeltaCommandValue_ (),
 
     referenceTrajectory_ (dg::nullptr),
     plannedPositions_ (),
@@ -130,7 +136,8 @@ ErrorEstimator::ErrorEstimator (const std::string& name)
 		      << referencePointJacobian_
 		      << dbgPositionWorldFrame_
 		      << dbgPlanned_
-		      << dbgIndex_);
+		      << dbgIndex_
+		      << dbgDeltaCommand_);
   error_.setNeedUpdateFromAllChildren (true);
 
   dbgPositionWorldFrame_.setNeedUpdateFromAllChildren (true);
@@ -239,11 +246,10 @@ ErrorEstimator::updateError (ml::Vector& res, int t)
       rpy (i) = delta(i + 3);
     }
   rpy.toMatrix (deltaRotation);
-  sot::MatrixHomogeneous deltaHomo;
-  deltaHomo.buildFrom(deltaRotation, deltaTranslation);
+  dbgDeltaCommandValue_.buildFrom(deltaRotation, deltaTranslation);
 
   //FIXME: is the transfo correct?
-  planned = planned * deltaHomo;
+  planned = planned * dbgDeltaCommandValue_;
 
 
   // Compute the error.
@@ -290,6 +296,14 @@ ErrorEstimator::updateDbgIndex (ml::Vector& res, int)
   res = dbgIndexValue_;
   return res;
 }
+
+sot::MatrixHomogeneous&
+ErrorEstimator::updateDbgDeltaCommand (sot::MatrixHomogeneous& res, int)
+{
+  res = dbgDeltaCommandValue_;
+  return res;
+}
+
 
 void
 ErrorEstimator::setReferenceTrajectory (FeetFollower* ptr)
