@@ -36,6 +36,7 @@ INSTALL(
   FILES
   sot-motion-planner/plan/demo-icra.yaml
   sot-motion-planner/plan/demo-icra2.yaml
+  sot-motion-planner/plan/demo-icra3.yaml
   sot-motion-planner/plan/nothing.yaml
   sot-motion-planner/plan/reach-left-com.yaml
   sot-motion-planner/plan/reach-left.yaml
@@ -61,6 +62,7 @@ INSTALL(
 INSTALL(
   FILES
   sot-motion-planner/trajectory/walk-in-place/waist.dat
+  sot-motion-planner/trajectory/walk-in-place/gaze.dat
   DESTINATION
   share/sot-motion-planner/trajectory/walk-in-place)
 

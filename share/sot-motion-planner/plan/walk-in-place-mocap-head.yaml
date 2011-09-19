@@ -10,7 +10,7 @@ motion:
       interval: [0, 1]
       waist-trajectory: walk-in-place-mocap-head/waist.dat
       gaze-trajectory: walk-in-place-mocap-head/gaze.dat
-      zmp-trajectory: walk-in-place-mocap-head/zmp.dat
+      #zmp-trajectory: walk-in-place-mocap-head/zmp.dat
       footsteps:
       - {x: 0., y: -0.19, theta: 0., slide1: 0., slide2: -0.76}
       - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}

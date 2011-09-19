@@ -9,7 +9,7 @@ environment:
       name: table
       planned:
         model: disk.py
-        position: {x: 0.60, y: 0., z: 0.}
+        position: {x: 1.25, y: 0., z: 0.}
       estimated:
         model: disk2.py
 
@@ -27,7 +27,8 @@ motion:
       - {x: 0., y:  0.19, theta: 0.}
       - {x: 0., y: -0.19, theta: 0.}
       - {x: 0., y:  0.19, theta: 0.}
-      waist-trajectory: walk-in-place-waist.dat
+      waist-trajectory: walk-in-place/waist.dat
+      gaze-trajectory: walk-in-place/gaze.dat
 
 control:
   - visp:
