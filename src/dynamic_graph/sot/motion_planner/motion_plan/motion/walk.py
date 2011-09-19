@@ -37,6 +37,9 @@ class MotionWalk(Motion):
 
         steps = convertToNPFootstepsStack(yamlData['footsteps'])
         self.footsteps = yamlData['footsteps']
+        self.comZ = yamlData.get('comZ')
+
+        print(steps)
 
         #FIXME: handle multiple walk movement.
         motion.footsteps = yamlData['footsteps']
@@ -51,7 +54,8 @@ class MotionWalk(Motion):
             motion.robot, motion.solver, steps,
             waistFile = self.waistFile,
             gazeFile = self.gazeFile,
-            zmpFile = self.zmpFile)
+            zmpFile = self.zmpFile,
+            comZ = self.comZ)
         #FIXME: ...
         motion.trace = self.feetFollower.trace
 

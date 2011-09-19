@@ -62,6 +62,7 @@ SET(FEET_FOLLOWER_SOURCES
   waist-yaw.cc
 
   virtual-sensor.cc
+  robot-position-from-visp.cc
   error-merger.cc
   time.cc
   )

@@ -20,7 +20,8 @@ from dynamic_graph import plug
 from dynamic_graph.sot.core import RobotSimu
 from dynamic_graph.sot.motion_planner.feet_follower import \
     ErrorEstimator
-from dynamic_graph.sot.motion_planner.feet_follower import VirtualSensor
+from dynamic_graph.sot.motion_planner.feet_follower import \
+    RobotPositionFromVisp
 from dynamic_graph.sot.motion_planner.motion_plan.motion import MotionWalk
 
 from dynamic_graph.sot.motion_planner.motion_plan.control.abstract \
@@ -48,19 +49,8 @@ class ControlViSP(Control):
         if not obj:
             raise RuntimeError('object does not exist')
 
-        self.virtualSensor = VirtualSensor(
-            'virtualSensor' + str(id(yamlData)))
-
-        #FIXME: should be more generic.
-        feetFollower = find(lambda e: type(e) == MotionWalk, motion.motion)
-        if not feetFollower:
-            raise RuntimeError('control elements needs at least one ' + \
-                                   'walk elelement to apply correction')
-
-        plug(feetFollower.feetFollower.feetFollower.waist,
-             self.virtualSensor.expectedRobotPosition)
-        plug(motion.robot.dynamic.waist,
-             self.virtualSensor.robotPosition)
+        self.robotPositionFromVisp = RobotPositionFromVisp(
+            'robotPositionFromViSP' + str(id(yamlData)))
 
         if ros:
             self.ros = ros
@@ -68,13 +58,13 @@ class ControlViSP(Control):
             self.ros = RosExport('rosExport')
         self.ros.add('matrixHomoStamped', self.objectName, self.position)
 
-        # FIXME: this is inconsistent.
-        # planned is in world frame and localization is relative.
-        self.virtualSensor.expectedObstaclePosition.value = \
+        self.robotPositionFromVisp.plannedObjectPosition.value = \
             obj.plannedPosition.dgRotationMatrix()
 
         plug(self.ros.signal(self.objectName),
-             self.virtualSensor.obstaclePosition)
+             self.robotPositionFromVisp.cMo)
+        plug(self.ros.signal(self.objectName + 'Timestamp'),
+             self.robotPositionFromVisp.cMoTimestamp)
 
 
     def start(self, name, feetFollowerWithCorrection):
@@ -83,8 +73,8 @@ class ControlViSP(Control):
         self.estimator.setReferenceTrajectory(
             feetFollowerWithCorrection.referenceTrajectory.name)
 
-        # FIXME: not generic enough.
-        plug(feetFollowerWithCorrection.referenceTrajectory.waist,
+        # FIXME: gaze is used here, is it correct?
+        plug(feetFollowerWithCorrection.referenceTrajectory.gaze,
              self.estimator.planned)
 
         self.estimator.setSensorToWorldTransformation(I)
@@ -100,9 +90,9 @@ class ControlViSP(Control):
         else:
             self.estimator.realCommand.value = self.robot.device.robotState.value
 
-        plug(self.virtualSensor.position, self.estimator.position)
-        #FIXME: is it true?
-        plug(self.ros.signal(self.objectName + 'Timestamp'),
+        plug(self.robotPositionFromVisp.position, self.estimator.position)
+
+        plug(self.robotPositionFromVisp.positionTimestamp,
              self.estimator.positionTimestamp)
 
         self.setupTraceErrorEstimator(self.estimator)
