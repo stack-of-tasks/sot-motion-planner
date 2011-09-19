@@ -1,0 +1,46 @@
+duration: 40
+maximum-correction-per-step: {x: 0.02, y: 0.01, theta: 0.05}
+#maximum-correction-per-step: {x: 0.0, y: 0.0, theta: 0.0}
+
+
+motion:
+  - walk:
+      interval: [0, 1]
+      comZ: 0.76
+      footsteps:
+      - {x: 0.31, y: -0.05, theta: 0., slide1: -0.00, slide2: -0.62,
+         horizontal-distance: 0.31, height: 0.32}
+      - {x: 0.31, y: +0.05, theta: 0., slide1: -0.1, slide2: -0.62,
+         horizontal-distance: 0.39, height: 0.40}
+      - {x: 0.31, y: -0.05, theta: 0., slide1: -0.1, slide2: -0.62,
+         horizontal-distance: 0.39, height: 0.40}
+
+      - {x: 0.31, y: +0.19, theta: 0., slide1: -0.1, slide2: -0.62,
+         horizontal-distance: 0.39, height: 0.40}
+
+      - {x: 0.31, y: -0.19, theta: 0.2, slide1: -0.1, slide2: -0.62,
+         horizontal-distance: 0.39, height: 0.40}
+      - {x: 0.31, y: +0.19, theta: -0.2, slide1: -0.1, slide2: -0.62,
+         horizontal-distance: 0.39, height: 0.40}
+
+      - {x: 0.20, y: -0.19, theta: 0.2, slide1: -0.1, slide2: -0.62,
+         horizontal-distance: 0.39, height: 0.40}
+
+      - {x: 0.0, y: +0.19, theta: 0.2, slide1: -0.1, slide2: -0.62,
+         horizontal-distance: 0.39, height: 0.40}
+
+      - {x: 0.30, y: -0.19, theta: -0.1, slide1: -0.1, slide2: -0.62,
+         horizontal-distance: 0.39, height: 0.40}
+
+      - {x: 0.30, y: +0.19, theta: -0.1, slide1: -0.1, slide2: -0.62,
+         horizontal-distance: 0.39, height: 0.40}
+
+      - {x: 0.0, y: -0.19, theta: 0., slide1: -0.1, slide2: -0.62,
+         horizontal-distance: 0.39, height: 0.40}
+
+
+control:
+  - mocap:
+      weight: 1.
+      tracked-body: left-ankle
+      perceived-body: left-foot
