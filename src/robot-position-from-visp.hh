@@ -58,9 +58,30 @@ protected:
   /// \brief Update the position signal.
   ml::Vector& updatePositionTimestamp (ml::Vector& res, int t);
 
+  sot::MatrixHomogeneous&
+  updateDbgcMo (sot::MatrixHomogeneous& res, int);
+  sot::MatrixHomogeneous&
+  updateDbgPosition (sot::MatrixHomogeneous& res, int);
+
+  /// \brief Set the sensor to world transformation.
+  ///
+  /// Optional: if the standard frame orientation is not respected (X
+  /// forward, Y left, Z up) is not respected by the tracker, this
+  /// transformation can be used to fix the frame orientation.
+  ///
+  /// This is necessary when using the VpMbtEdgeTracker.
+  void sensorTransformation (const ml::Matrix& cMc)
+  {
+    cMc_ = cMc;
+  }
+
+
 private:
+  sot::MatrixHomogeneous cMc_;
   ml::Vector position_;
   ml::Vector positionTimestamp_;
+  sot::MatrixHomogeneous dbgcMo_;
+  sot::MatrixHomogeneous dbgPosition_;
 
   /// \brief Object position in camera frame (tracking data).
   signalMatrixHomoIn_t cMoIn_;
@@ -74,6 +95,9 @@ private:
   signalVectorOut_t positionOut_;
   /// \brief Robot waist position estimation (associated timestamp).
   signalVectorOut_t positionTimestampOut_;
+
+  signalMatrixHomoOut_t dbgcMoOut_;
+  signalMatrixHomoOut_t dbgPositionOut_;
 };
 
 #endif //! SOT_MOTION_PLANNER_ROBOT_POSITION_FROM_VISP_HH

@@ -52,6 +52,14 @@ class ControlViSP(Control):
         self.robotPositionFromVisp = RobotPositionFromVisp(
             'robotPositionFromViSP' + str(id(yamlData)))
 
+        # Convert ViSP frame into usual dynamic-graph frame.
+        self.robotPositionFromVisp.setSensorTransformation(
+            (( 0.,  0., 1., 0.),
+             ( 0., -1., 0., 0.),
+             (-1.,  0., 0., 0.),
+             ( 0.,  0., 0., 1.))
+            )
+
         if ros:
             self.ros = ros
         else:
@@ -95,11 +103,39 @@ class ControlViSP(Control):
         plug(self.robotPositionFromVisp.positionTimestamp,
              self.estimator.positionTimestamp)
 
-        self.setupTraceErrorEstimator(self.estimator)
+        self.setupTrace(self.estimator)
         return self.estimator
 
     def interactiveStart(self, name, feetFollowerWithCorrection):
+        while len(self.ros.signals()) == 0:
+            raw_input("Press enter after starting ROS visp_tracker node.")
+        while len(self.ros.signal(self.objectName).value) < 1:
+            raw_input("Tracking not started...")
         return self.start(name, feetFollowerWithCorrection)
+
+    def canStart(self):
+        if not self.ros:
+            return False
+        if len(self.ros.signals()) == 0:
+            return False
+        if len(self.ros.signal(self.objectName).value) < 1:
+            return False
+        if len(self.ros.signal(self.objectName + 'Timestamp').value) < 1:
+            return False
+        return True
+
+    def setupTrace(self, errorEstimator):
+        self.setupTraceErrorEstimator(self.estimator)
+        for s in [self.objectName, self.objectName + 'Timestamp']:
+            addTrace(self.robot, self.trace, self.ros.name, s)
+
+        for s in ['cMo', 'cMoTimestamp',
+                  'plannedObjectPosition',
+                  'position',
+                  'positionTimestamp',
+                  'dbgcMo',
+                  'dbgPosition']:
+            addTrace(self.robot, self.trace, self.robotPositionFromVisp.name, s)
 
     def __str__(self):
         return "ViSP moving edge tracker control element"

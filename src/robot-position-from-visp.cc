@@ -24,14 +24,19 @@
 
 #include <jrl/mathtools/angle.hh>
 
+#include <dynamic-graph/command-setter.h>
+
 #include "common.hh"
 #include "robot-position-from-visp.hh"
 #include "time.hh"
 
 RobotPositionFromVisp::RobotPositionFromVisp (const std::string& name)
   : dg::Entity (name),
+    cMc_ (),
     position_ (3),
     positionTimestamp_ (3),
+    dbgcMo_ (),
+    dbgPosition_ (),
 
     cMoIn_
     (dg::nullptr,
@@ -45,21 +50,41 @@ RobotPositionFromVisp::RobotPositionFromVisp (const std::string& name)
      MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "plannedObjectPosition")),
 
     positionOut_ (INIT_SIGNAL_OUT
-		  ("position", RobotPositionFromVisp::updatePosition, "Vector")),
+		  ("position",
+		   RobotPositionFromVisp::updatePosition, "Vector")),
     positionTimestampOut_
     (INIT_SIGNAL_OUT
-     ("positionTimestamp", RobotPositionFromVisp::updatePositionTimestamp, "Vector"))
+     ("positionTimestamp",
+      RobotPositionFromVisp::updatePositionTimestamp, "Vector")),
+
+    dbgcMoOut_ (INIT_SIGNAL_OUT
+		("dbgcMo", RobotPositionFromVisp::updateDbgcMo, "MatrixHomo")),
+    dbgPositionOut_ (INIT_SIGNAL_OUT
+		     ("dbgPosition",
+		      RobotPositionFromVisp::updateDbgPosition, "MatrixHomo"))
+
 {
   signalRegistration (cMoIn_ << cMoTimestampIn_
 		      << plannedObjectPositionIn_
 		      << positionOut_
-		      << positionTimestampOut_);
+		      << positionTimestampOut_
+		      << dbgcMoOut_
+		      << dbgPositionOut_);
   positionOut_.setNeedUpdateFromAllChildren (true);
   positionTimestampOut_.setNeedUpdateFromAllChildren (true);
+  dbgcMoOut_.setNeedUpdateFromAllChildren (true);
+  dbgPositionOut_.setNeedUpdateFromAllChildren (true);
+
+  std::string docstring;
+  addCommand ("setSensorTransformation",
+	      new dg::command::Setter<RobotPositionFromVisp, ml::Matrix>
+	      (*this, &RobotPositionFromVisp::sensorTransformation, docstring));
 }
 
 RobotPositionFromVisp::~RobotPositionFromVisp ()
 {}
+
+
 
 void
 RobotPositionFromVisp::update (int t)
@@ -67,8 +92,12 @@ RobotPositionFromVisp::update (int t)
   const sot::MatrixHomogeneous& cMo = cMoIn_ (t);
   const sot::MatrixHomogeneous& wMo = plannedObjectPositionIn_ (t);
 
+  dbgcMo_ = cMc_ * cMo;
+
   // cMw = cMo * oMw = cMo * wMo^{-1}
-  position_ = MatrixHomogeneousToXYTheta (wMo * cMo.inverse ());
+  dbgPosition_ = wMo * dbgcMo_.inverse ();
+
+  position_ = MatrixHomogeneousToXYTheta (dbgPosition_);
   positionTimestamp_ = cMoTimestampIn_ (t);
 }
 
@@ -87,5 +116,22 @@ RobotPositionFromVisp::updatePositionTimestamp (ml::Vector& res, int t)
   res = positionTimestamp_;
   return res;
 }
+
+
+sot::MatrixHomogeneous&
+RobotPositionFromVisp::updateDbgcMo (sot::MatrixHomogeneous& res, int)
+{
+  res = dbgcMo_;
+  return res;
+}
+
+sot::MatrixHomogeneous&
+RobotPositionFromVisp::updateDbgPosition (sot::MatrixHomogeneous& res, int)
+{
+  res = dbgPosition_;
+  return res;
+}
+
+
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (RobotPositionFromVisp, "RobotPositionFromVisp");

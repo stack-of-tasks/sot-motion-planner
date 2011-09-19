@@ -133,7 +133,8 @@ class MotionPlanViewer(object):
             nameEstimated = name + '-estimated'
             filename = obj.plannedModel
 
-            self.createObject(namePlanned, filename, obj.plannedPosition.pose())
+            self.createObject(namePlanned, filename, obj.plannedPosition.pose(
+                    rotation = False))
 
             #FIXME: not enough generic, should probably not be here.
             for control in self.plan.control:
@@ -143,7 +144,7 @@ class MotionPlanViewer(object):
                     continue
                 filename = obj.estimatedModel
                 self.createObject(nameEstimated, filename,
-                                  control.position.pose())
+                                  control.position.pose(rotation = False))
 
 
 

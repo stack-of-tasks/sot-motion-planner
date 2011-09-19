@@ -1,15 +1,21 @@
 # Walk in place while tracking a box.
 
 duration: 10
-maximum-correction-per-step: {x: 0.04, y: 0.04, theta: 0.1}
-#maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
+#maximum-correction-per-step: {x: 0.04, y: 0.04, theta: 0.1}
+maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
 
 environment:
   - object:
       name: table
       planned:
         model: disk.py
-        position: {x: 1.25, y: 0., z: 0.}
+        position:
+          x: 1.
+          y: 0.8
+          z: 0.
+          rx: 0.
+          ry: 0.
+          rz: 0.
       estimated:
         model: disk2.py
 

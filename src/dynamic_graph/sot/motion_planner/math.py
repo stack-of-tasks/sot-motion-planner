@@ -192,7 +192,12 @@ class Pose6d(object):
     def dgRotationMatrix(self):
         return matrixToTuple(self.rotationMatrix())
 
-    def pose(self):
+    def pose(self, rotation = True, translation = True):
+        if not rotation or not translation:
+            if rotation:
+                return [0., 0., 0., self.rx, self.ry, self.rz]
+            else:
+                return [self.x, self.y, self.z, 0., 0., 0.]
         return [self.x, self.y, self.z, self.rx, self.ry, self.rz]
 
     def __str__(self):
