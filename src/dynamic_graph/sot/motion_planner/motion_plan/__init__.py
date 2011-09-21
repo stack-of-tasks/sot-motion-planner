@@ -21,7 +21,7 @@ import yaml
 import numpy as np
 
 from dynamic_graph import plug
-
+from dynamic_graph.ros import RosExport
 from dynamic_graph.sot.motion_planner.feet_follower_graph_with_correction \
     import FeetFollowerGraphWithCorrection
 
@@ -61,6 +61,9 @@ class MotionPlan(object):
 
     feetFollower = None
 
+    corba = None
+    ros = None
+
     plan = None
     duration = 0
     motion = []
@@ -91,8 +94,9 @@ class MotionPlan(object):
 
         self.duration = float(self.plan['duration'])
 
-        # Create CORBA server if required.
+        # Middleware proxies.
         self.corba = CorbaServer('corba_server')
+        self.ros = RosExport('rosExport')
 
         self.logger.debug('loading environment')
         self.loadEnvironment()
@@ -102,12 +106,23 @@ class MotionPlan(object):
         self.loadControl()
 
         # For now, only 1 feet follower is allowed (must start at t=0).
-        feetFollower = find(lambda e: type(e) == MotionWalk, self.motion)
+        feetFollowerElement = find(lambda e: type(e) == MotionWalk, self.motion)
         hasControl = len(self.control) > 0
 
-        if hasControl and feetFollower:
+        if hasControl and feetFollowerElement:
+            #FIXME: this is not generic.
+            # Unlock head when a motion visual point is added.
+            for m in self.motion:
+                if type(m) == MotionVisualPoint:
+                    pf = feetFollowerElement.feetFollower.postureFeature
+                    pf.selectDof(6 + 14, False)
+                    pf.selectDof(6 + 15, False)
+                    # FIXME: this is so wrong.
+                    plug(self.ros.signal(m.objectName),
+                         m.vispPointProjection.cMo)
+
             self.feetFollower = FeetFollowerGraphWithCorrection(
-                robot, solver, self.motion[0].feetFollower,
+                robot, solver, feetFollowerElement.feetFollower,
                 MotionPlanErrorEstimationStrategy,
                 maxX = self.maxX, maxY = self.maxY,
                 maxTheta = self.maxTheta)
@@ -115,8 +130,8 @@ class MotionPlan(object):
                 #FIXME: not enough generic
             self.feetFollower.feetFollower.setFootsteps(
                 2., makeFootsteps(self.footsteps))
-        elif feetFollower:
-            self.feetFollower = feetFollower.feetFollower
+        elif feetFollowerElement:
+            self.feetFollower = feetFollowerElement.feetFollower
         else:
             self.feetFollower = None
 
@@ -142,7 +157,7 @@ class MotionPlan(object):
             self.maxY = self.plan['maximum-correction-per-step']['y']
             self.maxTheta = self.plan['maximum-correction-per-step']['theta']
 
-        motionClasses = [MotionWalk, MotionTask]
+        motionClasses = [MotionWalk, MotionTask, MotionVisualPoint]
 
         for motion in self.plan['motion']:
             if len(motion.items()) != 1:
@@ -154,6 +169,10 @@ class MotionPlan(object):
                 raise RuntimeError('invalid motion element')
             self.motion.append(cls(self, data, self.defaultDirectories))
             self.logger.debug('adding motion element \'{0}\''.format(tag))
+
+        if self.trace:
+            for motion in self.motion:
+                motion.setupTrace(self.trace)
 
 
     def loadControl(self):

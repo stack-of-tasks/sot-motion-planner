@@ -18,4 +18,8 @@
 from __future__ import print_function
 
 class Motion(object):
-    pass
+    def __init__(self, motion, yamlData):
+        self.robot = motion.robot
+
+    def setupTrace(self, trace):
+        raise NotImplementedError

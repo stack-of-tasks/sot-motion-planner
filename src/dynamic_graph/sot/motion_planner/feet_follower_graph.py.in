@@ -16,10 +16,10 @@
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 from dynamic_graph import plug
-from dynamic_graph.sot.core import FeatureGeneric, Task, RobotSimu
+from dynamic_graph.sot.core import FeatureGeneric, FeaturePosture, \
+    Task, RobotSimu
 from dynamic_graph.sot.motion_planner.feet_follower import \
-    FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError, \
-    WaistYaw
+    FeetFollowerFromFile, FeetFollowerAnalyticalPg, WaistYaw
 from dynamic_graph.tracer_real_time import TracerRealTime
 
 from dynamic_graph.sot.motion_planner.math import *
@@ -53,10 +53,6 @@ class FeetFollowerGraph(object):
     """
     postureFeature = None
 
-    """
-    Entity computing the error associated with the posture task.
-    """
-    postureError = None
 
     """
     Tracer used to log various data.
@@ -84,12 +80,26 @@ class FeetFollowerGraph(object):
         'Device': ['zmp', 'control', 'state']
         }
 
-    def __init__(self, robot, solver):
+    def __init__(self, robot, solver, trace = None, postureTaskDofs = None):
         self.robot = robot
         self.solver = solver
-        self.trace = TracerRealTime('trace')
-        self.trace.setBufferSize(2**25)
-        self.trace.open('/tmp/','feet_follower_','.dat')
+
+        self.postureTaskDofs = postureTaskDofs
+        if not self.postureTaskDofs:
+            self.postureTaskDofs = []
+            for i in xrange(len(robot.halfSitting) - 6):
+                # Disable legs dofs.
+                if i < 12: #FIXME: not generic enough
+                    self.postureTaskDofs.append((i + 6, False))
+                else:
+                    self.postureTaskDofs.append((i + 6, True))
+
+        if trace:
+            self.trace = trace
+        else:
+            self.trace = TracerRealTime('trace')
+            self.trace.setBufferSize(2**25)
+            self.trace.open('/tmp/','feet_follower_','.dat')
 
         # Recompute trace.triger at each iteration to enable tracing.
         self.robot.device.after.addSignal(self.trace.name +'.triger')
@@ -140,16 +150,14 @@ class FeetFollowerGraph(object):
 
         # Initialize the posture task.
         self.postureTask = Task(self.robot.name + '_posture')
-        self.postureFeature = FeatureGeneric(
-            self.robot.name + '_postureFeature')
-        self.postureError = PostureError('PostureError')
+
+        self.postureFeature = FeaturePosture(self.robot.name + '_postureFeature')
+        plug(self.robot.device.state, self.postureFeature.state)
 
         posture = list(self.robot.halfSitting)
-        self.postureError.setPosture(tuple(posture))
-
-        plug(self.robot.device.state, self.postureError.state)
-        plug(self.postureError.error, self.postureFeature.errorIN)
-        self.postureFeature.jacobianIN.value = self.computeJacobianPosture()
+        self.postureFeature.setPosture(tuple(posture))
+        for (dof, isEnabled) in self.postureTaskDofs:
+            self.postureFeature.selectDof(dof, isEnabled)
         self.postureTask.add(self.postureFeature.name)
         self.postureTask.controlGain.value = self.initialGain
 

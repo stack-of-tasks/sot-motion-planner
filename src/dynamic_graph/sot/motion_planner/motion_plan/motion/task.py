@@ -31,6 +31,8 @@ class MotionTask(Motion):
     def __init__(self, motion, yamlData, defaultDirectories):
         checkDict('interval', yamlData)
 
+        Motion.__init__(self, motion, yamlData)
+
         if len(yamlData['interval']) != 2:
             raise RuntimeErrror('invalid interval')
 
@@ -83,3 +85,6 @@ class MotionTask(Motion):
 
     def __str__(self):
         return "task motion (type = {0})".format(self.type)
+
+    def setupTrace(self, trace):
+        pass

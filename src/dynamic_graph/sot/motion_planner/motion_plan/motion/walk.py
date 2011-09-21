@@ -35,11 +35,11 @@ class MotionWalk(Motion):
     def __init__(self, motion, yamlData, defaultDirectories):
         checkDict('footsteps', yamlData)
 
+        Motion.__init__(self, motion, yamlData)
+
         steps = convertToNPFootstepsStack(yamlData['footsteps'])
         self.footsteps = yamlData['footsteps']
         self.comZ = yamlData.get('comZ')
-
-        print(steps)
 
         #FIXME: handle multiple walk movement.
         motion.footsteps = yamlData['footsteps']
@@ -61,3 +61,6 @@ class MotionWalk(Motion):
 
     def __str__(self):
         return "walking motion ({0} footstep(s))".format(len(self.footsteps))
+
+    def setupTrace(self, trace):
+        pass

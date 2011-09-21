@@ -34,7 +34,7 @@ from dynamic_graph.ros import RosExport
 class ControlViSP(Control):
     yaml_tag = u'visp'
 
-    def __init__(self, motion, yamlData, ros = None):
+    def __init__(self, motion, yamlData):
         checkDict('object-name', yamlData)
         checkDict('position', yamlData)
 
@@ -60,8 +60,8 @@ class ControlViSP(Control):
              ( 0.,  0., 0., 1.))
             )
 
-        if ros:
-            self.ros = ros
+        if motion.ros:
+            self.ros = motion.ros
         else:
             self.ros = RosExport('rosExport')
         self.ros.add('matrixHomoStamped', self.objectName, self.position)

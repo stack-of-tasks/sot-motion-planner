@@ -36,6 +36,11 @@ motion:
       waist-trajectory: walk-in-place-visp/waist.dat
       gaze-trajectory: walk-in-place-visp/gaze.dat
 
+  - visual-point:
+      interval: [0, 1]
+      gain: 1.
+      object-name: table
+
 control:
   - visp:
       weight: 0.5

@@ -104,7 +104,6 @@ class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
 
         self.postureTask = feetFollowerGraph.postureTask
         self.postureFeature = feetFollowerGraph.postureFeature
-        self.postureError = feetFollowerGraph.postureError
         self.trace = feetFollowerGraph.trace
 
         self.solver = solver

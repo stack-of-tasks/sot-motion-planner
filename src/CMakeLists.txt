@@ -63,6 +63,7 @@ SET(FEET_FOLLOWER_SOURCES
 
   virtual-sensor.cc
   robot-position-from-visp.cc
+  visp-point-projection.cc
   error-merger.cc
   time.cc
   )
@@ -142,6 +143,7 @@ SET(FILES
   __init__.py
   abstract.py
   task.py
+  visual_point.py
   walk.py
   )
 FOREACH(FILE ${FILES})

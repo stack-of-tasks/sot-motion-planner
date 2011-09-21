@@ -18,4 +18,5 @@
 from __future__ import print_function
 from dynamic_graph.sot.motion_planner.motion_plan.motion.abstract import *
 from dynamic_graph.sot.motion_planner.motion_plan.motion.task import *
+from dynamic_graph.sot.motion_planner.motion_plan.motion.visual_point import *
 from dynamic_graph.sot.motion_planner.motion_plan.motion.walk import *
