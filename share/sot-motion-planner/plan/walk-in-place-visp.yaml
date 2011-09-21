@@ -1,6 +1,6 @@
 # Walk in place while tracking a box.
 
-duration: 10
+duration: 25
 #maximum-correction-per-step: {x: 0.04, y: 0.04, theta: 0.1}
 maximum-correction-per-step: {x: 0., y: 0., theta: 0.}
 
@@ -10,12 +10,12 @@ environment:
       planned:
         model: disk.py
         position:
-          x: 1.
-          y: 0.8
-          z: 0.
+          x: 1.75
+          y: 0.3
+          z: -0.3
           rx: 0.
           ry: 0.
-          rz: 0.
+          rz: 2.
       estimated:
         model: disk2.py
 
@@ -23,18 +23,18 @@ motion:
   - walk:
       interval: [0, 1]
       footsteps:
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
-      - {x: 0., y: -0.19, theta: 0.}
-      - {x: 0., y:  0.19, theta: 0.}
-      waist-trajectory: walk-in-place/waist.dat
-      gaze-trajectory: walk-in-place/gaze.dat
+      - {x: 0., y: -0.19, theta: 0., slide1: 0., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y: -0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y: -0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y: -0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y: -0.19, theta: 0., slide1: -1., slide2: -0.76}
+      - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
+      waist-trajectory: walk-in-place-visp/waist.dat
+      gaze-trajectory: walk-in-place-visp/gaze.dat
 
 control:
   - visp:

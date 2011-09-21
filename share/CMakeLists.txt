@@ -68,6 +68,13 @@ INSTALL(
 
 INSTALL(
   FILES
+  sot-motion-planner/trajectory/walk-in-place-visp/waist.dat
+  sot-motion-planner/trajectory/walk-in-place-visp/gaze.dat
+  DESTINATION
+  share/sot-motion-planner/trajectory/walk-in-place-visp)
+
+INSTALL(
+  FILES
   sot-motion-planner/trajectory/walk-in-place-mocap-head/waist.dat
   sot-motion-planner/trajectory/walk-in-place-mocap-head/gaze.dat
   sot-motion-planner/trajectory/walk-in-place-mocap-head/zmp.dat
