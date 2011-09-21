@@ -89,12 +89,32 @@ RobotPositionFromVisp::~RobotPositionFromVisp ()
 void
 RobotPositionFromVisp::update (int t)
 {
-  const sot::MatrixHomogeneous& cMo = cMoIn_ (t);
-  const sot::MatrixHomogeneous& wMo = plannedObjectPositionIn_ (t);
+  sot::MatrixHomogeneous cMo = cMoIn_ (t);
+  sot::MatrixHomogeneous wMo = plannedObjectPositionIn_ (t);
 
-  dbgcMo_ = cMc_ * cMo;
+  sot::MatrixHomogeneous robotMc;
+  robotMc.setIdentity ();
+  // robotMc (0, 3) = 0.025;
+  // robotMc (1, 3) = 0.;
+  // robotMc (2, 3) = 0.647998;
 
-  // cMw = cMo * oMw = cMo * wMo^{-1}
+  dbgcMo_ = cMc_ * cMo * cMc_.inverse ();
+
+  // Cancel roll and pitch for now.
+  ml::Vector tmp1 = MatrixHomogeneousToXYTheta (dbgcMo_);
+  ml::Vector tmp2 = MatrixHomogeneousToXYTheta (wMo);
+
+  tmp1 (2) = tmp2 (2) = 0.;
+
+  dbgcMo_ = XYThetaToMatrixHomogeneous (tmp1);
+  wMo = XYThetaToMatrixHomogeneous (tmp2);
+
+  // std::cout << cMo << std::endl;
+  // std::cout << cMc_ << std::endl;
+  // std::cout << dbgcMo_ << std::endl;
+
+  // wMrobot = wMo * oMc * cMrobot = wMo * cMo^{-1} * robotMc^{-1}
+  //dbgPosition_ = wMo * dbgcMo_.inverse () * robotMc.inverse ();
   dbgPosition_ = wMo * dbgcMo_.inverse ();
 
   position_ = MatrixHomogeneousToXYTheta (dbgPosition_);
@@ -134,4 +154,5 @@ RobotPositionFromVisp::updateDbgPosition (sot::MatrixHomogeneous& res, int)
 
 
 
-DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (RobotPositionFromVisp, "RobotPositionFromVisp");
+DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (RobotPositionFromVisp,
+				    "RobotPositionFromVisp");
