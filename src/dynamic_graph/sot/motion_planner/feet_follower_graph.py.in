@@ -98,7 +98,7 @@ class FeetFollowerGraph(object):
             self.trace = trace
         else:
             self.trace = TracerRealTime('trace')
-            self.trace.setBufferSize(2**25)
+            self.trace.setBufferSize(2**20)
             self.trace.open('/tmp/','feet_follower_','.dat')
 
         # Recompute trace.triger at each iteration to enable tracing.
