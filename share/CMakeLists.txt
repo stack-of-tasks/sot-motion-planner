@@ -49,6 +49,7 @@ INSTALL(
   sot-motion-planner/plan/walk-in-place-mocap.yaml
   sot-motion-planner/plan/walk-in-place-virtual-sensor.yaml
   sot-motion-planner/plan/walk-in-place-visp.yaml
+  sot-motion-planner/plan/walk-in-place-visp-head.yaml
   sot-motion-planner/plan/walk-in-place.yaml
   DESTINATION share/sot-motion-planner/plan)
 
