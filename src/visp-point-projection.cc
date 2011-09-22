@@ -58,9 +58,9 @@ void
 VispPointProjection::update (int t)
 {
   const sot::MatrixHomogeneous& cMo = cMoIn_ (t);
-  const double& X = cMo (2,3);
-  const double& Y = -cMo (1,3);
-  const double& Z = -cMo (0,3);
+  const double& X = cMo (0, 3);
+  const double& Y = cMo (1, 3);
+  const double& Z = cMo (2, 3);
 
   // If z is near zero, return zero.
   if (Z < 1e-6 && Z > -1e-6)
