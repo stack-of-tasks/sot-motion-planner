@@ -55,6 +55,10 @@ namespace command
 	 (boost::shared_ptr<ErrorMerger::signalVectorIn_t> (signal),
 	  boost::shared_ptr<ErrorMerger::signalVectorIn_t> (signalWeight)));
       errorMerger.signalRegistration (*signal << *signalWeight);
+
+      errorMerger.errorOut ().addDependency (*signal);
+      errorMerger.errorOut ().addDependency (*signalWeight);
+
       return Value ();
     }
   } // end of namespace errorMerger.
@@ -68,6 +72,10 @@ ErrorMerger::ErrorMerger (const std::string& name)
 {
   signalRegistration (errorOut_);
   errorOut_.setNeedUpdateFromAllChildren (true);
+
+  ml::Vector zero (3);
+  zero.setZero ();
+  errorOut_.setConstant(zero);
 
   std::string docstring;
   addCommand
@@ -91,7 +99,16 @@ ErrorMerger::updateError (ml::Vector& res, int t)
 
   for (unsigned i = 0; i < N; ++i)
     {
-      double w = (*errorsIn_[i].second) (t) (0);
+      double w = 0.;
+      try
+	{
+	  w = (*errorsIn_[i].second) (t) (0);
+	}
+      catch (...)
+	{
+	  std::cerr << "warning: weight not plugged" << std::endl;
+	}
+
       if (w >= 1e-6)
 	{
 	  M += w;

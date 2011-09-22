@@ -82,6 +82,11 @@ class ErrorMerger : public dg::Entity
     return errorsIn_;
   }
 
+  signalVectorOut_t& errorOut ()
+  {
+    return errorOut_;
+  }
+
 protected:
   /// \brief Update the error signal.
   ml::Vector& updateError (ml::Vector& res, int);

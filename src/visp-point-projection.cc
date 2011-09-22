@@ -49,6 +49,8 @@ VispPointProjection::VispPointProjection (const std::string& name)
   signalRegistration (cMoIn_<< xyOut_ << zOut_);
   xyOut_.setNeedUpdateFromAllChildren (true);
   zOut_.setNeedUpdateFromAllChildren (true);
+
+  xy_.setZero ();
 }
 
 VispPointProjection::~VispPointProjection ()
