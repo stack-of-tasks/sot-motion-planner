@@ -73,6 +73,8 @@ class MotionPlan(object):
 
     trace = None
 
+    started = False
+
     maxX = FeetFollowerGraphWithCorrection.maxX
     maxY = FeetFollowerGraphWithCorrection.maxY
     maxTheta = FeetFollowerGraphWithCorrection.maxTheta
@@ -205,13 +207,19 @@ class MotionPlan(object):
         res += '\n'
         res += str(self.feetFollower)
         res += '\n'
+        res += self.solver.sot.display()
         return res
 
     def start(self):
+        if self.started:
+            self.logger.info('already started')
+            return
         if not self.canStart():
             self.logger.info('failed to start')
             return
+        self.started = True
         self.logger.info('execution starts')
+
         if self.feetFollower:
             self.feetFollower.start()
 
