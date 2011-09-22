@@ -75,9 +75,12 @@ class MotionVisualPoint(Motion):
 
         # Op point modifier.
         self.w_M_c = OpPointModifier('w_M_c'+str(id(yamlData)))
+        self.w_M_c.setTransformation(g_M_c)
         plug(motion.robot.dynamic.gaze, self.w_M_c.positionIN)
         plug(motion.robot.dynamic.Jgaze, self.w_M_c.jacobianIN)
-        self.w_M_c.setTransformation(g_M_c)
+
+        self.w_M_c.position.recompute(self.w_M_c.position.time + 1)
+        self.w_M_c.jacobian.recompute(self.w_M_c.jacobian.time + 1)
 
         # Desired feature
         self.fvpDes = FeatureVisualPoint('fvpDes'+str(id(yamlData)))
@@ -100,13 +103,16 @@ class MotionVisualPoint(Motion):
         self.fvp.selec.value = '11'
         plug(self.w_M_c.jacobian, self.fvp.Jq)
 
+        self.fvp.error.recompute(self.fvp.error.time + 1)
+        self.fvp.jacobian.recompute(self.fvp.jacobian.time + 1)
+
         # Task
         self.task = Task('task_fvp_'+str(id(yamlData)))
         self.task.add(self.fvp.name)
         self.task.controlGain.value = self.gain
 
         self.task.error.recompute(self.task.error.time + 1)
-        self.task.jacobian.recompute(self.task.error.time + 1)
+        self.task.jacobian.recompute(self.task.jacobian.time + 1)
 
         # Push the task
         motion.solver.push(self.task.name)
