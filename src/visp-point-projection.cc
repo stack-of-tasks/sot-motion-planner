@@ -38,6 +38,9 @@ VispPointProjection::VispPointProjection (const std::string& name)
     cMoIn_
     (dg::nullptr,
      MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "cMo")),
+    cMoTimestampIn_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING (name, true, "Vector", "cMoTimestamp")),
 
     xyOut_ (INIT_SIGNAL_OUT
 		  ("xy",
@@ -46,7 +49,7 @@ VispPointProjection::VispPointProjection (const std::string& name)
 		  ("Z",
 		   VispPointProjection::updateZ, "double"))
 {
-  signalRegistration (cMoIn_<< xyOut_ << zOut_);
+  signalRegistration (cMoIn_<< cMoTimestampIn_ << xyOut_ << zOut_);
   xyOut_.setNeedUpdateFromAllChildren (true);
   zOut_.setNeedUpdateFromAllChildren (true);
 
@@ -64,8 +67,16 @@ VispPointProjection::update (int t)
   const double& Y = cMo (1, 3);
   const double& Z = cMo (2, 3);
 
-  // If z is near zero, return zero.
-  if (Z < 1e-6 && Z > -1e-6)
+  using boost::posix_time::seconds;
+
+  boost::posix_time::ptime now =
+    boost::posix_time::microsec_clock::universal_time ();
+  boost::posix_time::ptime cMoTime =
+    sot::motionPlanner::timestampToDateTime (cMoTimestampIn_ (t));
+
+  // If z is near zero or cMo too old (tracking may have been
+  // lost), set to zero to stop the movement.
+  if (now - cMoTime > seconds (1) || std::fabs (Z) < 1e-6)
     {
       xy_ (0) = 0.;
       xy_ (1) = 0.;

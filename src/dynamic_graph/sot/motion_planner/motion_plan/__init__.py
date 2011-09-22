@@ -122,6 +122,8 @@ class MotionPlan(object):
                     # FIXME: this is so wrong.
                     plug(self.ros.signal(m.objectName),
                          m.vispPointProjection.cMo)
+                    plug(self.ros.signal(m.objectName + 'Timestamp'),
+                         m.vispPointProjection.cMoTimestamp)
 
             self.feetFollower = FeetFollowerGraphWithCorrection(
                 robot, solver, feetFollowerElement.feetFollower,

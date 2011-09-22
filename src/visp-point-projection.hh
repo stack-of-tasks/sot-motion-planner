@@ -34,6 +34,8 @@ class VispPointProjection : public dg::Entity
 public:
   /// \brief Input homogeneous matrix signal.
   typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalMatrixHomoIn_t;
+  /// \brief Input vector signal.
+  typedef dg::SignalPtr<ml::Vector, int> signalVectorIn_t;
   /// \brief Output vector signal.
   typedef dg::SignalTimeDependent<ml::Vector, int> signalVectorOut_t;
   /// \brief Output double signal.
@@ -71,6 +73,8 @@ private:
 
   /// \brief Object position in camera frame.
   signalMatrixHomoIn_t cMoIn_;
+  /// \brief cMo timestamp.
+  signalVectorIn_t cMoTimestampIn_;
 
   /// \brief XY
   signalVectorOut_t xyOut_;

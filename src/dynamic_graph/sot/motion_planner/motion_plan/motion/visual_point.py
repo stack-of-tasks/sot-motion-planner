@@ -93,6 +93,7 @@ class MotionVisualPoint(Motion):
             (0., 1., 0., 0.),
             (0., 0., 1., 1.),
             (0., 0., 0., 1.),)
+        self.vispPointProjection.cMoTimestamp.value = (0., 0.)
 
         self.fvp = FeatureVisualPoint('fvp'+str(id(yamlData)))
         plug(self.vispPointProjection.xy, self.fvp.xy)
