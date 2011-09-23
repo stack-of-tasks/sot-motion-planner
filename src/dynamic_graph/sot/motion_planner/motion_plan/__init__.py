@@ -22,6 +22,8 @@ import numpy as np
 
 from dynamic_graph import plug
 from dynamic_graph.ros import RosExport
+from dynamic_graph.sot.motion_planner.feet_follower import \
+    Supervisor
 from dynamic_graph.sot.motion_planner.feet_follower_graph_with_correction \
     import FeetFollowerGraphWithCorrection
 
@@ -100,6 +102,12 @@ class MotionPlan(object):
         self.corba = CorbaServer('corba_server')
         self.ros = RosExport('rosExport')
 
+        # Supervisor.
+        self.supervisor = Supervisor('supervisor')
+        self.robot.device.after.addSignal(self.supervisor.name + '.trigger')
+        self.supervisor.setSolver(self.solver.sot.name)
+
+        # Load plan.
         self.logger.debug('loading environment')
         self.loadEnvironment()
         self.logger.debug('loading motion elements')
@@ -220,8 +228,8 @@ class MotionPlan(object):
             res += '\t* {0}\n'.format(str(control))
         res += '\n'
         res += str(self.feetFollower)
-        res += '\n'
-        res += self.solver.sot.display()
+        res += '\n\n'
+        res += self.supervisor.display()
         return res
 
     def start(self):
@@ -236,6 +244,11 @@ class MotionPlan(object):
 
         if self.feetFollower:
             self.feetFollower.start()
+
+        # Remove default tasks and let the supervisor take over the
+        # tasks management.
+        self.solver.sot.clear()
+        self.supervisor.setOrigin(self.feetFollower.feetFollower.getStartTime())
 
     def canStart(self):
         canStart = reduce(lambda acc, c: c.canStart() and acc,

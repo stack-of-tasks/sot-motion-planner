@@ -44,9 +44,6 @@ class MotionJoint(Motion):
 
         Motion.__init__(self, motion, yamlData)
 
-        if len(yamlData['interval']) != 2:
-            raise RuntimeErrror('invalid interval')
-
         self.interval = yamlData['interval']
         self.gain = yamlData.get('gain', 1.)
         self.name = yamlData['name']
@@ -72,8 +69,9 @@ class MotionJoint(Motion):
         self.task.add(self.feature.name)
         self.task.controlGain.value = self.gain
 
-        # Push the task
-        motion.solver.push(self.task.name)
+        # Push the task into supervisor.
+        motion.supervisor.addTask(self.task.name,
+                                  self.interval[0], self.interval[1])
 
     def __str__(self):
         return "joint motion ({0})".format(self.name)

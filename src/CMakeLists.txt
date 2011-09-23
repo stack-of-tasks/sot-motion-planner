@@ -27,6 +27,9 @@ FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} sot-core)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} roboptim-core)
 
+  #FIXME: plug-ins should not be interdependent...
+  TARGET_LINK_LIBRARIES(${NAME} "${DYNAMIC_GRAPH_PLUGINDIR}/sot.so")
+
   INSTALL(TARGETS ${NAME} DESTINATION lib/plugin)
 
   # build python submodule
@@ -66,6 +69,7 @@ SET(FEET_FOLLOWER_SOURCES
   visp-point-projection.cc
   error-merger.cc
   time.cc
+  supervisor.cc
   )
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)

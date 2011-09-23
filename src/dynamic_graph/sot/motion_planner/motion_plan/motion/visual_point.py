@@ -37,9 +37,6 @@ class MotionVisualPoint(Motion):
 
         Motion.__init__(self, motion, yamlData)
 
-        if len(yamlData['interval']) != 2:
-            raise RuntimeErrror('invalid interval')
-
         self.interval = yamlData['interval']
         self.objectName = yamlData['object-name']
 
@@ -115,8 +112,9 @@ class MotionVisualPoint(Motion):
         self.task.error.recompute(self.task.error.time + 1)
         self.task.jacobian.recompute(self.task.jacobian.time + 1)
 
-        # Push the task
-        motion.solver.push(self.task.name)
+        # Push the task into supervisor.
+        motion.supervisor.addTask(self.task.name,
+                                  self.interval[0], self.interval[1])
 
     def __str__(self):
         return "visual point motion"

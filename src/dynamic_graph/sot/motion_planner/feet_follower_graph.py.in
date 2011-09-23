@@ -166,17 +166,6 @@ class FeetFollowerGraph(object):
         plug(self.feetFollower.waistYaw, self.robot.features['waist'].reference)
         self.robot.tasks['waist'].controlGain.value = self.initialGain
 
-        # Tasks
-        self.solver.sot.remove(self.robot.tasks['right-ankle'].name)
-        self.solver.sot.remove(self.robot.tasks['left-ankle'].name)
-        self.solver.sot.remove(self.robot.comTask.name)
-
-        self.solver.sot.push(self.postureTask.name)
-        self.solver.sot.push(self.robot.comTask.name)
-        self.solver.sot.push(self.robot.tasks['left-ankle'].name)
-        self.solver.sot.push(self.robot.tasks['right-ankle'].name)
-        self.solver.sot.push(self.robot.tasks['waist'].name)
-
     def setupTrace(self):
         # Feet follower
         for s in self.tracedSignals['FeetFollower']:

@@ -41,9 +41,6 @@ class MotionTask(Motion):
 
         if self.type != 'feature-point-6d' and self.type != 'feature-com':
             raise NotImplementedError
-        # Cannot change the stack dynamically for now.
-        if self.interval[0] != 0 and self.interval[1] != motion.duration:
-            raise NotImplementedError
 
         self.gain = yamlData['gain']
         self.reference = yamlData['reference']
@@ -70,7 +67,11 @@ class MotionTask(Motion):
             else:
                 self.selec += '000'
             motion.robot.features[self.body].selec.value = self.selec
-            motion.solver.sot.push(motion.robot.tasks[self.body].name)
+
+            # Push the task into supervisor.
+            motion.supervisor.addTask(motion.robot.tasks[self.body].name,
+                                      self.interval[0], self.interval[1])
+
         elif self.type == 'feature-com':
             motion.robot.comTask.controlGain.value = self.gain
             if self.reference == 'static':
@@ -79,7 +80,10 @@ class MotionTask(Motion):
             else:
                 motion.robot.featureComDes.position.value = \
                     (self.reference.get('x', 0.), self.reference.get('y', 0.))
-            motion.solver.sot.push(motion.robot.comTask.name)
+
+            # Push the task into supervisor.
+            motion.supervisor.addTask(motion.robot.comTask.name,
+                                      self.interval[0], self.interval[1])
         else:
             raise RuntimeError('invalid task type')
 

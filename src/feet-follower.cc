@@ -95,6 +95,7 @@ WalkMovement::WalkMovement
     wMw_traj (wMw_traj)
 {}
 
+using ::dynamicgraph::command::Getter;
 using ::dynamicgraph::command::Setter;
 
 FeetFollower::FeetFollower (const std::string& name)
@@ -185,6 +186,11 @@ FeetFollower::FeetFollower (const std::string& name)
 	      new Setter<FeetFollower, maal::boost::Matrix>
 	      (*this,
 	       &FeetFollower::setInitialRightAnklePosition, docstring));
+
+  addCommand ("getStartTime",
+	      new Getter<FeetFollower, double>
+	      (*this,
+	       &FeetFollower::startTime, docstring));
 
   addCommand ("start", new command::Start (*this, docstring));
 }

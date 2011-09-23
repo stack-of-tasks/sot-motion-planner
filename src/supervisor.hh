@@ -1,0 +1,107 @@
+// Copyright 2011, François Bleibel, Thomas Moulard, Olivier Stasse,
+// JRL, CNRS/AIST.
+//
+// This file is part of sot-motion-planner.
+// sot-motion-planner is free software: you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public License
+// as published by the Free Software Foundation, either version 3 of
+// the License, or (at your option) any later version.
+//
+// sot-motion-planner is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Lesser Public License for more details.  You should have
+// received a copy of the GNU Lesser General Public License along with
+// sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
+
+#ifndef SOT_MOTION_PLANNER_SUPERVISOR_HH
+# define SOT_MOTION_PLANNER_SUPERVISOR_HH
+# include <dynamic-graph/command.h>
+# include <dynamic-graph/entity.h>
+# include <dynamic-graph/factory.h>
+# include <dynamic-graph/null-ptr.hh>
+# include <dynamic-graph/signal-ptr.h>
+# include <dynamic-graph/signal-time-dependent.h>
+
+# include <sot/core/matrix-homogeneous.hh>
+# include <sot/core/sot.hh>
+# include <sot/core/task-abstract.hh>
+
+namespace ml = ::maal::boost;
+namespace dg = ::dynamicgraph;
+
+class Supervisor;
+
+namespace command
+{
+  namespace supervisor
+  {
+    using ::dynamicgraph::command::Command;
+    using ::dynamicgraph::command::Value;
+
+    class SetSolver : public Command
+    {
+    public:
+      SetSolver (Supervisor& entity,
+		 const std::string& docstring);
+      virtual Value doExecute ();
+    };
+
+    class AddTask : public Command
+    {
+    public:
+      AddTask (Supervisor& entity,
+	       const std::string& docstring);
+      virtual Value doExecute ();
+    };
+
+    class Display : public Command
+    {
+    public:
+      Display (Supervisor& entity,
+	       const std::string& docstring);
+      virtual Value doExecute ();
+    };
+  } // end of namespace supervisor.
+} // end of namespace command.
+
+class Supervisor : public dg::Entity
+{
+  DYNAMIC_GRAPH_ENTITY_DECL ();
+public:
+  typedef std::pair<double, double> bounds_t;
+  typedef std::map<dynamicgraph::sot::TaskAbstract*, bounds_t> motions_t;
+
+
+  /// \name Constructor and destructor.
+  /// \{
+  explicit Supervisor (const std::string& name);
+  virtual ~Supervisor ();
+  /// \}
+
+  motions_t& motions ()
+  {
+    return motions_;
+  }
+
+  dynamicgraph::sot::Sot*& sot ()
+  {
+    return sot_;
+  }
+
+  void setOrigin (const double& origin)
+  {
+    tOrigin_ = origin;
+  }
+
+protected:
+  int& update (int&, int);
+
+private:
+  dg::SignalTimeDependent<int, int> trigger_;
+  dynamicgraph::sot::Sot* sot_;
+  double tOrigin_;
+  motions_t motions_;
+};
+
+#endif //! SOT_MOTION_PLANNER_SUPERVISOR_HH
