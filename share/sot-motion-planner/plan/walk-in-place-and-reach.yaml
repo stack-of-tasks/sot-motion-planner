@@ -14,12 +14,11 @@ motion:
       - {x: 0., y: -0.19, theta: 0.}
       - {x: 0., y:  0.19, theta: 0.}
 
-#FIXME: this does not work yet.
   - task:
       interval: [0, 1]
       type: feature-point-6d
       operational-point: left-wrist
       gain: 0.1
-      reference: {x: 0., y: 0., z: 0.5}
-      rotation: on
+      reference: {x: 0.2, y: 0.331, z: 0.854}
+      rotation: off
       translation: on

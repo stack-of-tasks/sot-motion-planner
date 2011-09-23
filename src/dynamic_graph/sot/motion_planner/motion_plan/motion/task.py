@@ -61,11 +61,11 @@ class MotionTask(Motion):
                     p.dgRotationMatrix()
 
             self.selec = ''
-            if 'translation' in yamlData and yamlData['translation']:
+            if 'rotation' in yamlData and yamlData['rotation']:
                 self.selec += '111'
             else:
                 self.selec += '000'
-            if 'rotation' in yamlData and yamlData['rotation']:
+            if 'translation' in yamlData and yamlData['translation']:
                 self.selec += '111'
             else:
                 self.selec += '000'

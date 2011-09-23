@@ -111,20 +111,32 @@ class MotionPlan(object):
         feetFollowerElement = find(lambda e: type(e) == MotionWalk, self.motion)
         hasControl = len(self.control) > 0
 
-        if hasControl and feetFollowerElement:
-            #FIXME: this is not generic.
-            # Unlock head when a motion visual point is added.
-            for m in self.motion:
-                if type(m) == MotionVisualPoint:
+        # Unlock dofs.
+        for m in self.motion:
+            if type(m) == MotionVisualPoint:
+                pf = feetFollowerElement.feetFollower.postureFeature
+                pf.selectDof(6 + 14, False)
+                pf.selectDof(6 + 15, False)
+            elif type(m) == MotionTask:
+                if m.type == 'feature-point-6d':
                     pf = feetFollowerElement.feetFollower.postureFeature
-                    pf.selectDof(6 + 14, False)
-                    pf.selectDof(6 + 15, False)
-                    # FIXME: this is so wrong.
-                    plug(self.ros.signal(m.objectName),
-                         m.vispPointProjection.cMo)
-                    plug(self.ros.signal(m.objectName + 'Timestamp'),
-                         m.vispPointProjection.cMoTimestamp)
+                    if m.body == 'left-wrist':
+                        for i in xrange(6):
+                            pf.selectDof(6 + 12 + 2 + 2 + 7 + i, False)
+                    elif m.body == 'right-wrist':
+                        for i in xrange(6):
+                            pf.selectDof(6 + 12 + 2 + 2 + i, False)
 
+        # Plug motion signals which depend on control.
+        for m in self.motion:
+            if type(m) == MotionVisualPoint:
+                # FIXME: this is so wrong.
+                plug(self.ros.signal(m.objectName),
+                     m.vispPointProjection.cMo)
+                plug(self.ros.signal(m.objectName + 'Timestamp'),
+                     m.vispPointProjection.cMoTimestamp)
+
+        if hasControl and feetFollowerElement:
             self.feetFollower = FeetFollowerGraphWithCorrection(
                 robot, solver, feetFollowerElement.feetFollower,
                 MotionPlanErrorEstimationStrategy,
