@@ -134,6 +134,7 @@ Supervisor::Supervisor (const std::string& name)
     motions_ ()
 {
   signalRegistration (trigger_);
+  trigger_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
 

@@ -5,13 +5,13 @@ duration: 10
 
 motion:
   - joint:
-      interval: [0, 1]
+      interval: [0, 10]
       gain: 0.1
       name: left-claw
       reference: 1.
 
   - walk:
-      interval: [0, 1]
+      interval: [0, 10]
       footsteps:
       - {x: 0., y: -0.19, theta: 0.}
       - {x: 0., y:  0.19, theta: 0.}
@@ -21,7 +21,7 @@ motion:
       - {x: 0., y:  0.19, theta: 0.}
 
   - task:
-      interval: [0, 1]
+      interval: [0, 10]
       type: feature-point-6d
       operational-point: left-wrist
       gain: 0.1

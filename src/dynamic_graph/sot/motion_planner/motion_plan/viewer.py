@@ -232,7 +232,7 @@ class MotionPlanViewer(object):
         fmt = 'Playing... {0:>4d}/{1:<4d} ({2:>4d}ms, {3:>4d}ms)'
         discontinuityFmt = \
             '/!\\ discontinuity detected! invalid joint {0:<2d} /!\\'
-        for n in xrange(nIterations):
+        for n in xrange(nIterations + 1):
             if self.shouldExit:
                 sys.stdout.write('\n')
                 return
