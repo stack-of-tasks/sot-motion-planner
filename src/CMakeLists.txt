@@ -142,6 +142,7 @@ SET(PYTHON_MODULE dynamic_graph/sot/motion_planner/motion_plan/motion)
 SET(FILES
   __init__.py
   abstract.py
+  joint.py
   task.py
   visual_point.py
   walk.py

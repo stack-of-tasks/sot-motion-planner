@@ -173,7 +173,7 @@ class MotionPlan(object):
             self.maxY = self.plan['maximum-correction-per-step']['y']
             self.maxTheta = self.plan['maximum-correction-per-step']['theta']
 
-        motionClasses = [MotionWalk, MotionTask, MotionVisualPoint]
+        motionClasses = [MotionWalk, MotionJoint, MotionTask, MotionVisualPoint]
 
         for motion in self.plan['motion']:
             if len(motion.items()) != 1:

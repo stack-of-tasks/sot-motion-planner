@@ -4,6 +4,12 @@
 duration: 10
 
 motion:
+  - joint:
+      interval: [0, 1]
+      gain: 0.1
+      name: left-claw
+      reference: 1.
+
   - walk:
       interval: [0, 1]
       footsteps:
