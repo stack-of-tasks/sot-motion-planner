@@ -16,6 +16,8 @@
 
 #ifndef SOT_MOTION_PLANNER_SUPERVISOR_HH
 # define SOT_MOTION_PLANNER_SUPERVISOR_HH
+# include <boost/tuple/tuple.hpp>
+
 # include <dynamic-graph/command.h>
 # include <dynamic-graph/entity.h>
 # include <dynamic-graph/factory.h>
@@ -23,6 +25,7 @@
 # include <dynamic-graph/signal-ptr.h>
 # include <dynamic-graph/signal-time-dependent.h>
 
+# include <sot/core/feature-posture.h>
 # include <sot/core/matrix-homogeneous.hh>
 # include <sot/core/sot.hh>
 # include <sot/core/task-abstract.hh>
@@ -44,6 +47,14 @@ namespace command
     public:
       SetSolver (Supervisor& entity,
 		 const std::string& docstring);
+      virtual Value doExecute ();
+    };
+
+    class SetPostureFeature : public Command
+    {
+    public:
+      SetPostureFeature (Supervisor& entity,
+			 const std::string& docstring);
       virtual Value doExecute ();
     };
 
@@ -69,8 +80,8 @@ class Supervisor : public dg::Entity
 {
   DYNAMIC_GRAPH_ENTITY_DECL ();
 public:
-  typedef std::pair<double, double> bounds_t;
-  typedef std::map<dynamicgraph::sot::TaskAbstract*, bounds_t> motions_t;
+  typedef boost::tuple<double, double, int, ml::Vector> taskData_t;
+  typedef std::map<dynamicgraph::sot::TaskAbstract*, taskData_t> motions_t;
 
 
   /// \name Constructor and destructor.
@@ -78,6 +89,10 @@ public:
   explicit Supervisor (const std::string& name);
   virtual ~Supervisor ();
   /// \}
+
+  void addTask (dynamicgraph::sot::TaskAbstract* task,
+		double min, double max, int level,
+		const ml::Vector& unlockedDofs);
 
   motions_t& motions ()
   {
@@ -87,6 +102,11 @@ public:
   dynamicgraph::sot::Sot*& sot ()
   {
     return sot_;
+  }
+
+  dynamicgraph::sot::FeaturePosture*& featurePosture ()
+  {
+    return featurePosture_;
   }
 
   void setOrigin (const double& origin)
@@ -100,6 +120,7 @@ protected:
 private:
   dg::SignalTimeDependent<int, int> trigger_;
   dynamicgraph::sot::Sot* sot_;
+  dynamicgraph::sot::FeaturePosture* featurePosture_;
   double tOrigin_;
   motions_t motions_;
 };

@@ -33,10 +33,6 @@ class MotionTask(Motion):
 
         Motion.__init__(self, motion, yamlData)
 
-        if len(yamlData['interval']) != 2:
-            raise RuntimeErrror('invalid interval')
-
-        self.interval = yamlData['interval']
         self.type = yamlData['type']
 
         if self.type != 'feature-point-6d' and self.type != 'feature-com':
@@ -68,9 +64,20 @@ class MotionTask(Motion):
                 self.selec += '000'
             motion.robot.features[self.body].selec.value = self.selec
 
+            unlockedDofs = []
+            if self.body == 'left-wrist':
+                for i in xrange(6):
+                    unlockedDofs.append(6 + 12 + 2 + 2 + 7 + i)
+            elif self.body == 'right-wrist':
+                for i in xrange(6):
+                    unlockedDofs.append(6 + 12 + 2 + 2 + i)
+
+
             # Push the task into supervisor.
             motion.supervisor.addTask(motion.robot.tasks[self.body].name,
-                                      self.interval[0], self.interval[1])
+                                      self.interval[0], self.interval[1],
+                                      self.priority,
+                                      tuple(unlockedDofs))
 
         elif self.type == 'feature-com':
             motion.robot.comTask.controlGain.value = self.gain
@@ -83,7 +90,9 @@ class MotionTask(Motion):
 
             # Push the task into supervisor.
             motion.supervisor.addTask(motion.robot.comTask.name,
-                                      self.interval[0], self.interval[1])
+                                      self.interval[0], self.interval[1],
+                                      self.priority,
+                                      ())
         else:
             raise RuntimeError('invalid task type')
 

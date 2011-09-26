@@ -20,6 +20,10 @@ from __future__ import print_function
 class Motion(object):
     def __init__(self, motion, yamlData):
         self.robot = motion.robot
+        self.interval = yamlData['interval']
+        if len(self.interval) != 2:
+            raise RuntimeErrror('invalid interval')
+        self.priority = yamlData.get('priority', 0)
 
     def setupTrace(self, trace):
         raise NotImplementedError

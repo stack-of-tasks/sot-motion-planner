@@ -44,7 +44,6 @@ class MotionJoint(Motion):
 
         Motion.__init__(self, motion, yamlData)
 
-        self.interval = yamlData['interval']
         self.gain = yamlData.get('gain', 1.)
         self.name = yamlData['name']
         self.reference = yamlData['reference']
@@ -71,7 +70,9 @@ class MotionJoint(Motion):
 
         # Push the task into supervisor.
         motion.supervisor.addTask(self.task.name,
-                                  self.interval[0], self.interval[1])
+                                  self.interval[0], self.interval[1],
+                                  self.priority,
+                                  (jointId,))
 
     def __str__(self):
         return "joint motion ({0})".format(self.name)

@@ -37,7 +37,6 @@ class MotionVisualPoint(Motion):
 
         Motion.__init__(self, motion, yamlData)
 
-        self.interval = yamlData['interval']
         self.objectName = yamlData['object-name']
 
         self.gain = yamlData.get('gain', 1.)
@@ -114,7 +113,10 @@ class MotionVisualPoint(Motion):
 
         # Push the task into supervisor.
         motion.supervisor.addTask(self.task.name,
-                                  self.interval[0], self.interval[1])
+                                  self.interval[0], self.interval[1],
+                                  self.priority,
+                                  #FIXME: HRP-2 specific
+                                  (6 + 14, 6 + 15))
 
     def __str__(self):
         return "visual point motion"

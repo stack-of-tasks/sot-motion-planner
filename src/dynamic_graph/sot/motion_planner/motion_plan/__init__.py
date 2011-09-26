@@ -119,21 +119,8 @@ class MotionPlan(object):
         feetFollowerElement = find(lambda e: type(e) == MotionWalk, self.motion)
         hasControl = len(self.control) > 0
 
-        # Unlock dofs.
-        for m in self.motion:
-            if type(m) == MotionVisualPoint:
-                pf = feetFollowerElement.feetFollower.postureFeature
-                pf.selectDof(6 + 14, False)
-                pf.selectDof(6 + 15, False)
-            elif type(m) == MotionTask:
-                if m.type == 'feature-point-6d':
-                    pf = feetFollowerElement.feetFollower.postureFeature
-                    if m.body == 'left-wrist':
-                        for i in xrange(6):
-                            pf.selectDof(6 + 12 + 2 + 2 + 7 + i, False)
-                    elif m.body == 'right-wrist':
-                        for i in xrange(6):
-                            pf.selectDof(6 + 12 + 2 + 2 + i, False)
+        self.supervisor.setPostureFeature(
+            feetFollowerElement.feetFollower.postureFeature.name)
 
         # Plug motion signals which depend on control.
         for m in self.motion:

@@ -14,6 +14,11 @@
 // received a copy of the GNU Lesser General Public License along with
 // sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
+#define protected public
+# include <sot/core/sot.hh>
+#undef protected
+
+
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
 
@@ -57,11 +62,44 @@ namespace command
       return Value ();
     }
 
+    SetPostureFeature::SetPostureFeature (Supervisor& entity,
+		 const std::string& docstring)
+      : Command (entity, boost::assign::list_of (Value::STRING), docstring)
+    {}
+
+    Value
+    SetPostureFeature::doExecute ()
+    {
+      Supervisor& entity = static_cast<Supervisor&> (owner ());
+
+      std::vector<Value> values = getParameterValues ();
+      std::string name = values[0].value ();
+
+      dynamicgraph::sot::FeaturePosture* featurePosture = 0;
+      if (dynamicgraph::g_pool.existEntity (name))
+	{
+	  featurePosture =
+	    dynamic_cast<dynamicgraph::sot::FeaturePosture*>
+	    (&dynamicgraph::g_pool.getEntity (name));
+	  if (!featurePosture)
+	    std::cerr << "entity is not a feature posture entity" << std::endl;
+	}
+      else
+	std::cerr << "invalid entity name" << std::endl;
+      entity.featurePosture () = featurePosture;
+      return Value ();
+    }
+
+
 
     AddTask::AddTask (Supervisor& entity,
 		      const std::string& docstring)
       : Command (entity, boost::assign::list_of
-		 (Value::STRING) (Value::DOUBLE) (Value::DOUBLE), docstring)
+		 (Value::STRING)
+		 (Value::DOUBLE) (Value::DOUBLE)
+		 (Value::INT)
+		 (Value::VECTOR),
+		 docstring)
     {}
 
     Value
@@ -73,6 +111,8 @@ namespace command
       std::string name = values[0].value ();
       double min = values[1].value ();
       double max = values[2].value ();
+      int level = values[3].value ();
+      ml::Vector unlockedDofs = values[4].value ();
 
       dynamicgraph::sot::TaskAbstract* task = 0;
       if (dynamicgraph::g_pool.existEntity (name))
@@ -87,7 +127,7 @@ namespace command
 	std::cerr << "invalid entity name" << std::endl;
 
       if (task)
-	entity.motions ()[task] = std::make_pair (min, max);
+	entity.addTask (task, min, max, level, unlockedDofs);
       return Value ();
     }
 
@@ -103,14 +143,15 @@ namespace command
       std::string str;
 
       typedef std::pair<
-      dynamicgraph::sot::TaskAbstract*, Supervisor::bounds_t> pair_t;
+      dynamicgraph::sot::TaskAbstract*, Supervisor::taskData_t> pair_t;
 
-      boost::format fmt ("- %s [%f; %f]\n");
+      boost::format fmt ("- %s [%f; %f] level = %d\n");
       BOOST_FOREACH (const pair_t& e, entity.motions ())
 	{
 	  fmt
 	    % (e.first ? e.first->getName () : "invalid task")
-	    % e.second.first % e.second.second;
+	    % boost::get<0> (e.second) % boost::get<1> (e.second)
+	    % boost::get<2> (e.second);
 	  str += fmt.str ();
 	}
 
@@ -140,6 +181,8 @@ Supervisor::Supervisor (const std::string& name)
 
   addCommand ("setSolver",
 	      new command::supervisor::SetSolver (*this, docstring));
+  addCommand ("setPostureFeature",
+	      new command::supervisor::SetPostureFeature (*this, docstring));
   addCommand ("addTask",
 	      new command::supervisor::AddTask (*this, docstring));
 
@@ -159,6 +202,8 @@ Supervisor::update (int& dummy, int t)
 {
   if (!sot_)
     return dummy;
+  if (!featurePosture_)
+    return dummy;
   if (tOrigin_ < 0.)
     return dummy;
 
@@ -166,14 +211,16 @@ Supervisor::update (int& dummy, int t)
   double t_ = (t - tOrigin_) * STEP;
 
   typedef std::pair<
-  dynamicgraph::sot::TaskAbstract*, bounds_t> pair_t;
+  dynamicgraph::sot::TaskAbstract*, taskData_t> pair_t;
 
   BOOST_FOREACH (const pair_t& e, motions_)
     {
       dynamicgraph::sot::TaskAbstract* task = e.first;
-      const bounds_t& bounds = e.second;
-      const double& min = bounds.first;
-      const double& max = bounds.second;
+      const taskData_t& taskData = e.second;
+      const double& min = boost::get<0> (taskData);
+      const double& max = boost::get<1> (taskData);
+      const int& level = boost::get<2> (taskData);
+      const ml::Vector& unlockedDofs = boost::get<3> (taskData);
 
       if (!task)
 	continue;
@@ -190,11 +237,67 @@ Supervisor::update (int& dummy, int t)
 	if (!sot_->exist (*task))
 	  {
 	    sot_->push (*task);
-	    std::cout << "Adding " << task->getName () << std::endl;
-	    //sot_->up (*task);
+
+	    std::cout << "Adding " << task->getName ()
+		      << ", level = " << level << std::endl;
+
+	    // Free dofs.
+	    for (unsigned i = 0; i < unlockedDofs.size (); ++i)
+	      featurePosture_->selectDof ((int)unlockedDofs (i), false);
+
+	    // We compute how many "up" are required to ensure task
+	    // priority.
+	    unsigned nbUp = 0;
+
+	    const dynamicgraph::sot::Sot::StackType& stack = sot_->stack;
+	    typedef dynamicgraph::sot::Sot::StackType::const_iterator iter_t;
+
+	    typedef motions_t::const_iterator motionsIter_t;
+
+	    for (iter_t it = stack.begin (); it != stack.end (); ++it)
+	      {
+		motionsIter_t motionIt = motions_.find (*it);
+
+		// Unknown task (not managed by this supervisor)
+		if (motionIt == motions_.end ())
+		  {
+		    ++nbUp;
+		    continue;
+		  }
+
+		// Task being inserted.
+		if (motionIt->first == task)
+		  {
+		    ++nbUp;
+		    continue;
+		  }
+
+		// Another task.
+		const int& taskLevel = boost::get<2> (motionIt->second);
+
+		// We have a higher priority than the current task.
+		if (taskLevel < level)
+		  ++nbUp;
+	      }
+
+	    for (unsigned i = 0; i < nbUp; ++i)
+	      sot_->up (*task);
 	  }
     }
   return dummy;
+}
+
+void
+Supervisor::addTask (dynamicgraph::sot::TaskAbstract* task,
+		     double min, double max, int level,
+		     const ml::Vector& unlockedDofs)
+{
+  if (!task)
+    throw std::runtime_error ("invalid task");
+  if (!sot_)
+    throw std::runtime_error ("solver must be set before adding a task");
+
+  motions ()[task] = Supervisor::taskData_t (min, max, level, unlockedDofs);
 }
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (Supervisor, "Supervisor");

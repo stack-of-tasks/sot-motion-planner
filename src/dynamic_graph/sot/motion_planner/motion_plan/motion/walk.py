@@ -38,8 +38,6 @@ class MotionWalk(Motion):
 
         Motion.__init__(self, motion, yamlData)
 
-        self.interval = yamlData['interval']
-
         steps = convertToNPFootstepsStack(yamlData['footsteps'])
         self.footsteps = yamlData['footsteps']
         self.comZ = yamlData.get('comZ')
@@ -64,15 +62,25 @@ class MotionWalk(Motion):
 
         # Push the tasks into supervisor.
         motion.supervisor.addTask(self.feetFollower.postureTask.name,
-                                  self.interval[0], self.interval[1])
+                                  self.interval[0], self.interval[1],
+                                  self.priority + 9,
+                                  ())
         motion.supervisor.addTask(self.robot.comTask.name,
-                                  self.interval[0], self.interval[1])
+                                  self.interval[0], self.interval[1],
+                                  self.priority + 3,
+                                  ())
         motion.supervisor.addTask(self.robot.tasks['left-ankle'].name,
-                                  self.interval[0], self.interval[1])
+                                  self.interval[0], self.interval[1],
+                                  self.priority + 2,
+                                  ())
         motion.supervisor.addTask(self.robot.tasks['right-ankle'].name,
-                                  self.interval[0], self.interval[1])
+                                  self.interval[0], self.interval[1],
+                                  self.priority + 1,
+                                  ())
         motion.supervisor.addTask(self.robot.tasks['waist'].name,
-                                  self.interval[0], self.interval[1])
+                                  self.interval[0], self.interval[1],
+                                  self.priority,
+                                  ())
 
     def __str__(self):
         return "walking motion ({0} footstep(s))".format(len(self.footsteps))
