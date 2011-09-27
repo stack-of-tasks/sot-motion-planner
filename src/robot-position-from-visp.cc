@@ -49,6 +49,13 @@ RobotPositionFromVisp::RobotPositionFromVisp (const std::string& name)
     (dg::nullptr,
      MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "plannedObjectPosition")),
 
+    wMcIn_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "wMc")),
+    wMrIn_
+    (dg::nullptr,
+     MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "wMr")),
+
     positionOut_ (INIT_SIGNAL_OUT
 		  ("position",
 		   RobotPositionFromVisp::updatePosition, "Vector")),
@@ -66,6 +73,7 @@ RobotPositionFromVisp::RobotPositionFromVisp (const std::string& name)
 {
   signalRegistration (cMoIn_ << cMoTimestampIn_
 		      << plannedObjectPositionIn_
+		      << wMcIn_ << wMrIn_
 		      << positionOut_
 		      << positionTimestampOut_
 		      << dbgcMoOut_
@@ -89,11 +97,14 @@ RobotPositionFromVisp::~RobotPositionFromVisp ()
 void
 RobotPositionFromVisp::update (int t)
 {
-  sot::MatrixHomogeneous cMo = cMoIn_ (t);
+  const sot::MatrixHomogeneous& cMo = cMoIn_ (t);
   sot::MatrixHomogeneous wMo = plannedObjectPositionIn_ (t);
 
+  const sot::MatrixHomogeneous& wMc = wMcIn_ (t);
+  const sot::MatrixHomogeneous& wMr = wMrIn_ (t);
+
   sot::MatrixHomogeneous robotMc;
-  robotMc.setIdentity ();
+  robotMc = wMr.inverse () * wMc;
   // robotMc (0, 3) = 0.025;
   // robotMc (1, 3) = 0.;
   // robotMc (2, 3) = 0.647998;
@@ -115,7 +126,7 @@ RobotPositionFromVisp::update (int t)
 
   // wMrobot = wMo * oMc * cMrobot = wMo * cMo^{-1} * robotMc^{-1}
   //dbgPosition_ = wMo * dbgcMo_.inverse () * robotMc.inverse ();
-  dbgPosition_ = wMo * dbgcMo_.inverse ();
+  dbgPosition_ = wMo * dbgcMo_.inverse () * robotMc.inverse ();
 
   position_ = MatrixHomogeneousToXYTheta (dbgPosition_);
   positionTimestamp_ = cMoTimestampIn_ (t);

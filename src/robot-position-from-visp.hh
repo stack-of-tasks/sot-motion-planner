@@ -91,6 +91,12 @@ private:
   /// \brief Current object position in world frame.
   signalMatrixHomoIn_t plannedObjectPositionIn_;
 
+  /// \brief Camera position w.r.t. the world frame.
+  signalMatrixHomoIn_t wMcIn_;
+
+  /// \brief Robot position w.r.t. the world frame.
+  signalMatrixHomoIn_t wMrIn_;
+
   /// \brief Robot waist position estimation.
   signalVectorOut_t positionOut_;
   /// \brief Robot waist position estimation (associated timestamp).
