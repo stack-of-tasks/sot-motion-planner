@@ -37,6 +37,7 @@ RobotPositionFromVisp::RobotPositionFromVisp (const std::string& name)
     positionTimestamp_ (3),
     dbgcMo_ (),
     dbgPosition_ (),
+    dbgrMc_ (),
 
     cMoIn_
     (dg::nullptr,
@@ -68,7 +69,10 @@ RobotPositionFromVisp::RobotPositionFromVisp (const std::string& name)
 		("dbgcMo", RobotPositionFromVisp::updateDbgcMo, "MatrixHomo")),
     dbgPositionOut_ (INIT_SIGNAL_OUT
 		     ("dbgPosition",
-		      RobotPositionFromVisp::updateDbgPosition, "MatrixHomo"))
+		      RobotPositionFromVisp::updateDbgPosition, "MatrixHomo")),
+    dbgrMcOut_ (INIT_SIGNAL_OUT
+		("dbgrMc",
+		 RobotPositionFromVisp::updateDbgrMc, "MatrixHomo"))
 
 {
   signalRegistration (cMoIn_ << cMoTimestampIn_
@@ -77,11 +81,13 @@ RobotPositionFromVisp::RobotPositionFromVisp (const std::string& name)
 		      << positionOut_
 		      << positionTimestampOut_
 		      << dbgcMoOut_
-		      << dbgPositionOut_);
+		      << dbgPositionOut_
+		      << dbgrMcOut_);
   positionOut_.setNeedUpdateFromAllChildren (true);
   positionTimestampOut_.setNeedUpdateFromAllChildren (true);
   dbgcMoOut_.setNeedUpdateFromAllChildren (true);
   dbgPositionOut_.setNeedUpdateFromAllChildren (true);
+  dbgrMcOut_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
   addCommand ("setSensorTransformation",
@@ -103,12 +109,12 @@ RobotPositionFromVisp::update (int t)
   const sot::MatrixHomogeneous& wMc = wMcIn_ (t);
   const sot::MatrixHomogeneous& wMr = wMrIn_ (t);
 
-  sot::MatrixHomogeneous robotMc = wMr.inverse () * wMc;
+  dbgrMc_ = wMr.inverse () * wMc;
 
   dbgcMo_ = cMc_ * cMo * cMc_.inverse ();
 
   // wMrobot = wMo * oMc * cMrobot = wMo * cMo^{-1} * robotMc^{-1}
-  dbgPosition_ = wMo * dbgcMo_.inverse () * robotMc.inverse ();
+  dbgPosition_ = wMo * dbgcMo_.inverse () * dbgrMc_.inverse ();
 
   position_ = MatrixHomogeneousToXYTheta (dbgPosition_);
   positionTimestamp_ = cMoTimestampIn_ (t);
@@ -145,6 +151,12 @@ RobotPositionFromVisp::updateDbgPosition (sot::MatrixHomogeneous& res, int)
   return res;
 }
 
+sot::MatrixHomogeneous&
+RobotPositionFromVisp::updateDbgrMc (sot::MatrixHomogeneous& res, int)
+{
+  res = dbgrMc_;
+  return res;
+}
 
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (RobotPositionFromVisp,

@@ -143,7 +143,8 @@ class ControlViSP(Control):
                   'position',
                   'positionTimestamp',
                   'dbgcMo',
-                  'dbgPosition']:
+                  'dbgPosition',
+                  'dbgrMc']:
             addTrace(self.robot, self.trace, self.robotPositionFromVisp.name, s)
 
     def __str__(self):

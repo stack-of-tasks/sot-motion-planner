@@ -62,6 +62,8 @@ protected:
   updateDbgcMo (sot::MatrixHomogeneous& res, int);
   sot::MatrixHomogeneous&
   updateDbgPosition (sot::MatrixHomogeneous& res, int);
+  sot::MatrixHomogeneous&
+  updateDbgrMc (sot::MatrixHomogeneous& res, int);
 
   /// \brief Set the sensor to world transformation.
   ///
@@ -82,6 +84,7 @@ private:
   ml::Vector positionTimestamp_;
   sot::MatrixHomogeneous dbgcMo_;
   sot::MatrixHomogeneous dbgPosition_;
+  sot::MatrixHomogeneous dbgrMc_;
 
   /// \brief Object position in camera frame (tracking data).
   signalMatrixHomoIn_t cMoIn_;
@@ -104,6 +107,7 @@ private:
 
   signalMatrixHomoOut_t dbgcMoOut_;
   signalMatrixHomoOut_t dbgPositionOut_;
+  signalMatrixHomoOut_t dbgrMcOut_;
 };
 
 #endif //! SOT_MOTION_PLANNER_ROBOT_POSITION_FROM_VISP_HH
