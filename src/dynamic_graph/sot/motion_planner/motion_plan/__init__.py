@@ -235,7 +235,8 @@ class MotionPlan(object):
         # Remove default tasks and let the supervisor take over the
         # tasks management.
         self.solver.sot.clear()
-        self.supervisor.setOrigin(self.feetFollower.feetFollower.getStartTime())
+        tOrigin = self.feetFollower.feetFollower.getStartTime()
+        self.supervisor.setOrigin(max(0., tOrigin))
 
     def canStart(self):
         canStart = reduce(lambda acc, c: c.canStart() and acc,
