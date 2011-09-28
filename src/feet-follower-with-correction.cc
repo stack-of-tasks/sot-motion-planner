@@ -114,11 +114,27 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
   rightAnkleOut_.addDependency (offsetIn_);
   comOut_.addDependency (offsetIn_);
   zmpOut_.addDependency (offsetIn_);
+  waistOut_.addDependency (offsetIn_);
+  gazeOut_.addDependency (offsetIn_);
+
+  comVelocityOut_.addDependency (offsetIn_);
+  waistYawVelocityOut_.addDependency (offsetIn_);
+  leftAnkleVelocityOut_.addDependency (offsetIn_);
+  rightAnkleVelocityOut_.addDependency (offsetIn_);
+
 
   leftAnkleOut_.addDependency (positionIn_);
   rightAnkleOut_.addDependency (positionIn_);
   comOut_.addDependency (positionIn_);
   zmpOut_.addDependency (positionIn_);
+  waistOut_.addDependency (positionIn_);
+  gazeOut_.addDependency (positionIn_);
+
+  comVelocityOut_.addDependency (positionIn_);
+  waistYawVelocityOut_.addDependency (positionIn_);
+  leftAnkleVelocityOut_.addDependency (positionIn_);
+  rightAnkleVelocityOut_.addDependency (positionIn_);
+
 
   dbgFootstepsOut_.setNeedUpdateFromAllChildren (true);
 
