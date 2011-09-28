@@ -40,9 +40,11 @@ motion:
       interval: [0, 1]
       gain: 1.
       object-name: table
+      frame-name: cameraBottomLeft
 
 control:
   - visp:
       weight: 0.5
       object-name: table
       position: /tracker_mbt/resultTransform
+      frame-name: cameraBottomLeft

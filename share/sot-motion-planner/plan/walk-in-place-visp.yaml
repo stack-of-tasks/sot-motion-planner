@@ -41,3 +41,4 @@ control:
       weight: 0.5
       object-name: table
       position: /tracker_mbt/resultTransform
+      frame-name: cameraBottomLeft

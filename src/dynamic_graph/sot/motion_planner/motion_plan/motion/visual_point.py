@@ -18,7 +18,7 @@
 from __future__ import print_function
 import numpy as np
 from dynamic_graph import plug
-from dynamic_graph.sot.core import FeatureVisualPoint, OpPointModifier, Task
+from dynamic_graph.sot.core import FeatureVisualPoint, Task
 from dynamic_graph.sot.motion_planner import VispPointProjection
 from dynamic_graph.sot.motion_planner.math import *
 from dynamic_graph.sot.motion_planner.motion_plan.tools import *
@@ -38,45 +38,13 @@ class MotionVisualPoint(Motion):
         Motion.__init__(self, motion, yamlData)
 
         self.objectName = yamlData['object-name']
+        self.frameName = yamlData['frame-name']
 
         self.gain = yamlData.get('gain', 1.)
 
         # Cannot change the stack dynamically for now.
         if self.interval[0] != 0 and self.interval[1] != motion.duration:
             raise NotImplementedError
-
-        # Extrinsic camera parameters.
-        g_M_c1 = np.matrix(
-            [[1., 0., 0., 0.035],
-             [0., 1., 0., 0.072],
-             [0., 0., 1., 0.075],
-             [0., 0., 0., 1.]])
-        g_M_c1 = np.matrix( #FIXME: disabled as long as it has not been checked.
-            [[1., 0., 0., 0.],
-             [0., 1., 0., 0.],
-             [0., 0., 1., 0.],
-             [0., 0., 0., 1.]])
-
-        # Frames re-orientation:
-        # Z = depth (increase from near to far)
-        # X = increase from left to right
-        # Y = increase from top to bottom
-        c1_M_c = np.matrix(
-            [[ 0.,  0.,  1., 0.],
-             [-1.,  0.,  0., 0.],
-             [ 0., -1.,  0., 0.],
-             [ 0.,  0.,  0., 1.]])
-
-        g_M_c = matrixToTuple(g_M_c1 * c1_M_c)
-
-        # Op point modifier.
-        self.w_M_c = OpPointModifier('w_M_c'+str(id(yamlData)))
-        self.w_M_c.setTransformation(g_M_c)
-        plug(motion.robot.dynamic.gaze, self.w_M_c.positionIN)
-        plug(motion.robot.dynamic.Jgaze, self.w_M_c.jacobianIN)
-
-        self.w_M_c.position.recompute(self.w_M_c.position.time + 1)
-        self.w_M_c.jacobian.recompute(self.w_M_c.jacobian.time + 1)
 
         # Desired feature
         self.fvpDes = FeatureVisualPoint('fvpDes'+str(id(yamlData)))
@@ -98,7 +66,7 @@ class MotionVisualPoint(Motion):
         self.fvp.Z.value = 1.
         self.fvp.sdes.value = self.fvpDes
         self.fvp.selec.value = '11'
-        plug(self.w_M_c.jacobian, self.fvp.Jq)
+        plug(motion.robot.frames[self.frameName].jacobian, self.fvp.Jq)
 
         self.fvp.error.recompute(self.fvp.error.time + 1)
         self.fvp.jacobian.recompute(self.fvp.jacobian.time + 1)
@@ -119,7 +87,8 @@ class MotionVisualPoint(Motion):
                                   (6 + 14, 6 + 15))
 
     def __str__(self):
-        return "visual point motion"
+        msg = "visual point motion (frame: {0}, object: {1})"
+        return msg.format(self.frameName, self.objectName)
 
     def setupTrace(self, trace):
         for s in ['xy', 'Z']:

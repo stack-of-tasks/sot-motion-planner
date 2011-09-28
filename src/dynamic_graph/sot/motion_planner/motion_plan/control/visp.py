@@ -19,7 +19,6 @@ from __future__ import print_function
 import numpy as np
 from dynamic_graph import plug
 from dynamic_graph.sot.core import RobotSimu
-from dynamic_graph.sot.core import OpPointModifier
 from dynamic_graph.sot.motion_planner.feet_follower import \
     ErrorEstimator
 from dynamic_graph.sot.motion_planner.feet_follower import \
@@ -47,6 +46,7 @@ class ControlViSP(Control):
         self.robot = motion.robot
 
         self.objectName = yamlData['object-name']
+        self.frameName = yamlData['frame-name']
         self.position = yamlData['position']
 
         obj = motion.environment.get(self.objectName)
@@ -78,41 +78,9 @@ class ControlViSP(Control):
         plug(self.ros.signal(self.objectName + 'Timestamp'),
              self.robotPositionFromVisp.cMoTimestamp)
 
-        # Extrinsic camera parameters.
-        g_M_c1 = np.matrix(
-            [[1., 0., 0., 0.035],
-             [0., 1., 0., 0.072],
-             [0., 0., 1., 0.075],
-             [0., 0., 0., 1.]])
-        g_M_c1 = np.matrix( #FIXME: disabled as long as it has not been checked.
-            [[1., 0., 0., 0.],
-             [0., 1., 0., 0.],
-             [0., 0., 1., 0.],
-             [0., 0., 0., 1.]])
-
-        # Frames re-orientation:
-        # Z = depth (increase from near to far)
-        # X = increase from left to right
-        # Y = increase from top to bottom
-        c1_M_c = np.matrix(
-            [[ 0.,  0.,  1., 0.],
-             [-1.,  0.,  0., 0.],
-             [ 0., -1.,  0., 0.],
-             [ 0.,  0.,  0., 1.]])
-
-        g_M_c = matrixToTuple(g_M_c1 * c1_M_c)
-
-        # Op point modifier.
-        self.w_M_c = OpPointModifier('w_M_c'+str(id(yamlData)))
-        self.w_M_c.setTransformation(g_M_c)
-        plug(motion.robot.dynamic.gaze, self.w_M_c.positionIN)
-        plug(motion.robot.dynamic.Jgaze, self.w_M_c.jacobianIN)
-
-        self.w_M_c.position.recompute(self.w_M_c.position.time + 1)
-        self.w_M_c.jacobian.recompute(self.w_M_c.jacobian.time + 1)
-
         # Plug wMc/wMr to robotPositionFromVisp
-        plug(self.w_M_c.position, self.robotPositionFromVisp.wMc)
+        plug(motion.robot.frames[self.frameName].position,
+             self.robotPositionFromVisp.wMc)
         plug(motion.robot.dynamic.waist, self.robotPositionFromVisp.wMr)
 
 
@@ -179,4 +147,5 @@ class ControlViSP(Control):
             addTrace(self.robot, self.trace, self.robotPositionFromVisp.name, s)
 
     def __str__(self):
-        return "ViSP moving edge tracker control element"
+        msg = "ViSP moving edge tracker control element (frame: {0}, object: {1})"
+        return msg.format(self.frameName, self.objectName)
