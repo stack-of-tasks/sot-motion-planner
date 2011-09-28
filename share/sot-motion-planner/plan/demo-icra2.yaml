@@ -48,7 +48,7 @@ environment:
 
 motion:
   - walk:
-      interval: [0, 1]
+      interval: [0, 200]
       footsteps:
       # start
       - {x: 0.20, y: -0.19, theta: 0., slide1: 0., slide2: -0.76}

@@ -6,7 +6,7 @@ duration: 10
 motion:
 # Make sure the feet do not move.
   - task:
-      interval: [0, 1]
+      interval: [0, 10]
       type: feature-point-6d
       operational-point: left-ankle
       gain: 1.
@@ -14,7 +14,7 @@ motion:
       translation: on
       rotation: on
   - task:
-      interval: [0, 1]
+      interval: [0, 10]
       type: feature-point-6d
       operational-point: right-ankle
       gain: 1.
@@ -24,7 +24,7 @@ motion:
 
 # Reaching task.
   - task:
-      interval: [0, 1]
+      interval: [0, 10]
       type: feature-point-6d
       operational-point: left-wrist
       gain: 0.1
@@ -32,7 +32,7 @@ motion:
       translation: on
       rotation: off
   - task:
-      interval: [0, 1]
+      interval: [0, 10]
       type: feature-point-6d
       operational-point: right-wrist
       gain: 0.1

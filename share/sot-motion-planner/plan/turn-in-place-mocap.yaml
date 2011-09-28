@@ -5,7 +5,7 @@ duration: 10
 
 motion:
   - walk:
-      interval: [0, 1]
+      interval: [0, 10]
       footsteps:
       - {x: 0., y: -0.19, theta: 0.1}
       - {x: 0., y:  0.19, theta: 0.1}

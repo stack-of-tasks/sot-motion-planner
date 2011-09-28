@@ -7,7 +7,7 @@ maximum-correction-per-step: {x: 0.0, y: 0.0, theta: 0.0}
 
 motion:
   - walk:
-      interval: [0, 1]
+      interval: [0, 24]
       waist-trajectory: walk-in-place-mocap-head/waist.dat
       gaze-trajectory: walk-in-place-mocap-head/gaze.dat
       #zmp-trajectory: walk-in-place-mocap-head/zmp.dat

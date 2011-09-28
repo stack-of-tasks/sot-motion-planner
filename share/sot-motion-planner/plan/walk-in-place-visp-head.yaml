@@ -21,7 +21,7 @@ environment:
 
 motion:
   - walk:
-      interval: [0, 1]
+      interval: [0, 25]
       footsteps:
       - {x: 0., y: -0.19, theta: 0., slide1: 0., slide2: -0.76}
       - {x: 0., y:  0.19, theta: 0., slide1: -1., slide2: -0.76}
@@ -37,7 +37,7 @@ motion:
       gaze-trajectory: walk-in-place-visp/gaze.dat
 
   - visual-point:
-      interval: [0, 1]
+      interval: [0, 25]
       gain: 1.
       object-name: table
       frame-name: cameraBottomLeft
