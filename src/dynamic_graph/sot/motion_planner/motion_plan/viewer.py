@@ -57,6 +57,7 @@ class MotionPlanViewer(object):
     enableObstacles = True
     enableFootsteps = True
     enableRobot = True
+    enableFrames = True
     shouldExit = False
     elements = None
     initialAnklePositions = None
@@ -71,6 +72,7 @@ class MotionPlanViewer(object):
                  enableObstacles = True,
                  enableFootsteps = True,
                  enableRobot = True,
+                 enableFrames = False,
                  logCfg = True,
                  logOpPoints = False):
         logger.debug('creating MotionPlanViewer instance')
@@ -81,6 +83,7 @@ class MotionPlanViewer(object):
         self.enableObstacles = enableObstacles
         self.enableFootsteps = enableFootsteps
         self.enableRobot = enableRobot
+        self.enableFrames = enableFrames
         self.elements = client.listElements()
         self.logCfg = logCfg
         self.logOpPoints = logOpPoints
@@ -162,6 +165,14 @@ class MotionPlanViewer(object):
                           self.elements, create = False)
         if self.enableObstacles:
             drawObstacles(self.client, self.plan, self.robot, self.elements)
+        if self.enableFrames:
+            for f in self.plan.robot.frames:
+                self.plan.robot.frames[f].position.recompute(
+                    self.plan.robot.frames[f].position.time + 1)
+                self.createObject(f, 'coord.py',
+                                  Pose6d.fromRotationMatrix(
+                        np.matrix(self.plan.robot.frames[f].position.value)).pose())
+
 
     def storePositions(self):
         if self.logOpPoints:
@@ -207,6 +218,12 @@ class MotionPlanViewer(object):
             signal.signal(s, handle)
 
         nIterations = int(self.plan.duration / self.step)
+
+        if self.enableFrames:
+            for f in self.plan.robot.frames:
+                self.createObject(f, 'coord.py',
+                                  Pose6d.fromRotationMatrix(
+                        np.matrix(self.plan.robot.frames[f].position.value)).pose())
 
         if self.enableFootsteps:
             drawFootsteps(self.client, self.plan, self.robot,
