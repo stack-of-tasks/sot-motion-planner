@@ -57,8 +57,16 @@ class MotionWalk(Motion):
             gazeFile = self.gazeFile,
             zmpFile = self.zmpFile,
             comZ = self.comZ)
-        #FIXME: ...
+        #FIXME: make tracing and walking independent.
         motion.trace = self.feetFollower.trace
+
+        unlockedDofsRleg = []
+        unlockedDofsLleg = []
+        for i in xrange(6):
+            #FIXME: HRP-2 specific
+            unlockedDofsRleg.append(6 + i)
+            unlockedDofsLleg.append(6 + 6 + i)
+
 
         # Push the tasks into supervisor.
         motion.supervisor.addTask(self.feetFollower.postureTask.name,
@@ -72,11 +80,11 @@ class MotionWalk(Motion):
         motion.supervisor.addTask(self.robot.tasks['left-ankle'].name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 2,
-                                  ())
+                                  tuple(unlockedDofsLleg))
         motion.supervisor.addTask(self.robot.tasks['right-ankle'].name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 1,
-                                  ())
+                                  tuple(unlockedDofsRleg))
         motion.supervisor.addTask(self.robot.tasks['waist'].name,
                                   self.interval[0], self.interval[1],
                                   self.priority,
