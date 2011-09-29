@@ -77,13 +77,13 @@ computeAnklePositionInWorldFrame (double footX, double footY, double footZ, doub
 }
 
 WalkMovement::WalkMovement
-(const sot::DiscretizedTrajectory& leftFoot,
- const sot::DiscretizedTrajectory& rightFoot,
- const sot::DiscretizedTrajectory& com,
- const sot::DiscretizedTrajectory& zmp,
- const sot::DiscretizedTrajectory& waistYaw,
- const sot::DiscretizedTrajectory& waist,
- const sot::DiscretizedTrajectory& gaze,
+(const trajectoryPtr_t& leftFoot,
+ const trajectoryPtr_t& rightFoot,
+ const trajectoryPtr_t& com,
+ const trajectoryPtr_t& zmp,
+ const trajectoryPtr_t& waistYaw,
+ const trajectoryPtr_t& waist,
+ const trajectoryPtr_t& gaze,
  const sot::MatrixHomogeneous& wMw_traj)
   : leftFoot (leftFoot),
     rightFoot (rightFoot),
@@ -201,6 +201,11 @@ FeetFollower::~FeetFollower ()
 void
 FeetFollower::start ()
 {
+  if (started_)
+    {
+      std::cout << "warning: already started" << std::endl;
+      return;
+    }
   started_ = true;
   startTime_ = t_ * STEP;
   impl_start ();

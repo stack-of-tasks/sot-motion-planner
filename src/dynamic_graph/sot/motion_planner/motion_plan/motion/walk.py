@@ -56,9 +56,17 @@ class MotionWalk(Motion):
             waistFile = self.waistFile,
             gazeFile = self.gazeFile,
             zmpFile = self.zmpFile,
-            comZ = self.comZ)
-        #FIXME: make tracing and walking independent.
-        motion.trace = self.feetFollower.trace
+            comZ = self.comZ,
+            trace = motion.trace,
+            postureFeature = motion.postureFeature,
+            postureTask = motion.postureTask)
+
+        # FIXME: Not too good.
+        self.feetFollower.comTask.controlGain.value = self.feetFollower.gain
+        self.feetFollower.tasks['left-ankle'].controlGain.value = self.feetFollower.gain
+        self.feetFollower.tasks['right-ankle'].controlGain.value = self.feetFollower.gain
+        self.feetFollower.postureTask.controlGain.value = self.feetFollower.gain
+        self.feetFollower.tasks['waist'].controlGain.value = self.feetFollower.gain
 
         unlockedDofsRleg = []
         unlockedDofsLleg = []
@@ -69,23 +77,26 @@ class MotionWalk(Motion):
 
 
         # Push the tasks into supervisor.
+        motion.supervisor.addFeetFollowerStartCall(self.feetFollower.feetFollower.name,
+                                                   self.interval[0])
+
         motion.supervisor.addTask(self.feetFollower.postureTask.name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 9,
                                   ())
-        motion.supervisor.addTask(self.robot.comTask.name,
+        motion.supervisor.addTask(self.feetFollower.comTask.name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 3,
                                   ())
-        motion.supervisor.addTask(self.robot.tasks['left-ankle'].name,
+        motion.supervisor.addTask(self.feetFollower.tasks['left-ankle'].name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 2,
                                   tuple(unlockedDofsLleg))
-        motion.supervisor.addTask(self.robot.tasks['right-ankle'].name,
+        motion.supervisor.addTask(self.feetFollower.tasks['right-ankle'].name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 1,
                                   tuple(unlockedDofsRleg))
-        motion.supervisor.addTask(self.robot.tasks['waist'].name,
+        motion.supervisor.addTask(self.feetFollower.tasks['waist'].name,
                                   self.interval[0], self.interval[1],
                                   self.priority,
                                   ())

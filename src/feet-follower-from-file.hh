@@ -48,9 +48,9 @@ public:
   virtual boost::optional<int>
   trajectorySize () const
   {
-    if (!trajectories_)
+    if (!trajectories_ || !trajectories_->leftFoot)
       return boost::optional<int> ();
-    return trajectories_->leftFoot.trajectorySize ();
+    return trajectories_->leftFoot->trajectorySize ();
   }
 
 private:

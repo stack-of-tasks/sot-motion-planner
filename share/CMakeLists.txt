@@ -51,6 +51,7 @@ INSTALL(
   sot-motion-planner/plan/walk-in-place-visp.yaml
   sot-motion-planner/plan/walk-in-place-visp-head.yaml
   sot-motion-planner/plan/walk-in-place.yaml
+  sot-motion-planner/plan/several-walk-motions.yaml
   DESTINATION share/sot-motion-planner/plan)
 
 # Reference trajectories.

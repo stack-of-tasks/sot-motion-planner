@@ -15,6 +15,7 @@
 // dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 #include <boost/filesystem/fstream.hpp>
+#include <boost/make_shared.hpp>
 
 #include "discretized-trajectory.hh"
 
@@ -95,8 +96,8 @@ FeetFollowerAnalyticalPg::updateVelocities ()
   const double t = (index_) * STEP;
   const double tnext = (index_ + 1) * STEP;
 
-  if (t >= Function::getUpperBound (trajectories_->leftFoot.getRange ()) or
-      tnext >= Function::getUpperBound (trajectories_->leftFoot.getRange ()))
+  if (t >= Function::getUpperBound (trajectories_->leftFoot->getRange ()) ||
+      tnext >= Function::getUpperBound (trajectories_->leftFoot->getRange ()))
     {
       comVelocity_.setZero ();
       waistYawVelocity_.setZero ();
@@ -105,15 +106,16 @@ FeetFollowerAnalyticalPg::updateVelocities ()
       return;
     }
 
-  const Trajectory::vector_t& leftFoot = trajectories_->leftFoot (t);
-  const Trajectory::vector_t& rightFoot = trajectories_->rightFoot (t);
-  const Trajectory::vector_t& com = trajectories_->com (t);
-  const Trajectory::vector_t& waistYaw = trajectories_->waistYaw (t);
+  const Trajectory::vector_t& leftFoot = (*trajectories_->leftFoot) (t);
+  const Trajectory::vector_t& rightFoot = (*trajectories_->rightFoot) (t);
+  const Trajectory::vector_t& com = (*trajectories_->com) (t);
+  const Trajectory::vector_t& waistYaw = (*trajectories_->waistYaw) (t);
 
-  const Trajectory::vector_t& leftFootNext = trajectories_->leftFoot (tnext);
-  const Trajectory::vector_t& rightFootNext = trajectories_->rightFoot (tnext);
-  const Trajectory::vector_t& comNext = trajectories_->com (tnext);
-  const Trajectory::vector_t& waistYawNext = trajectories_->waistYaw (tnext);
+  const Trajectory::vector_t& leftFootNext = (*trajectories_->leftFoot) (tnext);
+  const Trajectory::vector_t& rightFootNext =
+    (*trajectories_->rightFoot) (tnext);
+  const Trajectory::vector_t& comNext = (*trajectories_->com) (tnext);
+  const Trajectory::vector_t& waistYawNext = (*trajectories_->waistYaw) (tnext);
 
   comVelocity_.accessToMotherLib () = (comNext - com) / STEP;
 
@@ -144,16 +146,16 @@ FeetFollowerAnalyticalPg::impl_update ()
 
   const double t = index_ * STEP;
 
-  if (t >= Function::getUpperBound (trajectories_->leftFoot.getRange ()))
+  if (t >= Function::getUpperBound (trajectories_->leftFoot->getRange ()))
     return;
 
-  const Trajectory::vector_t& leftFoot = trajectories_->leftFoot (t);
-  const Trajectory::vector_t& rightFoot = trajectories_->rightFoot (t);
-  const Trajectory::vector_t& zmp = trajectories_->zmp (t);
-  const Trajectory::vector_t& com = trajectories_->com (t);
-  const Trajectory::vector_t& waistYaw = trajectories_->waistYaw (t);
-  const Trajectory::vector_t& waist = trajectories_->waist (t);
-  const Trajectory::vector_t& gaze = trajectories_->gaze (t);
+  const Trajectory::vector_t& leftFoot = (*trajectories_->leftFoot) (t);
+  const Trajectory::vector_t& rightFoot = (*trajectories_->rightFoot) (t);
+  const Trajectory::vector_t& zmp = (*trajectories_->zmp) (t);
+  const Trajectory::vector_t& com = (*trajectories_->com) (t);
+  const Trajectory::vector_t& waistYaw = (*trajectories_->waistYaw) (t);
+  const Trajectory::vector_t& waist = (*trajectories_->waist) (t);
+  const Trajectory::vector_t& gaze = (*trajectories_->gaze) (t);
 
   if (leftFoot.size () != 4 || rightFoot.size () != 4
       || com.size () != 3 || zmp.size () != 3)
@@ -479,13 +481,16 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   discreteInterval_t range (0., stepFeatures.size * STEP, STEP);
 
   trajectories_ = WalkMovement
-    (sot::DiscretizedTrajectory (range, leftFootData, "left-foot"),
-     sot::DiscretizedTrajectory (range, rightFootData, "right-foot"),
-     sot::DiscretizedTrajectory (range, comData, "com"),
-     sot::DiscretizedTrajectory (range, zmpData, "zmp"),
-     sot::DiscretizedTrajectory (range, waistYawData, "waist-yaw"),
-     sot::DiscretizedTrajectory (range, waistData, "waist"),
-     sot::DiscretizedTrajectory (range, gazeData, "gaze"),
+    (boost::make_shared<sot::DiscretizedTrajectory>
+     (range, leftFootData, "left-foot"),
+     boost::make_shared<sot::DiscretizedTrajectory>
+     (range, rightFootData, "right-foot"),
+     boost::make_shared<sot::DiscretizedTrajectory> (range, comData, "com"),
+     boost::make_shared<sot::DiscretizedTrajectory> (range, zmpData, "zmp"),
+     boost::make_shared<sot::DiscretizedTrajectory>
+     (range, waistYawData, "waist-yaw"),
+     boost::make_shared<sot::DiscretizedTrajectory> (range, waistData, "waist"),
+     boost::make_shared<sot::DiscretizedTrajectory> (range, gazeData, "gaze"),
      wMw_traj);
 
 

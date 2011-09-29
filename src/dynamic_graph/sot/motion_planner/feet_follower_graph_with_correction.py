@@ -130,21 +130,21 @@ class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
 
         # Replug.
         plug(self.feetFollower.zmp, self.robot.device.zmp)
-        plug(self.feetFollower.com, self.robot.featureComDes.errorIN)
+        plug(self.feetFollower.com, self.featureComDes.errorIN)
         plug(self.feetFollower.signal('left-ankle'),
-             self.robot.features['left-ankle'].reference)
+             self.features['left-ankle'].reference)
         plug(self.feetFollower.signal('right-ankle'),
-             self.robot.features['right-ankle'].reference)
+             self.features['right-ankle'].reference)
         plug(self.feetFollower.signal('waistYaw'),
-             self.robot.features['waist'].reference)
+             self.features['waist'].reference)
 
         # Replug velocities.
-        plug(self.feetFollower.comVelocity, self.robot.comTask.errorDot)
+        plug(self.feetFollower.comVelocity, self.comTask.errorDot)
         for op in ['left-ankle', 'right-ankle']:
             plug(self.feetFollower.signal(op + 'Velocity'),
-                 self.robot.tasks[op].errorDot)
+                 self.tasks[op].errorDot)
         plug(self.feetFollower.waistYawVelocity,
-             self.robot.tasks['waist'].errorDot)
+             self.tasks['waist'].errorDot)
 
         # Setup error estimation strategy.
         self.errorEstimationStrategy = errorEstimationStrategyType(self, robot)
@@ -164,11 +164,11 @@ class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
             start = self.errorEstimationStrategy.interactiveStart
 
         if start():
-            self.robot.comTask.controlGain.value = self.gain
-            self.robot.tasks['left-ankle'].controlGain.value = self.gain
-            self.robot.tasks['right-ankle'].controlGain.value = self.gain
+            self.comTask.controlGain.value = self.gain
+            self.tasks['left-ankle'].controlGain.value = self.gain
+            self.tasks['right-ankle'].controlGain.value = self.gain
             self.feetFollowerGraph.postureTask.controlGain.value = self.gain
-            self.robot.tasks['waist'].controlGain.value = self.gain
+            self.tasks['waist'].controlGain.value = self.gain
             self.setupTrace()
             if beforeStart:
                 beforeStart()

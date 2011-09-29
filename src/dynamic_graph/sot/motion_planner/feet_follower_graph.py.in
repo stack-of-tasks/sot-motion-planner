@@ -17,7 +17,8 @@
 
 from dynamic_graph import plug
 from dynamic_graph.sot.core import FeatureGeneric, FeaturePosture, \
-    Task, RobotSimu
+    TaskPD, RobotSimu
+from dynamic_graph.sot.core.feature_position import FeaturePosition
 from dynamic_graph.sot.motion_planner.feet_follower import \
     FeetFollowerFromFile, FeetFollowerAnalyticalPg, WaistYaw
 from dynamic_graph.tracer_real_time import TracerRealTime
@@ -28,6 +29,11 @@ from dynamic_graph.sot.motion_planner.motion_plan.tools import addTrace
 
 
 class FeetFollowerGraph(object):
+    nameId = 0
+    """
+    Last id used to generate the entities name.
+    """
+
     """
     Robot executing the trajectory.
     """
@@ -53,6 +59,11 @@ class FeetFollowerGraph(object):
     """
     postureFeature = None
 
+    features = None
+    tasks = None
+    featureCom = None
+    featureComDes = None
+    taskCom = None
 
     """
     Tracer used to log various data.
@@ -80,10 +91,22 @@ class FeetFollowerGraph(object):
         'Device': ['zmp', 'control', 'state']
         }
 
-    def __init__(self, robot, solver, trace = None, postureTaskDofs = None):
+    @staticmethod
+    def makeName():
+        s = "walk_{0}".format(FeetFollowerGraph.nameId)
+        FeetFollowerGraph.nameId = FeetFollowerGraph.nameId + 1
+        return s
+
+    def __init__(self, robot, solver, trace = None,
+                 postureFeature = None,
+                 postureTask = None,
+                 postureTaskDofs = None):
+        self.name = FeetFollowerGraph.makeName()
         self.robot = robot
         self.solver = solver
 
+        self.postureFeature = postureFeature
+        self.postureTask = postureTask
         self.postureTaskDofs = postureTaskDofs
         if not self.postureTaskDofs:
             self.postureTaskDofs = []
@@ -100,9 +123,8 @@ class FeetFollowerGraph(object):
             self.trace = TracerRealTime('trace')
             self.trace.setBufferSize(2**20)
             self.trace.open('/tmp/','feet_follower_','.dat')
-
-        # Recompute trace.triger at each iteration to enable tracing.
-        self.robot.device.after.addSignal(self.trace.name +'.triger')
+            # Recompute trace.triger at each iteration to enable tracing.
+            self.robot.device.after.addSignal(self.trace.name +'.triger')
 
 
     def setAnklePosition(self):
@@ -120,51 +142,86 @@ class FeetFollowerGraph(object):
             self.robot.features['right-ankle'].reference.value)
 
     def setup(self):
+        # Center of mass features and task.
+        self.robot.dynamic.com.recompute(0)
+        self.robot.dynamic.Jcom.recompute(0)
+
+        featureComName = '{0}_feature_com'.format(self.name)
+        self.featureCom = FeatureGeneric(featureComName)
+        plug(self.robot.dynamic.com, self.featureCom.errorIN)
+        plug(self.robot.dynamic.Jcom,
+             self.featureCom.jacobianIN)
+        self.featureComDes = FeatureGeneric('{0}_feature_ref_com'.format(self.name))
+        self.featureComDes.errorIN.value = self.robot.dynamic.com.value
+        self.featureCom.sdes.value = self.featureComDes
+        self.comTask = TaskPD('{0}_task_com'.format(self.name))
+        self.comTask.add(featureComName)
+        self.comTask.controlGain.value = 1.
+
+        # Operational points features/tasks.
+        self.features = dict()
+        self.tasks = dict()
+        for op in ['left-ankle', 'right-ankle', 'waist']:
+            featureName = '{0}_feature_{1}'.format(self.name, op)
+            self.robot.dynamic.signal(op).recompute(0)
+            self.robot.dynamic.signal('J'+op).recompute(0)
+            self.features[op] = \
+                FeaturePosition(featureName,
+                                self.robot.dynamic.signal(op),
+                                self.robot.dynamic.signal('J' + op),
+                                self.robot.dynamic.signal(op).value)
+            self.tasks[op] = TaskPD('{0}_task_{1}'.format(self.name, op))
+            self.tasks[op].add(featureName)
+            self.tasks[op].controlGain.value = .2
+
         # Lower the gains to reduce the initial velocity.
-        self.robot.comTask.controlGain.value = self.initialGain
-        self.robot.tasks['left-ankle'].controlGain.value = self.initialGain
-        self.robot.tasks['right-ankle'].controlGain.value = self.initialGain
+        self.comTask.controlGain.value = self.initialGain
+        self.tasks['left-ankle'].controlGain.value = self.initialGain
+        self.tasks['right-ankle'].controlGain.value = self.initialGain
 
         # Make sure the CoM is converging toward the starting
         # CoM of the trajectory.
-        self.robot.featureComDes.errorIN.value = \
+        self.featureComDes.errorIN.value = \
             (0., 0., self.robot.dynamic.com.value[2])
-        self.robot.featureCom.selec.value = '111'
+        self.featureCom.selec.value = '111'
 
         # Plug the feet follower output signals.
         plug(self.feetFollower.zmp, self.robot.device.zmp)
 
-        plug(self.feetFollower.com, self.robot.featureComDes.errorIN)
+        plug(self.feetFollower.com, self.featureComDes.errorIN)
         plug(self.feetFollower.signal('left-ankle'),
-             self.robot.features['left-ankle'].reference)
+             self.features['left-ankle'].reference)
         plug(self.feetFollower.signal('right-ankle'),
-             self.robot.features['right-ankle'].reference)
+             self.features['right-ankle'].reference)
 
         # Plug velocities into TaskPD.
-        plug(self.feetFollower.comVelocity, self.robot.comTask.errorDot)
+        plug(self.feetFollower.comVelocity, self.comTask.errorDot)
         for op in ['left-ankle', 'right-ankle']:
             plug(self.feetFollower.signal(op + 'Velocity'),
-                 self.robot.tasks[op].errorDot)
+                 self.tasks[op].errorDot)
         plug(self.feetFollower.waistYawVelocity,
-             self.robot.tasks['waist'].errorDot)
+             self.tasks['waist'].errorDot)
 
         # Initialize the posture task.
-        self.postureTask = Task(self.robot.name + '_posture')
+        if not self.postureFeature:
+            self.postureFeature = FeaturePosture(
+                '{0}_postureFeature'.format(self.name))
+            plug(self.robot.device.state, self.postureFeature.state)
 
-        self.postureFeature = FeaturePosture(self.robot.name + '_postureFeature')
-        plug(self.robot.device.state, self.postureFeature.state)
+            posture = list(self.robot.halfSitting)
+            self.postureFeature.setPosture(tuple(posture))
+            for (dof, isEnabled) in self.postureTaskDofs:
+                self.postureFeature.selectDof(dof, isEnabled)
 
-        posture = list(self.robot.halfSitting)
-        self.postureFeature.setPosture(tuple(posture))
-        for (dof, isEnabled) in self.postureTaskDofs:
-            self.postureFeature.selectDof(dof, isEnabled)
-        self.postureTask.add(self.postureFeature.name)
-        self.postureTask.controlGain.value = self.initialGain
+        if not self.postureTask:
+            self.postureTask = Task('{0}_posture'.format(self.name))
+            self.postureTask.add(self.postureFeature.name)
+            self.postureTask.controlGain.value = self.initialGain
 
         # Initialize the waist yaw task.
-        self.robot.features['waist'].selec.value = '111000'
-        plug(self.feetFollower.waistYaw, self.robot.features['waist'].reference)
-        self.robot.tasks['waist'].controlGain.value = self.initialGain
+        self.features['waist'].selec.value = '111000'
+        plug(self.feetFollower.waistYaw, self.features['waist'].reference)
+        self.tasks['waist'].controlGain.value = self.initialGain
 
     def setupTrace(self):
         # Feet follower
@@ -216,16 +273,16 @@ class FeetFollowerGraph(object):
 
     def canStart(self):
         securityThreshold = 1e-3
-        return (self.robot.comTask.error.value <=
-                (securityThreshold,) * len(self.robot.comTask.error.value)
+        return (self.comTask.error.value <=
+                (securityThreshold,) * len(self.comTask.error.value)
 
-                and self.robot.tasks['left-ankle'].error.value <=
+                and self.tasks['left-ankle'].error.value <=
                 (securityThreshold,)
-                * len(self.robot.tasks['left-ankle'].error.value)
+                * len(self.tasks['left-ankle'].error.value)
 
-                and self.robot.tasks['right-ankle'].error.value <=
+                and self.tasks['right-ankle'].error.value <=
                 (securityThreshold,)
-                * len(self.robot.tasks['right-ankle'].error.value)
+                * len(self.tasks['right-ankle'].error.value)
 
                 and self.postureTask.error.value <=
                 (securityThreshold,) * len(self.postureTask.error.value))
@@ -235,11 +292,11 @@ class FeetFollowerGraph(object):
             print("Robot has not yet converged to the initial position,"
                   " please wait and try again.")
             return
-        self.robot.comTask.controlGain.value = self.gain
-        self.robot.tasks['left-ankle'].controlGain.value = self.gain
-        self.robot.tasks['right-ankle'].controlGain.value = self.gain
+        self.comTask.controlGain.value = self.gain
+        self.tasks['left-ankle'].controlGain.value = self.gain
+        self.tasks['right-ankle'].controlGain.value = self.gain
         self.postureTask.controlGain.value = self.gain
-        self.robot.tasks['waist'].controlGain.value = self.gain
+        self.tasks['waist'].controlGain.value = self.gain
         self.setupTrace()
         if beforeStart:
             beforeStart()
@@ -257,7 +314,8 @@ class FeetFollowerFromFileGraph(FeetFollowerGraph):
 
     def __init__(self, robot, solver, trajectoryPath = defaultTrajectoryPath):
         FeetFollowerGraph.__init__(self, robot, solver)
-        self.feetFollower = FeetFollowerFromFile('feet-follower')
+        self.feetFollower = FeetFollowerFromFile(
+            '{0}_feet-follower'.format(self.name))
         self.setAnklePosition()
         self.setInitialFeetPosition()
         self.feetFollower.setComZ(0.814)
@@ -282,10 +340,19 @@ class FeetFollowerAnalyticalPgGraph(FeetFollowerGraph):
         (-0.,  0.24, 0.25,-0., 0.31,-0.00, 0.),
         ]
 
-    def __init__(self, robot, solver, steps = defaultSteps, comZ = None, waistFile = None,
-                 gazeFile = None, zmpFile = None):
-        FeetFollowerGraph.__init__(self, robot, solver)
-        self.feetFollower = FeetFollowerAnalyticalPg('feet-follower')
+    def __init__(self, robot, solver,
+                 steps = defaultSteps,
+                 comZ = None, waistFile = None,
+                 gazeFile = None, zmpFile = None,
+                 trace = None,
+                 postureFeature = None,
+                 postureTask = None,
+                 postureTaskDofs = None):
+        FeetFollowerGraph.__init__(self, robot, solver, trace,
+                                   postureFeature, postureTask,
+                                   postureTaskDofs)
+        self.feetFollower = FeetFollowerAnalyticalPg(
+            '{0}_feet-follower'.format(self.name))
         self.setAnklePosition()
         self.setInitialFeetPosition()
         if comZ:

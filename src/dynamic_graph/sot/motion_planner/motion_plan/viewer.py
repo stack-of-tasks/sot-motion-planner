@@ -107,7 +107,7 @@ class MotionPlanViewer(object):
                     self.robotElementName))
 
         #FIXME: find a better way to wipe out traces.
-        os.system("rm -f /tmp/feet_follower_*.dat")
+        os.system("rm -f /tmp/motion_plan_*.dat")
 
         self.loadEnvironment()
 
@@ -203,6 +203,7 @@ class MotionPlanViewer(object):
         # Write traces.
         if self.plan.feetFollower:
             self.plan.feetFollower.trace.dump()
+        self.plan.stop()
 
         self.storePositions()
 
@@ -300,3 +301,4 @@ class MotionPlanViewer(object):
         self.storePositions()
         if self.plan.feetFollower:
             self.plan.feetFollower.trace.dump()
+        self.stop()
