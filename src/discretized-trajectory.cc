@@ -20,6 +20,7 @@
 
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/numeric/conversion/converter.hpp>
 #include <boost/tokenizer.hpp>
 #include <roboptim/core/function.hh>
@@ -59,20 +60,7 @@ namespace sot
       discretizedData_ (traj.discretizedData_)
   {}
 
-  DiscretizedTrajectory
-  DiscretizedTrajectory::operator= (const DiscretizedTrajectory& traj)
-    throw ()
-  {
-    if (&traj == this)
-      return *this;
-
-    *this = DiscretizedTrajectory (traj);
-    return *this;
-  }
-
-
-
-  DiscretizedTrajectory
+  boost::shared_ptr<DiscretizedTrajectory>
   DiscretizedTrajectory::loadTrajectoryFromFile (const fs::path& path,
 						 const value_type& step,
 						 const std::string& name)
@@ -116,7 +104,8 @@ namespace sot
       }
 
     discreteInterval_t range (0., data.size () * step, step);
-    return DiscretizedTrajectory (range, data, name);
+
+    return boost::make_shared<DiscretizedTrajectory> (range, data, name);
   }
 
 

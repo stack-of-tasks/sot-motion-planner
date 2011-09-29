@@ -30,6 +30,8 @@
 # include <sot/core/sot.hh>
 # include <sot/core/task-abstract.hh>
 
+# include "feet-follower.hh"
+
 namespace ml = ::maal::boost;
 namespace dg = ::dynamicgraph;
 
@@ -66,11 +68,27 @@ namespace command
       virtual Value doExecute ();
     };
 
+    class AddFeetFollowerStartCall : public Command
+    {
+    public:
+      AddFeetFollowerStartCall (Supervisor& entity,
+				const std::string& docstring);
+      virtual Value doExecute ();
+    };
+
     class Display : public Command
     {
     public:
       Display (Supervisor& entity,
 	       const std::string& docstring);
+      virtual Value doExecute ();
+    };
+
+    class Stop : public Command
+    {
+    public:
+      Stop (Supervisor& entity,
+	    const std::string& docstring);
       virtual Value doExecute ();
     };
   } // end of namespace supervisor.
@@ -82,6 +100,8 @@ class Supervisor : public dg::Entity
 public:
   typedef boost::tuple<double, double, int, ml::Vector> taskData_t;
   typedef std::map<dynamicgraph::sot::TaskAbstract*, taskData_t> motions_t;
+
+  typedef std::map<FeetFollower*, std::pair<double, bool> > startCalls_t;
 
 
   /// \name Constructor and destructor.
@@ -99,6 +119,11 @@ public:
     return motions_;
   }
 
+  startCalls_t& startCalls ()
+  {
+    return startCalls_;
+  }
+
   dynamicgraph::sot::Sot*& sot ()
   {
     return sot_;
@@ -114,7 +139,13 @@ public:
     tOrigin_ = origin;
   }
 
+  void addFeetFollowerStartCall (FeetFollower* ff, double t);
+
+  void stop ();
+
 protected:
+  void updateFeetFollowerStartCall (const double&);
+  void updateMotions (const double&);
   int& update (int&, int);
 
 private:
@@ -123,6 +154,7 @@ private:
   dynamicgraph::sot::FeaturePosture* featurePosture_;
   double tOrigin_;
   motions_t motions_;
+  startCalls_t startCalls_;
 };
 
 #endif //! SOT_MOTION_PLANNER_SUPERVISOR_HH

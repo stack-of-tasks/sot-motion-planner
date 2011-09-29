@@ -170,7 +170,7 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
   index_ = 0;
 
   const sot::Trajectory::vector_t& initialConfig =
-    trajectories_->leftFoot (0.);
+    (*trajectories_->leftFoot) (0.);
 
   // wMw_traj = wMa * aMw_traj = wMa * (w_trajMa)^{-1}
   //
@@ -197,13 +197,13 @@ FeetFollowerFromFile::impl_update ()
 
   const double t = index_ * STEP;
 
-  if (t >= Function::getUpperBound (trajectories_->leftFoot.getRange ()))
+  if (t >= Function::getUpperBound (trajectories_->leftFoot->getRange ()))
     return;
 
-  const Trajectory::vector_t& leftFoot = trajectories_->leftFoot (t);
-  const Trajectory::vector_t& rightFoot = trajectories_->rightFoot (t);
-  const Trajectory::vector_t& zmp = trajectories_->zmp (t);
-  const Trajectory::vector_t& com = trajectories_->com (t);
+  const Trajectory::vector_t& leftFoot = (*trajectories_->leftFoot) (t);
+  const Trajectory::vector_t& rightFoot = (*trajectories_->rightFoot) (t);
+  const Trajectory::vector_t& zmp = (*trajectories_->zmp) (t);
+  const Trajectory::vector_t& com = (*trajectories_->com) (t);
 
   if (leftFoot.size () != 4 || rightFoot.size () != 4
       || com.size () != 2 || zmp.size () != 2)

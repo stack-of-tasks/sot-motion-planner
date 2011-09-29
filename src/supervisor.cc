@@ -30,6 +30,8 @@
 #include "supervisor.hh"
 #include "time.hh"
 
+static const double STEP = 5e-3; //FIXME:
+
 namespace command
 {
   namespace supervisor
@@ -131,6 +133,41 @@ namespace command
       return Value ();
     }
 
+    AddFeetFollowerStartCall::AddFeetFollowerStartCall (Supervisor& entity,
+							const std::string& docstring)
+      : Command (entity, boost::assign::list_of
+		 (Value::STRING)
+		 (Value::DOUBLE),
+		 docstring)
+    {}
+    
+    Value
+    AddFeetFollowerStartCall::doExecute ()
+    {
+      Supervisor& entity = static_cast<Supervisor&> (owner ());
+
+      std::vector<Value> values = getParameterValues ();
+      std::string name = values[0].value ();
+      double time = values[1].value ();
+
+      FeetFollower* ff = 0;
+      if (dynamicgraph::g_pool.existEntity (name))
+	{
+	  ff =
+	    dynamic_cast<FeetFollower*>
+	    (&dynamicgraph::g_pool.getEntity (name));
+	  if (!ff)
+	    std::cerr << "entity is not a FeetFollower entity" << std::endl;
+	}
+      else
+	std::cerr << "invalid entity name" << std::endl;
+
+      if (ff)
+	entity.addFeetFollowerStartCall (ff, time);
+      return Value ();
+    }
+
+
     Display::Display (Supervisor& entity,
 		      const std::string& docstring)
       : Command (entity, std::vector<Value::Type> (), docstring)
@@ -161,6 +198,19 @@ namespace command
       return Value (str);
     }
 
+    Stop::Stop (Supervisor& entity,
+		      const std::string& docstring)
+      : Command (entity, std::vector<Value::Type> (), docstring)
+    {}
+
+    Value
+    Stop::doExecute ()
+    {
+      Supervisor& entity = static_cast<Supervisor&> (owner ());
+      entity.stop ();
+      return Value ();
+    }
+
   } // end of namespace supervisor.
 } // end of namespace command.
 
@@ -172,7 +222,8 @@ Supervisor::Supervisor (const std::string& name)
 	       Supervisor::update, "Int")),
     sot_ (dg::nullptr),
     tOrigin_ (-1.),
-    motions_ ()
+    motions_ (),
+    startCalls_ ()
 {
   signalRegistration (trigger_);
   trigger_.setNeedUpdateFromAllChildren (true);
@@ -185,6 +236,12 @@ Supervisor::Supervisor (const std::string& name)
 	      new command::supervisor::SetPostureFeature (*this, docstring));
   addCommand ("addTask",
 	      new command::supervisor::AddTask (*this, docstring));
+  addCommand ("addFeetFollowerStartCall",
+	      new command::supervisor::AddFeetFollowerStartCall
+	      (*this, docstring));
+
+  addCommand ("stop",
+	      new command::supervisor::Stop (*this, docstring));
 
   addCommand ("display",
 	      new command::supervisor::Display (*this, docstring));
@@ -200,15 +257,46 @@ Supervisor::~Supervisor ()
 int&
 Supervisor::update (int& dummy, int t)
 {
-  if (!sot_)
-    return dummy;
-  if (!featurePosture_)
-    return dummy;
   if (tOrigin_ < 0.)
     return dummy;
 
-  static const double STEP = 5e-3;
   double t_ = (t - tOrigin_) * STEP;
+
+  updateFeetFollowerStartCall (t_);
+  updateMotions (t_);
+  return dummy;
+}
+
+void
+Supervisor::updateFeetFollowerStartCall (const double& t_)
+{
+  if (tOrigin_ < 0.)
+    return;
+
+  typedef std::pair<FeetFollower* const, std::pair<double, bool> > pair_t;
+  BOOST_FOREACH (pair_t& e, startCalls_)
+    {
+      if (t_ >= e.second.first && !e.second.second)
+	{
+	  std::cout
+	    << "starting "
+	    << (e.first ? e.first->getName () : "invalid name")
+	    << std::endl;
+	  e.second.second = true;
+	  e.first->start ();
+	}
+    }
+}
+
+void
+Supervisor::updateMotions (const double& t_)
+{
+  if (!sot_)
+    return;
+  if (!featurePosture_)
+    return;
+  if (tOrigin_ < 0.)
+    return;
 
   typedef std::pair<
   dynamicgraph::sot::TaskAbstract*, taskData_t> pair_t;
@@ -284,7 +372,6 @@ Supervisor::update (int& dummy, int t)
 	      sot_->up (*task);
 	  }
     }
-  return dummy;
 }
 
 void
@@ -298,6 +385,22 @@ Supervisor::addTask (dynamicgraph::sot::TaskAbstract* task,
     throw std::runtime_error ("solver must be set before adding a task");
 
   motions ()[task] = Supervisor::taskData_t (min, max, level, unlockedDofs);
+}
+
+void
+Supervisor::addFeetFollowerStartCall (FeetFollower* ff, double t)
+{
+  startCalls ()[ff] = std::make_pair (t, false);
+}
+
+void
+Supervisor::stop ()
+{
+  motions_.clear ();
+  startCalls_.clear ();
+  tOrigin_ = -1;
+  sot_ = 0;
+  featurePosture_ = 0;
 }
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (Supervisor, "Supervisor");

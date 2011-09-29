@@ -19,6 +19,7 @@
 # include <string>
 
 # include <boost/optional.hpp>
+# include <boost/shared_ptr.hpp>
 
 # include <jrl/mal/boost.hh>
 
@@ -86,36 +87,37 @@ struct WalkMovement
       SUPPORT_FOOT_SIZE
     };
   typedef std::vector<std::pair<double, SupportFoot> > supportFoot_t;
+  typedef boost::shared_ptr<sot::DiscretizedTrajectory> trajectoryPtr_t;
 
-  explicit WalkMovement (const sot::DiscretizedTrajectory& leftFoot,
-			 const sot::DiscretizedTrajectory& rightFoot,
-			 const sot::DiscretizedTrajectory& com,
-			 const sot::DiscretizedTrajectory& zmp,
-			 const sot::DiscretizedTrajectory& waistYaw,
-			 const sot::DiscretizedTrajectory& waist,
-			 const sot::DiscretizedTrajectory& gaze,
+  explicit WalkMovement (const trajectoryPtr_t& leftFoot,
+			 const trajectoryPtr_t& rightFoot,
+			 const trajectoryPtr_t& com,
+			 const trajectoryPtr_t& zmp,
+			 const trajectoryPtr_t& waistYaw,
+			 const trajectoryPtr_t& waist,
+			 const trajectoryPtr_t& gaze,
 			 const sot::MatrixHomogeneous& wMs);
 
   /// \brief Left foot trajectory.
-  sot::DiscretizedTrajectory leftFoot;
+  trajectoryPtr_t leftFoot;
 
   /// \brief Right foot trajectory.
-  sot::DiscretizedTrajectory rightFoot;
+  trajectoryPtr_t rightFoot;
 
   /// \brief Center of mass trajectory.
-  sot::DiscretizedTrajectory com;
+  trajectoryPtr_t com;
 
   /// \brief ZMP reference trajectory.
-  sot::DiscretizedTrajectory zmp;
+  trajectoryPtr_t zmp;
 
   /// \brief Waist yaw reference trajectory.
-  sot::DiscretizedTrajectory waistYaw;
+  trajectoryPtr_t waistYaw;
 
   /// \brief Waist reference trajectory.
-  sot::DiscretizedTrajectory waist;
+  trajectoryPtr_t waist;
 
   /// \brief Gaze reference trajectory.
-  sot::DiscretizedTrajectory gaze;
+  trajectoryPtr_t gaze;
 
   /// \brief Trajectory frame position in the world frame (wMw_traj).
   ///

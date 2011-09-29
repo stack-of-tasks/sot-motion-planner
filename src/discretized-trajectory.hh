@@ -16,6 +16,7 @@
 #ifndef SOT_MOTION_PLANNER_DISCRETIZED_TRAJECTORY_HH
 # define SOT_MOTION_PLANNER_DISCRETIZED_TRAJECTORY_HH
 # include <boost/filesystem.hpp>
+# include <boost/shared_ptr.hpp>
 
 # include "trajectory.hh"
 
@@ -31,10 +32,8 @@ namespace sot
 			   std::string name) throw ();
 
     DiscretizedTrajectory (const DiscretizedTrajectory& traj) throw ();
-    DiscretizedTrajectory operator= (const DiscretizedTrajectory& traj)
-      throw ();
 
-    static DiscretizedTrajectory
+    static boost::shared_ptr<DiscretizedTrajectory>
     loadTrajectoryFromFile (const boost::filesystem::path& path,
 			    const value_type& step,
 			    const std::string& name);
@@ -54,6 +53,12 @@ namespace sot
   private:
     virtual void impl_compute (result_t& result, const value_type& t)
       const throw ();
+
+    /// \brief Forbid explicitely to use the assigment operator.
+    ///
+    /// This method is not implemented and it is normal.
+    /// See boost/noncopyable.hpp for instance for more information.
+    const DiscretizedTrajectory& operator= (const DiscretizedTrajectory&);
 
     discreteInterval_t range_;
     discretizedData_t discretizedData_;

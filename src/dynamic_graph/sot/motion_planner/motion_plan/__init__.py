@@ -20,6 +20,7 @@ import logging
 import yaml
 import numpy as np
 
+from dynamic_graph.tracer_real_time import TracerRealTime
 from dynamic_graph import plug
 from dynamic_graph.ros import RosExport
 from dynamic_graph.sot.motion_planner.feet_follower import \
@@ -58,6 +59,8 @@ def initializeLogging():
 
 
 class MotionPlan(object):
+    name = 'motionPlan'
+
     robot = None
     solver = None
 
@@ -72,6 +75,9 @@ class MotionPlan(object):
     control = []
     footsteps = []
     environment = {}
+
+    postureFeature = None
+    postureTask = None
 
     trace = None
 
@@ -98,14 +104,36 @@ class MotionPlan(object):
 
         self.duration = float(self.plan['duration'])
 
+        # Trace
+        self.trace = TracerRealTime('trace')
+        self.trace.setBufferSize(2**20)
+        self.trace.open('/tmp/','motion_plan_','.dat')
+        # Recompute trace.triger at each iteration to enable tracing.
+        self.robot.device.after.addSignal(self.trace.name +'.triger')
+
         # Middleware proxies.
         self.corba = CorbaServer('corba_server')
         self.ros = RosExport('rosExport')
+
+        # Posture feature.
+        self.postureFeature = FeaturePosture(
+            '{0}_postureFeature'.format(self.name))
+        plug(self.robot.device.state, self.postureFeature.state)
+
+        posture = list(self.robot.halfSitting)
+        self.postureFeature.setPosture(tuple(posture))
+        for i in xrange(len(posture) - 6):
+            self.postureFeature.selectDof(i + 6, True)
+
+        self.postureTask = Task('{0}_posture'.format(self.name))
+        self.postureTask.add(self.postureFeature.name)
+        self.postureTask.controlGain.value = 1.
 
         # Supervisor.
         self.supervisor = Supervisor('supervisor')
         self.robot.device.after.addSignal(self.supervisor.name + '.trigger')
         self.supervisor.setSolver(self.solver.sot.name)
+        self.supervisor.setPostureFeature(self.postureFeature.name)
 
         # Load plan.
         self.logger.debug('loading environment')
@@ -118,9 +146,6 @@ class MotionPlan(object):
         # For now, only 1 feet follower is allowed (must start at t=0).
         feetFollowerElement = find(lambda e: type(e) == MotionWalk, self.motion)
         hasControl = len(self.control) > 0
-
-        self.supervisor.setPostureFeature(
-            feetFollowerElement.feetFollower.postureFeature.name)
 
         # Plug motion signals which depend on control.
         for m in self.motion:
@@ -230,13 +255,19 @@ class MotionPlan(object):
         self.logger.info('execution starts')
 
         if self.feetFollower:
-            self.feetFollower.start()
+            self.feetFollower.setupTrace()
+
+        self.trace.start()
 
         # Remove default tasks and let the supervisor take over the
         # tasks management.
         self.solver.sot.clear()
         tOrigin = self.feetFollower.feetFollower.getStartTime()
         self.supervisor.setOrigin(max(0., tOrigin))
+
+    def stop(self):
+        self.supervisor.stop()
+        self.solver.sot.clear()
 
     def canStart(self):
         canStart = reduce(lambda acc, c: c.canStart() and acc,

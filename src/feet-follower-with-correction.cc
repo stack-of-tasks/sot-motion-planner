@@ -320,8 +320,8 @@ namespace
 
     const sot::Trajectory::vector_t& foot =
       leftFirst ?
-      referenceTrajectory->walkMovement ()->leftFoot (nextStepTime)
-      : referenceTrajectory->walkMovement ()->rightFoot (nextStepTime);
+      (*referenceTrajectory->walkMovement ()->leftFoot) (nextStepTime)
+      : (*referenceTrajectory->walkMovement ()->rightFoot) (nextStepTime);
 
     // Next ankle position (can be left or right)
     //
