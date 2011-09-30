@@ -64,6 +64,22 @@ namespace command
     Start (FeetFollower& entity, const std::string& docstring);
     virtual Value doExecute();
   };
+
+  class GetFinalLeftAnklePosition : public Command
+  {
+  public:
+    GetFinalLeftAnklePosition (FeetFollower& entity,
+			       const std::string& docstring);
+    virtual Value doExecute();
+  };
+
+  class GetFinalRightAnklePosition : public Command
+  {
+  public:
+    GetFinalRightAnklePosition (FeetFollower& entity,
+			       const std::string& docstring);
+    virtual Value doExecute();
+  };
 }
 
 
@@ -241,6 +257,16 @@ public:
     return rightFootToAnkle_;
   }
 
+  const maal::boost::Matrix& finalLeftAnklePosition () const
+  {
+    return finalLeftAnklePosition_;
+  }
+
+  const maal::boost::Matrix& finalRightAnklePosition () const
+  {
+    return finalRightAnklePosition_;
+  }
+
   /// \brief Number of steps (positions) in the trajectory.
   virtual boost::optional<int> trajectorySize () const = 0;
 
@@ -282,6 +308,9 @@ protected:
   signalFootVelocity_t waistYawVelocityOut_;
   signalFootVelocity_t leftAnkleVelocityOut_;
   signalFootVelocity_t rightAnkleVelocityOut_;
+
+  sot::MatrixHomogeneous finalLeftAnklePosition_;
+  sot::MatrixHomogeneous finalRightAnklePosition_;
 
   void setComZ(const double& v)
   {

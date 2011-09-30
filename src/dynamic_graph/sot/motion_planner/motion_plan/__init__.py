@@ -105,11 +105,7 @@ class MotionPlan(object):
         self.duration = float(self.plan['duration'])
 
         # Trace
-        self.trace = TracerRealTime('trace')
-        self.trace.setBufferSize(2**20)
-        self.trace.open('/tmp/','motion_plan_','.dat')
-        # Recompute trace.triger at each iteration to enable tracing.
-        self.robot.device.after.addSignal(self.trace.name +'.triger')
+        self.trace = self.robot.tracer
 
         # Middleware proxies.
         self.corba = CorbaServer('corba_server')
@@ -134,6 +130,11 @@ class MotionPlan(object):
         self.robot.device.after.addSignal(self.supervisor.name + '.trigger')
         self.supervisor.setSolver(self.solver.sot.name)
         self.supervisor.setPostureFeature(self.postureFeature.name)
+
+        # Add the posture task to the supervisor.
+        self.supervisor.addTask(
+            self.postureTask.name, 0., self.duration, 100, ())
+
 
         # Load plan.
         self.logger.debug('loading environment')
@@ -257,7 +258,7 @@ class MotionPlan(object):
         if self.feetFollower:
             self.feetFollower.setupTrace()
 
-        self.trace.start()
+        self.robot.startTracer()
 
         # Remove default tasks and let the supervisor take over the
         # tasks management.
@@ -268,6 +269,7 @@ class MotionPlan(object):
     def stop(self):
         self.supervisor.stop()
         self.solver.sot.clear()
+        self.robot.stopTracer()
 
     def canStart(self):
         canStart = reduce(lambda acc, c: c.canStart() and acc,

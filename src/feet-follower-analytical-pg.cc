@@ -534,6 +534,20 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   this->zmpOut_.recompute (0);
   this->leftAnkleOut_.recompute (0);
   this->rightAnkleOut_.recompute (0);
+
+  // Compute final ankle position.
+  {
+    const double& max = sot::DiscretizedTrajectory::getUpperBound
+      (trajectories_->leftFoot->getRange ()) - STEP;
+    const sot::DiscretizedTrajectory::vector_t& leftFoot =
+      (*trajectories_->leftFoot) (max);
+    const sot::DiscretizedTrajectory::vector_t& rightFoot =
+      (*trajectories_->rightFoot) (max);
+    finalLeftAnklePosition_ = computeAnklePositionInWorldFrame
+      (leftFoot[0], leftFoot[1], leftFoot[2], leftFoot[3], leftFootToAnkle_);
+    finalRightAnklePosition_ = computeAnklePositionInWorldFrame
+      (rightFoot[0], rightFoot[1], rightFoot[2], rightFoot[3], rightFootToAnkle_);
+  }
 }
 
 void

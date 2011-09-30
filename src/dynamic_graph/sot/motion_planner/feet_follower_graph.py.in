@@ -16,12 +16,10 @@
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 from dynamic_graph import plug
-from dynamic_graph.sot.core import FeatureGeneric, FeaturePosture, \
-    TaskPD, RobotSimu
+from dynamic_graph.sot.core import FeatureGeneric, TaskPD, RobotSimu
 from dynamic_graph.sot.core.feature_position import FeaturePosition
 from dynamic_graph.sot.motion_planner.feet_follower import \
     FeetFollowerFromFile, FeetFollowerAnalyticalPg, WaistYaw
-from dynamic_graph.tracer_real_time import TracerRealTime
 
 from dynamic_graph.sot.motion_planner.math import *
 
@@ -49,16 +47,6 @@ class FeetFollowerGraph(object):
     """
     feetFollower = None
 
-    """
-    Task constraining the robot upper dofs.
-    """
-    postureTask = None
-
-    """
-    Feature constraining the robot upper dofs.
-    """
-    postureFeature = None
-
     features = None
     tasks = None
     featureCom = None
@@ -76,20 +64,6 @@ class FeetFollowerGraph(object):
     """
     initialGain = 1.
 
-    """
-    Gain used during the motion.
-    """
-    gain = 175.
-
-    tracedSignals = {
-        'FeetFollower': ['zmp', 'waist',
-                         'com', 'left-ankle', 'right-ankle', 'waistYaw',
-                         'comVelocity', 'left-ankleVelocity',
-                         'right-ankleVelocity', 'waistYawVelocity'],
-        'Robot': ["com", "zmp", "angularmomentum",
-                  "position", "velocity", "acceleration"],
-        'Device': ['zmp', 'control', 'state']
-        }
 
     @staticmethod
     def makeName():
@@ -97,35 +71,25 @@ class FeetFollowerGraph(object):
         FeetFollowerGraph.nameId = FeetFollowerGraph.nameId + 1
         return s
 
-    def __init__(self, robot, solver, trace = None,
-                 postureFeature = None,
-                 postureTask = None,
-                 postureTaskDofs = None):
+    def __init__(self, robot, solver,
+                 initialLeftAnklePosition = None,
+                 initialRightAnklePosition = None):
         self.name = FeetFollowerGraph.makeName()
         self.robot = robot
         self.solver = solver
+        self.trace = self.robot.tracer
 
-        self.postureFeature = postureFeature
-        self.postureTask = postureTask
-        self.postureTaskDofs = postureTaskDofs
-        if not self.postureTaskDofs:
-            self.postureTaskDofs = []
-            for i in xrange(len(robot.halfSitting) - 6):
-                # Disable legs dofs.
-                if i < 12: #FIXME: not generic enough
-                    self.postureTaskDofs.append((i + 6, False))
-                else:
-                    self.postureTaskDofs.append((i + 6, True))
-
-        if trace:
-            self.trace = trace
+        if initialLeftAnklePosition:
+            self.initialLeftAnklePosition = initialLeftAnklePosition
         else:
-            self.trace = TracerRealTime('trace')
-            self.trace.setBufferSize(2**20)
-            self.trace.open('/tmp/','feet_follower_','.dat')
-            # Recompute trace.triger at each iteration to enable tracing.
-            self.robot.device.after.addSignal(self.trace.name +'.triger')
+            self.initialLeftAnklePosition = \
+                self.robot.features['left-ankle'].reference.value
 
+        if initialRightAnklePosition:
+            self.initialRightAnklePosition = initialRightAnklePosition
+        else:
+            self.initialRightAnklePosition = \
+                self.robot.features['right-ankle'].reference.value
 
     def setAnklePosition(self):
         # Setup feet to ankle transformation.
@@ -137,53 +101,35 @@ class FeetFollowerGraph(object):
 
     def setInitialFeetPosition(self):
         self.feetFollower.setInitialLeftAnklePosition(
-            self.robot.features['left-ankle'].reference.value)
+            self.initialLeftAnklePosition)
         self.feetFollower.setInitialRightAnklePosition(
-            self.robot.features['right-ankle'].reference.value)
+            self.initialRightAnklePosition)
 
     def setup(self):
         # Center of mass features and task.
-        self.robot.dynamic.com.recompute(0)
-        self.robot.dynamic.Jcom.recompute(0)
-
-        featureComName = '{0}_feature_com'.format(self.name)
-        self.featureCom = FeatureGeneric(featureComName)
-        plug(self.robot.dynamic.com, self.featureCom.errorIN)
-        plug(self.robot.dynamic.Jcom,
-             self.featureCom.jacobianIN)
-        self.featureComDes = FeatureGeneric('{0}_feature_ref_com'.format(self.name))
-        self.featureComDes.errorIN.value = self.robot.dynamic.com.value
-        self.featureCom.sdes.value = self.featureComDes
-        self.comTask = TaskPD('{0}_task_com'.format(self.name))
-        self.comTask.add(featureComName)
-        self.comTask.controlGain.value = 1.
-
-        # Operational points features/tasks.
-        self.features = dict()
-        self.tasks = dict()
-        for op in ['left-ankle', 'right-ankle', 'waist']:
-            featureName = '{0}_feature_{1}'.format(self.name, op)
-            self.robot.dynamic.signal(op).recompute(0)
-            self.robot.dynamic.signal('J'+op).recompute(0)
-            self.features[op] = \
-                FeaturePosition(featureName,
-                                self.robot.dynamic.signal(op),
-                                self.robot.dynamic.signal('J' + op),
-                                self.robot.dynamic.signal(op).value)
-            self.tasks[op] = TaskPD('{0}_task_{1}'.format(self.name, op))
-            self.tasks[op].add(featureName)
-            self.tasks[op].controlGain.value = .2
-
-        # Lower the gains to reduce the initial velocity.
-        self.comTask.controlGain.value = self.initialGain
-        self.tasks['left-ankle'].controlGain.value = self.initialGain
-        self.tasks['right-ankle'].controlGain.value = self.initialGain
+        (self.featureCom, self.featureComDes, self.comTask) = \
+            self.robot.createCenterOfMassFeatureAndTask(
+            '{0}_feature_com'.format(self.name),
+            '{0}_feature_ref_com'.format(self.name),
+            '{0}_task_com'.format(self.name),
+            selec = '111',
+            gain = self.initialGain)
 
         # Make sure the CoM is converging toward the starting
         # CoM of the trajectory.
         self.featureComDes.errorIN.value = \
             (0., 0., self.robot.dynamic.com.value[2])
-        self.featureCom.selec.value = '111'
+
+
+        # Operational points features/tasks.
+        self.features = dict()
+        self.tasks = dict()
+        for op in ['left-ankle', 'right-ankle', 'waist']:
+            (self.features[op], self.tasks[op]) = \
+                self.robot.createOperationalPointFeatureAndTask(
+                op, '{0}_feature_{1}'.format(self.name, op),
+                '{0}_task_{1}'.format(self.name, op),
+                gain = self.initialGain)
 
         # Plug the feet follower output signals.
         plug(self.feetFollower.zmp, self.robot.device.zmp)
@@ -202,22 +148,6 @@ class FeetFollowerGraph(object):
         plug(self.feetFollower.waistYawVelocity,
              self.tasks['waist'].errorDot)
 
-        # Initialize the posture task.
-        if not self.postureFeature:
-            self.postureFeature = FeaturePosture(
-                '{0}_postureFeature'.format(self.name))
-            plug(self.robot.device.state, self.postureFeature.state)
-
-            posture = list(self.robot.halfSitting)
-            self.postureFeature.setPosture(tuple(posture))
-            for (dof, isEnabled) in self.postureTaskDofs:
-                self.postureFeature.selectDof(dof, isEnabled)
-
-        if not self.postureTask:
-            self.postureTask = Task('{0}_posture'.format(self.name))
-            self.postureTask.add(self.postureFeature.name)
-            self.postureTask.controlGain.value = self.initialGain
-
         # Initialize the waist yaw task.
         self.features['waist'].selec.value = '111000'
         plug(self.feetFollower.waistYaw, self.features['waist'].reference)
@@ -225,51 +155,11 @@ class FeetFollowerGraph(object):
 
     def setupTrace(self):
         # Feet follower
-        for s in self.tracedSignals['FeetFollower']:
-            addTrace(self.robot, self.trace,
-                     self.feetFollower.name, s)
-
-        # Geometry
-        for s in self.robot.OperationalPoints + self.tracedSignals['Robot']:
-            addTrace(self.robot, self.trace,
-                     self.robot.dynamic.name, s)
-
-        # Robot features
-        for s in self.robot.OperationalPoints:
-            addTrace(self.robot, self.trace,
-                     self.robot.features[s]._reference.name, 'position')
-            addTrace(self.robot, self.trace,
-                     self.robot.tasks[s].name, 'error')
-
-        # Com
-        addTrace(self.robot, self.trace,
-                 self.robot.featureComDes.name, 'errorIN')
-        addTrace(self.robot, self.trace,
-                 self.robot.comTask.name, 'error')
-
-        # Device
-        for s in self.tracedSignals['Device']:
-            addTrace(self.robot, self.trace,
-                     self.robot.device.name, s)
-        if type(self.robot.device) != RobotSimu:
-            addTrace(self.robot, self.trace,
-                     self.robot.device.name, 'robotState')
-
-        # Misc
-        if 'velocityDerivator' in self.robot.__dict__:
-            addTrace(self.robot, self.trace,
-                     self.robot.velocityDerivator.name, 'sout')
-        if 'accelerationDerivator' in self.robot.__dict__:
-            addTrace(self.robot, self.trace,
-                     self.robot.accelerationDerivator.name, 'sout')
-
-
-    def computeJacobianPosture(self):
-        j = []
-        for i in xrange(36):
-            if i >= 6 + 2 * 6:
-                j.append(oneVector(i))
-        return tuple(j)
+        for s in ['zmp', 'waist',
+                  'com', 'left-ankle', 'right-ankle', 'waistYaw',
+                  'comVelocity', 'left-ankleVelocity',
+                  'right-ankleVelocity', 'waistYawVelocity']:
+            addTrace(self.robot, self.trace, self.feetFollower.name, s)
 
     def canStart(self):
         securityThreshold = 1e-3
@@ -282,26 +172,7 @@ class FeetFollowerGraph(object):
 
                 and self.tasks['right-ankle'].error.value <=
                 (securityThreshold,)
-                * len(self.tasks['right-ankle'].error.value)
-
-                and self.postureTask.error.value <=
-                (securityThreshold,) * len(self.postureTask.error.value))
-
-    def start(self, beforeStart=None):
-        if not self.canStart():
-            print("Robot has not yet converged to the initial position,"
-                  " please wait and try again.")
-            return
-        self.comTask.controlGain.value = self.gain
-        self.tasks['left-ankle'].controlGain.value = self.gain
-        self.tasks['right-ankle'].controlGain.value = self.gain
-        self.postureTask.controlGain.value = self.gain
-        self.tasks['waist'].controlGain.value = self.gain
-        self.setupTrace()
-        if beforeStart:
-            beforeStart()
-        self.trace.start()
-        self.feetFollower.start()
+                * len(self.tasks['right-ankle'].error.value))
 
     def __str__(self):
         return "feet follower"
@@ -344,13 +215,11 @@ class FeetFollowerAnalyticalPgGraph(FeetFollowerGraph):
                  steps = defaultSteps,
                  comZ = None, waistFile = None,
                  gazeFile = None, zmpFile = None,
-                 trace = None,
-                 postureFeature = None,
-                 postureTask = None,
-                 postureTaskDofs = None):
-        FeetFollowerGraph.__init__(self, robot, solver, trace,
-                                   postureFeature, postureTask,
-                                   postureTaskDofs)
+                 initialLeftAnklePosition = None,
+                 initialRightAnklePosition = None):
+        FeetFollowerGraph.__init__(
+            self, robot, solver,
+            initialLeftAnklePosition, initialRightAnklePosition)
         self.feetFollower = FeetFollowerAnalyticalPg(
             '{0}_feet-follower'.format(self.name))
         self.setAnklePosition()
