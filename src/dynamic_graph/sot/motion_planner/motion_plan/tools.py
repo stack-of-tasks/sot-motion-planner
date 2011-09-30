@@ -17,10 +17,7 @@
 
 from __future__ import print_function
 
-def addTrace(robot, trace, entityName, signalName):
-    trace.add(entityName + '.' + signalName,
-              entityName + '-' + signalName)
-    robot.device.after.addSignal(entityName + '.' + signalName)
+from dynamic_graph.tools import addTrace
 
 def convertToNPFootstepsStack(footsteps):
     minSlides = (-1.52, -0.76)

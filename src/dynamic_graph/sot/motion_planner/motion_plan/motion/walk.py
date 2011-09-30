@@ -32,6 +32,11 @@ class MotionWalk(Motion):
     gazeFile = None
     feetFollower = None
 
+    gain = 175.
+
+    initialLeftAnklePosition = None
+    initialRightAnklePosition = None
+
     def __init__(self, motion, yamlData, defaultDirectories):
         checkDict('interval', yamlData)
         checkDict('footsteps', yamlData)
@@ -51,22 +56,28 @@ class MotionWalk(Motion):
                                     defaultDirectories)
         self.zmpFile = searchFile(yamlData.get('zmp-trajectory'),
                                     defaultDirectories)
+
+        # For first walk element, start from half-sitting at origin.
+        if not MotionWalk.initialLeftAnklePosition:
+            MotionWalk.initialLeftAnklePosition = \
+                self.robot.features['left-ankle'].reference.value
+            MotionWalk.initialRightAnklePosition = \
+                self.robot.features['right-ankle'].reference.value
+
         self.feetFollower = FeetFollowerAnalyticalPgGraph(
             motion.robot, motion.solver, steps,
             waistFile = self.waistFile,
             gazeFile = self.gazeFile,
             zmpFile = self.zmpFile,
             comZ = self.comZ,
-            trace = motion.trace,
-            postureFeature = motion.postureFeature,
-            postureTask = motion.postureTask)
+            initialLeftAnklePosition = MotionWalk.initialLeftAnklePosition,
+            initialRightAnklePosition = MotionWalk.initialRightAnklePosition)
 
         # FIXME: Not too good.
-        self.feetFollower.comTask.controlGain.value = self.feetFollower.gain
-        self.feetFollower.tasks['left-ankle'].controlGain.value = self.feetFollower.gain
-        self.feetFollower.tasks['right-ankle'].controlGain.value = self.feetFollower.gain
-        self.feetFollower.postureTask.controlGain.value = self.feetFollower.gain
-        self.feetFollower.tasks['waist'].controlGain.value = self.feetFollower.gain
+        self.feetFollower.comTask.controlGain.value = self.gain
+        self.feetFollower.tasks['left-ankle'].controlGain.value = self.gain
+        self.feetFollower.tasks['right-ankle'].controlGain.value = self.gain
+        self.feetFollower.tasks['waist'].controlGain.value = self.gain
 
         unlockedDofsRleg = []
         unlockedDofsLleg = []
@@ -77,13 +88,10 @@ class MotionWalk(Motion):
 
 
         # Push the tasks into supervisor.
-        motion.supervisor.addFeetFollowerStartCall(self.feetFollower.feetFollower.name,
-                                                   self.interval[0])
+        motion.supervisor.addFeetFollowerStartCall(
+            self.feetFollower.feetFollower.name,
+            self.interval[0])
 
-        motion.supervisor.addTask(self.feetFollower.postureTask.name,
-                                  self.interval[0], self.interval[1],
-                                  self.priority + 9,
-                                  ())
         motion.supervisor.addTask(self.feetFollower.comTask.name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 3,
@@ -100,6 +108,14 @@ class MotionWalk(Motion):
                                   self.interval[0], self.interval[1],
                                   self.priority,
                                   ())
+
+        # Update initial ankles position
+        print(self.feetFollower.feetFollower.getFinalLeftAnklePosition())
+        MotionWalk.initialLeftAnklePosition = \
+            self.feetFollower.feetFollower.getFinalLeftAnklePosition()
+        MotionWalk.initialRightAnklePosition = \
+            self.feetFollower.feetFollower.getFinalRightAnklePosition()
+
 
     def __str__(self):
         return "walking motion ({0} footstep(s))".format(len(self.footsteps))

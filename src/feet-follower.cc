@@ -147,7 +147,10 @@ FeetFollower::FeetFollower (const std::string& name)
     rightAnkleVelocityOut_
     (INIT_SIGNAL_OUT
      ("right-ankleVelocity",
-      FeetFollower::updateRightAnkleVelocity, "MatrixHomo"))
+      FeetFollower::updateRightAnkleVelocity, "MatrixHomo")),
+
+    finalLeftAnklePosition_ (),
+    finalRightAnklePosition_ ()
 {
   signalRegistration (zmpOut_ << comOut_ << waistYawOut_
 		      << waistOut_ << gazeOut_
@@ -192,6 +195,11 @@ FeetFollower::FeetFollower (const std::string& name)
 	      (*this,
 	       &FeetFollower::startTime, docstring));
 
+  addCommand ("getFinalLeftAnklePosition",
+	      new command::GetFinalLeftAnklePosition (*this, docstring));
+  addCommand ("getFinalRightAnklePosition",
+	      new command::GetFinalRightAnklePosition (*this, docstring));
+
   addCommand ("start", new command::Start (*this, docstring));
 }
 
@@ -206,8 +214,12 @@ FeetFollower::start ()
       std::cout << "warning: already started" << std::endl;
       return;
     }
+  if (!this->walkMovement ())
+    throw std::runtime_error ("trajectory not yet generated");
+
   started_ = true;
   startTime_ = t_ * STEP;
+
   impl_start ();
 }
 
@@ -353,4 +365,27 @@ namespace command
     entity.start ();
     return Value ();
   }
+
+  GetFinalLeftAnklePosition::GetFinalLeftAnklePosition
+  (FeetFollower& entity, const std::string& docstring)
+    : Command (entity, std::vector<Value::Type> (), docstring)
+  {}
+
+  Value GetFinalLeftAnklePosition::doExecute()
+  {
+    FeetFollower& entity = static_cast<FeetFollower&>(owner ());
+    return Value (entity.finalLeftAnklePosition ());
+  }
+
+  GetFinalRightAnklePosition::GetFinalRightAnklePosition
+  (FeetFollower& entity, const std::string& docstring)
+    : Command (entity, std::vector<Value::Type> (), docstring)
+  {}
+
+  Value GetFinalRightAnklePosition::doExecute()
+  {
+    FeetFollower& entity = static_cast<FeetFollower&>(owner ());
+    return Value (entity.finalRightAnklePosition ());
+  }
+
 } // end of namespace command.
