@@ -1,0 +1,23 @@
+# Several walking motions and correction using mocap.
+
+duration: 14
+
+motion:
+  - walk:
+      priority: 0
+      interval: [0, 6]
+      footsteps:
+      - {x: 0.2, y: -0.19, theta: 0.}
+      - {x: 0.2, y: +0.19, theta: 0.}
+  - walk:
+      priority: 0
+      interval: [8, 14]
+      footsteps:
+      - {x: 0.2, y: -0.19, theta: 0.}
+      - {x: 0.2, y: +0.19, theta: 0.}
+
+control:
+  - mocap:
+      weight: 1.
+      tracked-body: left-ankle
+      perceived-body: left-foot
