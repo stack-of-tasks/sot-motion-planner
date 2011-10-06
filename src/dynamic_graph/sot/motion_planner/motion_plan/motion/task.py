@@ -88,7 +88,7 @@ class MotionTask(Motion):
                 motion.robot.featureComDes.errorIN.value = \
                     motion.robot.dynamic.com.value
             else:
-                motion.robot.featureComDes.position.value = \
+                motion.robot.featureComDes.errorIN.value = \
                     (self.reference.get('x', 0.), self.reference.get('y', 0.))
 
             # Push the task into supervisor.
