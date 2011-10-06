@@ -263,8 +263,15 @@ class MotionPlan(object):
         # Remove default tasks and let the supervisor take over the
         # tasks management.
         self.solver.sot.clear()
-        tOrigin = self.feetFollower.feetFollower.getStartTime()
+        tOrigin = 0.
+        if self.feetFollower:
+            tOrigin = self.feetFollower.feetFollower.getStartTime()
         self.supervisor.setOrigin(max(0., tOrigin))
+
+        # Provide a default ZMP value if required.
+        if not self.feetFollower:
+            self.robot.dynamic.com.recompute(self.robot.dynamic.com.time + 1)
+            self.robot.device.zmp.value = self.robot.dynamic.com.value[0:2]
 
     def stop(self):
         self.supervisor.stop()
