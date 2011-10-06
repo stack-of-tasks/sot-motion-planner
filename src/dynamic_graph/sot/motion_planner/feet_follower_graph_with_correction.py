@@ -101,9 +101,12 @@ class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
 
         # Fill inherited attributes.
         self.feetFollower = feetFollowerGraph.feetFollower
+        self.features = feetFollowerGraph.features
+        self.tasks = feetFollowerGraph.tasks
+        self.featureCom = feetFollowerGraph.featureCom
+        self.featureComDes = feetFollowerGraph.featureComDes
+        self.comTask = feetFollowerGraph.comTask
 
-        self.postureTask = feetFollowerGraph.postureTask
-        self.postureFeature = feetFollowerGraph.postureFeature
         self.trace = feetFollowerGraph.trace
 
         self.solver = solver
@@ -120,7 +123,8 @@ class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
         self.referenceTrajectory = self.feetFollower
 
         # Create the correction entity.
-        self.feetFollower = FeetFollowerWithCorrection('correction')
+        self.feetFollower = FeetFollowerWithCorrection(
+            '{0}_correction'.format(self.referenceTrajectory.name))
 
         # Set the reference trajectory.
         self.feetFollower.setReferenceTrajectory(self.referenceTrajectory.name)
@@ -157,31 +161,12 @@ class FeetFollowerGraphWithCorrection(FeetFollowerGraph):
         plug(self.errorEstimationStrategy.errorEstimator.error,
              self.feetFollower.offset)
 
-    def start(self, beforeStart = None):
-        if self.onRobot:
-            start = self.errorEstimationStrategy.start
-        else:
-            start = self.errorEstimationStrategy.interactiveStart
-
-        if start():
-            self.comTask.controlGain.value = self.gain
-            self.tasks['left-ankle'].controlGain.value = self.gain
-            self.tasks['right-ankle'].controlGain.value = self.gain
-            self.feetFollowerGraph.postureTask.controlGain.value = self.gain
-            self.tasks['waist'].controlGain.value = self.gain
-            self.setupTrace()
-            if beforeStart:
-                beforeStart()
-            self.feetFollowerGraph.trace.start()
-            self.feetFollower.start()
-        else:
-            print("failed to start")
-
     def setupTrace(self):
-        self.feetFollowerGraph.setupTrace()
-        for s in self.tracedSignals['FeetFollower']:
-            addTrace(self.robot, self.trace, self.referenceTrajectory.name, s)
-        for s in self.tracedSignals['FeetFollower'] + ['offset']:
+        for s in ['zmp', 'waist',
+                  'com', 'left-ankle', 'right-ankle', 'waistYaw',
+                  'comVelocity', 'left-ankleVelocity',
+                  'right-ankleVelocity', 'waistYawVelocity',
+                  'offset']:
             addTrace(self.robot, self.trace, self.feetFollower.name, s)
         for s in ['error']:
             addTrace(self.robot, self.trace,

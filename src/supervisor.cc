@@ -198,6 +198,19 @@ namespace command
       return Value (str);
     }
 
+    Start::Start (Supervisor& entity,
+		      const std::string& docstring)
+      : Command (entity, std::vector<Value::Type> (), docstring)
+    {}
+
+    Value
+    Start::doExecute ()
+    {
+      Supervisor& entity = static_cast<Supervisor&> (owner ());
+      entity.start ();
+      return Value ();
+    }
+
     Stop::Stop (Supervisor& entity,
 		      const std::string& docstring)
       : Command (entity, std::vector<Value::Type> (), docstring)
@@ -211,6 +224,7 @@ namespace command
       return Value ();
     }
 
+
   } // end of namespace supervisor.
 } // end of namespace command.
 
@@ -221,6 +235,7 @@ Supervisor::Supervisor (const std::string& name)
 	      ("trigger",
 	       Supervisor::update, "Int")),
     sot_ (dg::nullptr),
+    t_ (-1.),
     tOrigin_ (-1.),
     motions_ (),
     startCalls_ ()
@@ -240,6 +255,8 @@ Supervisor::Supervisor (const std::string& name)
 	      new command::supervisor::AddFeetFollowerStartCall
 	      (*this, docstring));
 
+  addCommand ("start",
+	      new command::supervisor::Start (*this, docstring));
   addCommand ("stop",
 	      new command::supervisor::Stop (*this, docstring));
 
@@ -257,13 +274,14 @@ Supervisor::~Supervisor ()
 int&
 Supervisor::update (int& dummy, int t)
 {
+  t_ = t * STEP;
   if (tOrigin_ < 0.)
     return dummy;
 
-  double t_ = (t - tOrigin_) * STEP;
+  double tCurrent = (t * STEP) - tOrigin_;
 
-  updateFeetFollowerStartCall (t_);
-  updateMotions (t_);
+  updateFeetFollowerStartCall (tCurrent);
+  updateMotions (tCurrent);
   return dummy;
 }
 
@@ -401,6 +419,13 @@ Supervisor::stop ()
   tOrigin_ = -1;
   sot_ = 0;
   featurePosture_ = 0;
+}
+
+void
+Supervisor::start ()
+{
+  if (tOrigin_ < 0.)
+    tOrigin_ = t_;
 }
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (Supervisor, "Supervisor");

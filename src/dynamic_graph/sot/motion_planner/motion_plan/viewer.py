@@ -199,9 +199,7 @@ class MotionPlanViewer(object):
     def reset(self):
         self.logger.info('execution interrupted')
 
-        # Write traces.
-        if self.plan.feetFollower:
-            self.plan.feetFollower.trace.dump()
+        # Stop the execution.
         self.plan.stop()
 
         self.storePositions()

@@ -38,7 +38,8 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
     def __init__(self, feetFollowerWithCorrection, robot, corba = None):
         ErrorEstimationStrategy.__init__(self,
                                          robot, feetFollowerWithCorrection)
-        self.errorEstimator = ErrorMerger('error_merger')
+        self.errorEstimator = ErrorMerger(
+            '{0}_error_merger'.format(feetFollowerWithCorrection.feetFollower.name))
         self.feetFollowerWithCorrection = feetFollowerWithCorrection
         self.robot = robot
 
@@ -93,3 +94,6 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
 
     def __str__(self):
         return "motion plan error estimation strategy"
+
+    def canStart(self):
+        return True

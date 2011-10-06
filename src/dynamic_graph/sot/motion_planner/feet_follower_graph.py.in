@@ -51,7 +51,7 @@ class FeetFollowerGraph(object):
     tasks = None
     featureCom = None
     featureComDes = None
-    taskCom = None
+    comTask = None
 
     """
     Tracer used to log various data.

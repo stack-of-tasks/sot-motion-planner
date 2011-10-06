@@ -79,3 +79,6 @@ class MotionJoint(Motion):
 
     def setupTrace(self, trace):
         pass
+
+    def canStart(self):
+        return True

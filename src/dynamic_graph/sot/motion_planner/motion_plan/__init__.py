@@ -19,6 +19,7 @@ from __future__ import print_function
 import logging
 import yaml
 import numpy as np
+import textwrap
 
 from dynamic_graph.tracer_real_time import TracerRealTime
 from dynamic_graph import plug
@@ -63,8 +64,6 @@ class MotionPlan(object):
 
     robot = None
     solver = None
-
-    feetFollower = None
 
     corba = None
     ros = None
@@ -157,20 +156,31 @@ class MotionPlan(object):
                 plug(self.ros.signal(m.objectName + 'Timestamp'),
                      m.vispPointProjection.cMoTimestamp)
 
-        if hasControl and feetFollowerElement:
-            self.feetFollower = FeetFollowerGraphWithCorrection(
-                robot, solver, feetFollowerElement.feetFollower,
-                MotionPlanErrorEstimationStrategy,
-                maxX = self.maxX, maxY = self.maxY,
-                maxTheta = self.maxTheta)
-            self.feetFollower.errorEstimationStrategy.motionPlan = self
-                #FIXME: not enough generic
-            self.feetFollower.feetFollower.setFootsteps(
-                2., makeFootsteps(feetFollowerElement.footsteps))
-        elif feetFollowerElement:
-            self.feetFollower = feetFollowerElement.feetFollower
-        else:
-            self.feetFollower = None
+        # If control elements are planned, correct the execution using
+        # localization information.
+        if hasControl:
+            for i in xrange(len(self.motion)):
+                if type(self.motion[i]) != MotionWalk:
+                    continue
+                # Add correction graph.
+                self.motion[i].correction = FeetFollowerGraphWithCorrection(
+                    robot, solver, self.motion[i].feetFollower,
+                    MotionPlanErrorEstimationStrategy,
+                    maxX = self.maxX, maxY = self.maxY,
+                    maxTheta = self.maxTheta)
+                self.motion[i].correction.errorEstimationStrategy.motionPlan = \
+                    self
+                #FIXME: not generic enough
+                self.motion[i].correction.feetFollower.setFootsteps(
+                    2., # 2 seconds per step
+                    makeFootsteps(feetFollowerElement.footsteps))
+
+                self.motion[i].correction.setupTrace()
+
+                # Start the correction when needed.
+                self.supervisor.addFeetFollowerStartCall(
+                    self.motion[i].correction.feetFollower.name,
+                    self.motion[i].interval[0])
 
         self.logger.debug('motion plan created with success')
 
@@ -233,14 +243,12 @@ class MotionPlan(object):
         res  = 'Motion:\n'
         res += '-------\n'
         for motion in self.motion:
-            res += '\t* {0}\n'.format(str(motion))
+            res += '\n\t'.join(textwrap.wrap('\t* {0}\n'.format(str(motion)))) + '\n'
         res += '\n'
         res += 'Control:\n'
         res += '--------\n'
         for control in self.control:
-            res += '\t* {0}\n'.format(str(control))
-        res += '\n'
-        res += str(self.feetFollower)
+            res += '\n\t'.join(textwrap.wrap('\t* {0}\n'.format(str(control)))) + '\n'
         res += '\n\n'
         res += self.supervisor.display()
         return res
@@ -255,23 +263,18 @@ class MotionPlan(object):
         self.started = True
         self.logger.info('execution starts')
 
-        if self.feetFollower:
-            self.feetFollower.setupTrace()
+        # Provide a default ZMP value if required.
+        self.robot.dynamic.com.recompute(self.robot.dynamic.com.time + 1)
+        self.robot.device.zmp.value = self.robot.dynamic.com.value[0:2]
 
         self.robot.startTracer()
 
         # Remove default tasks and let the supervisor take over the
         # tasks management.
         self.solver.sot.clear()
-        tOrigin = 0.
-        if self.feetFollower:
-            tOrigin = self.feetFollower.feetFollower.getStartTime()
-        self.supervisor.setOrigin(max(0., tOrigin))
+        self.supervisor.start()
+        self.supervisor.display()
 
-        # Provide a default ZMP value if required.
-        if not self.feetFollower:
-            self.robot.dynamic.com.recompute(self.robot.dynamic.com.time + 1)
-            self.robot.device.zmp.value = self.robot.dynamic.com.value[0:2]
 
     def stop(self):
         self.supervisor.stop()
@@ -279,12 +282,9 @@ class MotionPlan(object):
         self.robot.stopTracer()
 
     def canStart(self):
-        canStart = reduce(lambda acc, c: c.canStart() and acc,
-                          self.control, True)
-        if not canStart:
-            return False
-
-        if self.feetFollower:
-            return self.feetFollower.canStart()
-        else:
-            return True
+        return (reduce(lambda acc, c: c.canStart() and acc,
+                      self.control, True) and
+                # Search for motion elements starting at t = 0.
+                reduce(lambda acc, c: (c.interval[0] == 0.
+                                       or c.canStart()) and acc,
+                       self.motion, True))
