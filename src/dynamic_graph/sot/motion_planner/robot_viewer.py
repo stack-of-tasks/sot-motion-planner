@@ -82,7 +82,6 @@ def drawWalkElement(walkElement, clt, elements, create = True, filename = None):
         # If correction is not used, just print footsteps
         # from the plan.
         footsteps += walkElement.footsteps
-        print(footsteps)
 
     if filename:
         f = open('/tmp/{0}-{1}.dat'.format(filename,
