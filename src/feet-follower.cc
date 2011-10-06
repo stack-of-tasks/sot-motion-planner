@@ -195,6 +195,11 @@ FeetFollower::FeetFollower (const std::string& name)
 	      (*this,
 	       &FeetFollower::startTime, docstring));
 
+  addCommand ("getInitialLeftAnklePosition",
+	      new command::GetInitialLeftAnklePosition (*this, docstring));
+  addCommand ("getInitialRightAnklePosition",
+	      new command::GetInitialRightAnklePosition (*this, docstring));
+
   addCommand ("getFinalLeftAnklePosition",
 	      new command::GetFinalLeftAnklePosition (*this, docstring));
   addCommand ("getFinalRightAnklePosition",
@@ -387,5 +392,28 @@ namespace command
     FeetFollower& entity = static_cast<FeetFollower&>(owner ());
     return Value (entity.finalRightAnklePosition ());
   }
+
+  GetInitialLeftAnklePosition::GetInitialLeftAnklePosition
+  (FeetFollower& entity, const std::string& docstring)
+    : Command (entity, std::vector<Value::Type> (), docstring)
+  {}
+
+  Value GetInitialLeftAnklePosition::doExecute()
+  {
+    FeetFollower& entity = static_cast<FeetFollower&>(owner ());
+    return Value (entity.initialLeftAnklePosition ());
+  }
+
+  GetInitialRightAnklePosition::GetInitialRightAnklePosition
+  (FeetFollower& entity, const std::string& docstring)
+    : Command (entity, std::vector<Value::Type> (), docstring)
+  {}
+
+  Value GetInitialRightAnklePosition::doExecute()
+  {
+    FeetFollower& entity = static_cast<FeetFollower&>(owner ());
+    return Value (entity.initialRightAnklePosition ());
+  }
+
 
 } // end of namespace command.

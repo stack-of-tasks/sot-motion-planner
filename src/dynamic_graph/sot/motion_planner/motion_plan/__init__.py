@@ -166,7 +166,7 @@ class MotionPlan(object):
             self.feetFollower.errorEstimationStrategy.motionPlan = self
                 #FIXME: not enough generic
             self.feetFollower.feetFollower.setFootsteps(
-                2., makeFootsteps(self.footsteps))
+                2., makeFootsteps(feetFollowerElement.footsteps))
         elif feetFollowerElement:
             self.feetFollower = feetFollowerElement.feetFollower
         else:

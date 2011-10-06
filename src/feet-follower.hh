@@ -80,6 +80,23 @@ namespace command
 			       const std::string& docstring);
     virtual Value doExecute();
   };
+
+  class GetInitialLeftAnklePosition : public Command
+  {
+  public:
+    GetInitialLeftAnklePosition (FeetFollower& entity,
+			       const std::string& docstring);
+    virtual Value doExecute();
+  };
+
+  class GetInitialRightAnklePosition : public Command
+  {
+  public:
+    GetInitialRightAnklePosition (FeetFollower& entity,
+			       const std::string& docstring);
+    virtual Value doExecute();
+  };
+
 }
 
 
@@ -265,6 +282,16 @@ public:
   const maal::boost::Matrix& finalRightAnklePosition () const
   {
     return finalRightAnklePosition_;
+  }
+
+  const maal::boost::Matrix& initialLeftAnklePosition () const
+  {
+    return initialLeftAnklePosition_;
+  }
+
+  const maal::boost::Matrix& initialRightAnklePosition () const
+  {
+    return initialRightAnklePosition_;
   }
 
   /// \brief Number of steps (positions) in the trajectory.
