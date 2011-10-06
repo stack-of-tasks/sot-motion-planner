@@ -159,10 +159,8 @@ class MotionPlanViewer(object):
     def update(self):
         self.updateRobot()
         if self.enableFootsteps:
-            drawFootsteps(self.client, self.plan, self.robot,
-                          self.initialAnklePositions[0],
-                          self.initialAnklePositions[1],
-                          self.elements, create = False)
+            drawFootstepsFromPlan(
+                self.client, self.plan, self.elements, create = False)
         if self.enableObstacles:
             drawObstacles(self.client, self.plan, self.robot, self.elements)
         if self.enableFrames:
@@ -171,7 +169,8 @@ class MotionPlanViewer(object):
                     self.plan.robot.frames[f].position.time + 1)
                 self.createObject(f, 'coord.py',
                                   Pose6d.fromRotationMatrix(
-                        np.matrix(self.plan.robot.frames[f].position.value)).pose())
+                        np.matrix(
+                            self.plan.robot.frames[f].position.value)).pose())
 
 
     def storePositions(self):
@@ -227,10 +226,8 @@ class MotionPlanViewer(object):
                         np.matrix(self.plan.robot.frames[f].position.value)).pose())
 
         if self.enableFootsteps:
-            drawFootsteps(self.client, self.plan, self.robot,
-                          self.initialAnklePositions[0],
-                          self.initialAnklePositions[1],
-                          self.elements, create = True)
+            drawFootstepsFromPlan(self.client, self.plan,
+                                  self.elements, create = True)
 
         animation = WaitingAnimation()
         sys.stdout.write('Waiting for motion to initialize... ')
@@ -301,4 +298,4 @@ class MotionPlanViewer(object):
         self.storePositions()
         if self.plan.feetFollower:
             self.plan.feetFollower.trace.dump()
-        self.stop()
+        self.plan.stop()

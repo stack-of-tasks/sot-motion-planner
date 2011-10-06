@@ -39,6 +39,10 @@ def HomogeneousMatrixToXYZTheta(x):
     x = np.mat(x)
     return (x[0,3], x[1,3], x[2,3], atan2(x[1,0], x[0,0]))
 
+def HomogeneousMatrixToXYTheta(x):
+    x = np.mat(x)
+    return (x[0,3], x[1,3], atan2(x[1,0], x[0,0]))
+
 # Vector3
 def makeVector3(x = 0., y = 0., z = 0.):
     return np.array([x, y, z], dtype=np.dtype(np.float))

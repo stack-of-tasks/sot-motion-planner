@@ -47,9 +47,6 @@ class MotionWalk(Motion):
         self.footsteps = yamlData['footsteps']
         self.comZ = yamlData.get('comZ')
 
-        #FIXME: handle multiple walk movement.
-        motion.footsteps = yamlData['footsteps']
-
         self.waistFile = searchFile(yamlData.get('waist-trajectory'),
                                     defaultDirectories)
         self.gazeFile = searchFile(yamlData.get('gaze-trajectory'),

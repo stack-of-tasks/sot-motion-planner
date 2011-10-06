@@ -29,17 +29,32 @@ def createObject(clt, name, obj, elements):
         elements.append(name)
         clt.enableElement(name)
 
-def drawFootsteps(clt, plan, robot, startLeft, startRight, elements,
-                  create = True, filename = None):
-    if not plan.feetFollower:
-        return
+def drawFootstepsFromPlan(clt, plan, elements, create = True, filename = None):
 
+    for motionElt in plan.motion:
+        if type(motionElt) == MotionWalk:
+            drawWalkElement(motionElt, clt, elements, create, filename)
 
-    footsteps = [{'x': 0., 'y': 0., 'theta': 0.},
-                 {'x': 0., 'y': +0.19, 'theta': 0.}]
+def drawWalkElement(walkElement, clt, elements, create = True, filename = None):
+    leftAnklePosition = np.matrix(
+        walkElement.feetFollower.feetFollower.getInitialLeftAnklePosition())
+    rightAnklePosition = np.matrix(
+        walkElement.feetFollower.feetFollower.getInitialRightAnklePosition())
+
+    leftAnkle = HomogeneousMatrixToXYTheta(
+        leftAnklePosition * np.linalg.inv(rightAnklePosition))
+    rightAnkle = HomogeneousMatrixToXYTheta(
+        rightAnklePosition)
+
+    footsteps = [
+        {'x': rightAnkle[0], 'y': rightAnkle[1], 'theta': rightAnkle[2]},
+        {'x': leftAnkle[0],  'y': leftAnkle[1],  'theta': leftAnkle[2] },
+        ]
+
+    startPosition = np.identity(4)
 
     try:
-        footstepsSignal = plan.feetFollower.feetFollower.dbgFootsteps
+        footstepsSignal = walkElement.feetFollower.dbgFootsteps
         footstepsSignal.recompute(footstepsSignal.time + 1)
 
         i = 0
@@ -66,24 +81,26 @@ def drawFootsteps(clt, plan, robot, startLeft, startRight, elements,
     except AttributeError:
         # If correction is not used, just print footsteps
         # from the plan.
-        footsteps += plan.footsteps
+        footsteps += walkElement.footsteps
+        print(footsteps)
 
     if filename:
-        f = open('/tmp/' + str(filename), 'w')
+        f = open('/tmp/{0}-{1}.dat'.format(filename,
+                                           walkElement.feetFollower.name),
+                 'w')
         for step in footsteps:
-            f.write(str(step['x'])
-                    + ' ' + str(step['y'])
-                    + ' ' + str(step['theta'])
-                    + '\n')
+            f.write('{0} {1} {2}\n'.format(str(step['x']),
+                                           str(step['y']),
+                                           str(step['theta'])))
 
     i = 0
-    pos = np.matrix(startRight, dtype=np.float)
-    pos[2,3] = 0.
+    pos = np.matrix(startPosition, dtype=np.float)
+    pos[2,3] = 0. # Cancel Z translation.
 
     for step in footsteps:
         pos = pos * XYThetaToHomogeneousMatrix(
             (step['x'], step['y'], step['theta']))
-        name = 'step_' + str(i)
+        name = 'step_{0}_{1}'.format(walkElement.feetFollower.name, str(i))
         if create:
             model = 'left-footstep.py'
             if i % 2 == 1:
