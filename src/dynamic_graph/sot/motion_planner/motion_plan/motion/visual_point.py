@@ -103,3 +103,6 @@ class MotionVisualPoint(Motion):
 
         for s in ['error']:
             addTrace(self.robot, trace, self.task.name, s)
+
+    def canStart(self):
+        return True

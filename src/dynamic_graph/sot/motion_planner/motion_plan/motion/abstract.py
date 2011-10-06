@@ -28,3 +28,6 @@ class Motion(object):
 
     def setupTrace(self, trace):
         raise NotImplementedError
+
+    def canStart(self):
+        raise NotImplementedError

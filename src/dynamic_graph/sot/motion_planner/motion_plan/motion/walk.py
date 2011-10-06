@@ -115,7 +115,13 @@ class MotionWalk(Motion):
 
 
     def __str__(self):
-        return "walking motion ({0} footstep(s))".format(len(self.footsteps))
+        fmt = "walking motion ({0} footstep(s))"
+        if 'correction' in self.__dict__:
+            fmt += ' [corrected]'
+        return fmt.format(len(self.footsteps))
 
     def setupTrace(self, trace):
-        pass
+        self.feetFollower.setupTrace()
+
+    def canStart(self):
+        return self.feetFollower.canStart()

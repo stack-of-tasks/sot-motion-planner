@@ -84,6 +84,14 @@ namespace command
       virtual Value doExecute ();
     };
 
+    class Start : public Command
+    {
+    public:
+      Start (Supervisor& entity,
+	    const std::string& docstring);
+      virtual Value doExecute ();
+    };
+
     class Stop : public Command
     {
     public:
@@ -141,6 +149,7 @@ public:
 
   void addFeetFollowerStartCall (FeetFollower* ff, double t);
 
+  void start ();
   void stop ();
 
 protected:
@@ -152,6 +161,7 @@ private:
   dg::SignalTimeDependent<int, int> trigger_;
   dynamicgraph::sot::Sot* sot_;
   dynamicgraph::sot::FeaturePosture* featurePosture_;
+  double t_;
   double tOrigin_;
   motions_t motions_;
   startCalls_t startCalls_;
