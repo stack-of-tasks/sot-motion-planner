@@ -337,6 +337,10 @@ Supervisor::updateMotions (const double& t_)
 	    {
 	      sot_->remove (*task);
 	      std::cout << "Removing " << task->getName () << std::endl;
+
+	      // Lock dofs.
+	      for (unsigned i = 0; i < unlockedDofs.size (); ++i)
+		featurePosture_->selectDof ((int)unlockedDofs (i), true);
 	    }
 	}
       else
