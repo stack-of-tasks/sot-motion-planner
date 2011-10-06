@@ -77,7 +77,8 @@ class MotionTask(Motion):
             motion.supervisor.addTask(motion.robot.tasks[self.body].name,
                                       self.interval[0], self.interval[1],
                                       self.priority,
-                                      tuple(unlockedDofs))
+                                      tuple(self.extraUnlockedDofs +
+                                            unlockedDofs))
 
         elif self.type == 'feature-com':
             motion.robot.comTask.controlGain.value = self.gain
@@ -89,10 +90,11 @@ class MotionTask(Motion):
                     (self.reference.get('x', 0.), self.reference.get('y', 0.))
 
             # Push the task into supervisor.
+            print(tuple(self.extraUnlockedDofs))
             motion.supervisor.addTask(motion.robot.comTask.name,
                                       self.interval[0], self.interval[1],
                                       self.priority,
-                                      ())
+                                      tuple(self.extraUnlockedDofs))
         else:
             raise RuntimeError('invalid task type')
 

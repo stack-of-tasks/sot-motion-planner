@@ -84,6 +84,7 @@ class MotionVisualPoint(Motion):
                                   self.interval[0], self.interval[1],
                                   self.priority,
                                   #FIXME: HRP-2 specific
+                                  tuple(self.extraUnlockedDofs) +
                                   (6 + 14, 6 + 15))
 
     def __str__(self):

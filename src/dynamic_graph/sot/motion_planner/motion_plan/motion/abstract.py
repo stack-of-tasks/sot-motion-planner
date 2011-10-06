@@ -24,6 +24,7 @@ class Motion(object):
         if len(self.interval) != 2:
             raise RuntimeErrror('invalid interval')
         self.priority = yamlData.get('priority', 0)
+        self.extraUnlockedDofs = yamlData.get('extra-unlocked-dofs', [])
 
     def setupTrace(self, trace):
         raise NotImplementedError

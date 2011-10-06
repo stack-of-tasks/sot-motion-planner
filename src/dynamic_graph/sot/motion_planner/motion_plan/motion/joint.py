@@ -72,7 +72,7 @@ class MotionJoint(Motion):
         motion.supervisor.addTask(self.task.name,
                                   self.interval[0], self.interval[1],
                                   self.priority,
-                                  (jointId,))
+                                  tuple(self.extraUnlockedDofs) + (jointId,))
 
     def __str__(self):
         return "joint motion ({0})".format(self.name)

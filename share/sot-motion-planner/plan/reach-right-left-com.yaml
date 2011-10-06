@@ -6,6 +6,7 @@ duration: 10
 motion:
 # Make sure the feet do not move.
   - task:
+      priority: 50
       interval: [0, 10]
       type: feature-point-6d
       operational-point: left-ankle
@@ -14,6 +15,7 @@ motion:
       translation: on
       rotation: on
   - task:
+      priority: 50
       interval: [0, 10]
       type: feature-point-6d
       operational-point: right-ankle
@@ -24,26 +26,31 @@ motion:
 
 # Com.
   - task:
+      priority: 20
       interval: [0, 10]
       type: feature-com
-      gain: 0.1
+      gain: 0.5
       reference: static
+      extra-unlocked-dofs: [18., 19.] # HRP-2 chest dofs.
+
 # Reaching task.
   - task:
-      interval: [0, 10]
+      priority: 15
+      interval: [2.5, 7.5]
       type: feature-point-6d
       operational-point: right-wrist
-      gain: 0.25
-      reference: {x: 0.5, y: -0.3, z: 0.8}
+      gain: 0.5
+      reference: {x: 0.4, y: -0.3, z: 1.1}
       translation: on
       rotation: off
 
 # Reaching task.
   - task:
-      interval: [0, 10]
+      priority: 16
+      interval: [5, 10]
       type: feature-point-6d
       operational-point: left-wrist
-      gain: 0.25
-      reference: {x: 0.5, y: 0.3, z: 0.8}
+      gain: 0.5
+      reference: {x: 0.4, y: 0.3, z: 1.1}
       translation: on
       rotation: off

@@ -92,7 +92,7 @@ class MotionWalk(Motion):
         motion.supervisor.addTask(self.feetFollower.comTask.name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 3,
-                                  ())
+                                  tuple(self.extraUnlockedDofs))
         motion.supervisor.addTask(self.feetFollower.tasks['left-ankle'].name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 2,
