@@ -27,6 +27,7 @@ motion:
       type: feature-com
       gain: 1.
       reference: static
+      extra-unlocked-dofs: [18., 19.] # HRP-2 chest dofs.
 
 # Reaching task.
   - task:
