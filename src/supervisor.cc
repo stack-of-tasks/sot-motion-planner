@@ -48,11 +48,11 @@ namespace command
       std::string name = values[0].value ();
 
       dynamicgraph::sot::Sot* sot = 0;
-      if (dynamicgraph::g_pool.existEntity (name))
+      if (dynamicgraph::FactoryStorage::getInstance()->existEntity (name))
 	{
 	  sot =
 	    dynamic_cast<dynamicgraph::sot::Sot*>
-	    (&dynamicgraph::g_pool.getEntity (name));
+	    (&dynamicgraph::PoolStorage::getInstance()->getEntity (name));
 	  if (!sot)
 	    std::cerr << "entity is not a stack of tasks entity" << std::endl;
 	}
@@ -76,11 +76,11 @@ namespace command
       std::string name = values[0].value ();
 
       dynamicgraph::sot::FeaturePosture* featurePosture = 0;
-      if (dynamicgraph::g_pool.existEntity (name))
+      if (dynamicgraph::FactoryStorage::getInstance()->existEntity (name))
 	{
 	  featurePosture =
 	    dynamic_cast<dynamicgraph::sot::FeaturePosture*>
-	    (&dynamicgraph::g_pool.getEntity (name));
+	    (&dynamicgraph::PoolStorage::getInstance()->getEntity (name));
 	  if (!featurePosture)
 	    std::cerr << "entity is not a feature posture entity" << std::endl;
 	}
@@ -115,11 +115,11 @@ namespace command
       ml::Vector unlockedDofs = values[4].value ();
 
       dynamicgraph::sot::TaskAbstract* task = 0;
-      if (dynamicgraph::g_pool.existEntity (name))
+      if (dynamicgraph::FactoryStorage::getInstance()->existEntity (name))
 	{
 	  task =
 	    dynamic_cast<dynamicgraph::sot::TaskAbstract*>
-	    (&dynamicgraph::g_pool.getEntity (name));
+	    (&dynamicgraph::PoolStorage::getInstance()->getEntity (name));
 	  if (!task)
 	    std::cerr << "entity is not a task abstract entity" << std::endl;
 	}
