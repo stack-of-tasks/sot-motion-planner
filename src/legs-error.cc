@@ -40,8 +40,6 @@ class LegsError : public dg::Entity
   typedef dg::SignalPtr<ml::Vector, int> signalIn_t;
   typedef dg::SignalTimeDependent<ml::Vector, int> signalOut_t;
 
-  static const std::string CLASS_NAME;
-
   explicit LegsError (const std::string& name)
     : Entity(name),
       state_
@@ -58,10 +56,7 @@ class LegsError : public dg::Entity
   virtual ~LegsError ()
   {  }
 
-  virtual const std::string& getClassName ()
-  {
-    return CLASS_NAME;
-  }
+  DYNAMIC_GRAPH_ENTITY_DECL ();
 
 private:
 

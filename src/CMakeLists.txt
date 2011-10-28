@@ -71,6 +71,10 @@ SET(FEET_FOLLOWER_SOURCES
   error-merger.cc
   time.cc
   supervisor.cc
+  
+  legs-follower.cc
+  legs-error.cc
+  waist-error.cc
   )
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
@@ -103,6 +107,7 @@ SET(FILES
   feet_follower_graph_with_correction.py
   math.py
   robot_viewer.py
+  legs_follower_graph.py
   )
 
 FOREACH(FILE ${FILES})
@@ -136,8 +141,6 @@ SET(FILES
   mocap.py
   virtual_sensor.py
   visp.py
-  feet_follower_graph.py
-  legs_follower_graph.py
   )
 FOREACH(FILE ${FILES})
   PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")

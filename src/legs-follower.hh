@@ -77,7 +77,9 @@ namespace command
 class LegsFollower : public dg::Entity
 {
  public:
-  static const std::string CLASS_NAME;
+
+  DYNAMIC_GRAPH_ENTITY_DECL ();
+  
   typedef dg::SignalTimeDependent<ml::Vector, int> signalCoM_t;
   typedef dg::SignalTimeDependent<ml::Vector, int> signalZMP_t;
   typedef dg::SignalTimeDependent<ml::Vector, int> signal_ldof_t;
@@ -88,10 +90,6 @@ class LegsFollower : public dg::Entity
   explicit LegsFollower (const std::string& name);
   virtual ~LegsFollower ();
 
-  virtual const std::string& getClassName ()
-  {
-    return CLASS_NAME;
-  }
 
   void start ();
   void stop();

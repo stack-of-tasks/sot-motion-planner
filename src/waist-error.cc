@@ -36,11 +36,11 @@ namespace sot
 
 class WaistError : public dg::Entity
 {
+  DYNAMIC_GRAPH_ENTITY_DECL ();
+
  public:
   typedef dg::SignalPtr<ml::Vector, int> signalIn_t;
   typedef dg::SignalTimeDependent<ml::Vector, int> signalOut_t;
-
-  static const std::string CLASS_NAME;
 
   explicit WaistError (const std::string& name)
     : Entity(name),
@@ -58,10 +58,6 @@ class WaistError : public dg::Entity
   virtual ~WaistError ()
   { }
 
-  virtual const std::string& getClassName ()
-  {
-    return CLASS_NAME;
-  }
 
 private:
 

@@ -23,4 +23,4 @@ from feet_follower import \
     FeetFollowerFromFile, FeetFollowerAnalyticalPg, PostureError, \
     FeetFollowerWithCorrection, Randomizer, ErrorEstimator, ErrorMerger, \
     WaistYaw, VirtualSensor, RobotPositionFromVisp, VispPointProjection, \
-    Supervisor
+    Supervisor, LegsFollower, LegsError, WaistError
