@@ -32,6 +32,9 @@ I = ((1., 0., 0., 0.),
      (0., 0., 1., 0.),
      (0., 0., 0., 1.))
 
+s.cMo.value = I
+s.initialize()
+
 def recomputeVelocity(cMo = I, inputPgVelocity = (0., 0., 0.)):
     global s
     s.cMo.value = cMo
