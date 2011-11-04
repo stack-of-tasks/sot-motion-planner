@@ -17,10 +17,26 @@
 
 from __future__ import print_function
 
-from localizer import Localizer
+from dynamic_graph import plug
+from dynamic_graph.sot.dynamics.hrp2 import Hrp2Laas
+from dynamic_graph.sot.motion_planner.feet_follower import SwayMotionCorrection
 
-from feet_follower import \
-    FeetFollowerFromFile, FeetFollowerAnalyticalPg, \
-    FeetFollowerWithCorrection, Randomizer, ErrorEstimator, ErrorMerger, \
-    WaistYaw, VirtualSensor, RobotPositionFromVisp, VispPointProjection, \
-    Supervisor, LegsFollower, LegsError, WaistError
+robot = Hrp2Laas("robot")
+s = SwayMotionCorrection('s')
+
+plug(robot.frames['cameraBottomLeft'].position, s.wMcamera)
+plug(robot.dynamic.waist, s.wMwaist)
+
+I = ((1., 0., 0., 0.),
+     (0., 1., 0., 0.),
+     (0., 0., 1., 0.),
+     (0., 0., 0., 1.))
+
+def recomputeVelocity(cMo = I, inputPgVelocity = (0., 0., 0.)):
+    global s
+    s.cMo.value = cMo
+    s.inputPgVelocity.value = inputPgVelocity
+    s.outputPgVelocity.recompute(s.outputPgVelocity.time + 1)
+    print("output velocity: {0}".format(s.outputPgVelocity.value))
+
+recomputeVelocity()
