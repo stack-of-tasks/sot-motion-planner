@@ -21,6 +21,10 @@ FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
     PREFIX ""
     SOVERSION ${PROJECT_VERSION})
 
+  # ViSP
+  SET_TARGET_PROPERTIES(${NAME}
+    PROPERTIES COMPILE_FLAGS "${VISP_CFLAGS}" LINK_FLAGS "${VISP_LIBS}")
+
   PKG_CONFIG_USE_DEPENDENCY(${NAME} dynamic-graph)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mathtools)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mal)
@@ -62,7 +66,6 @@ SET(FEET_FOLLOWER_SOURCES
 
   randomizer.cc randomizer.hh
 
-  posture-error.cc
   waist-yaw.cc
 
   virtual-sensor.cc
@@ -71,6 +74,8 @@ SET(FEET_FOLLOWER_SOURCES
   error-merger.cc
   time.cc
   supervisor.cc
+
+  sway-motion-correction.cc
   )
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
