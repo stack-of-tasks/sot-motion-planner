@@ -16,15 +16,12 @@
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 print("Run legs_follower_graph.py  v2.0.")
-
 import time
 
-print "import from dynamics.tools"
-from dynamic_graph.sot.dynamics.tools import *
+from dynamic_graph import plug
 
 print "import from sot.core"
-from dynamic_graph.sot.core import \
-    FeatureGeneric, Task, MatrixConstant, RobotSimu
+from dynamic_graph.sot.core import FeatureGeneric, FeaturePosture, Task, MatrixConstant, RobotSimu
 
 print "import from sot.motion_planner"
 from dynamic_graph.sot.motion_planner import LegsFollower, PostureError, LegsError, WaistError
@@ -59,7 +56,7 @@ def zeroVector():
     r = [0.,] * 36
     return tuple(r)
 
-class LegsFollowerGraph:
+class LegsFollowerGraph(object):
 
     legsFollower = None
 
@@ -80,49 +77,62 @@ class LegsFollowerGraph:
 
     trace = None
 
-    def __init__(self, robot, solver, trace = None):
-
+    def __init__(self, robot, solver, trace = None, postureTaskDofs = None):
+        print("Constructor of LegsFollower Graph")
+        self.robot = robot
+        self.solver = solver
 	self.legsFollower = LegsFollower('legs-follower')
 
  	# Initialize the posture task.
 	print("Posture Task")
-        self.postureTask = Task(robot.name + '_posture')
-        self.postureFeature = FeatureGeneric(robot.name + '_postureFeature')
-        self.postureFeatureDes = FeatureGeneric(robot.name + '_postureFeatureDes')
-        self.postureError = PostureError('PostureError')
-        plug(robot.device.state, self.postureError.state)
-        plug(self.postureError.error, self.postureFeature.errorIN)
-        self.postureFeature.jacobianIN.value = self.postureJacobian()
-        self.postureFeatureDes.errorIN.value = self.computeDesiredValue()
-        self.postureFeature.sdes.value = self.postureFeatureDes
+        self.postureTaskDofs = postureTaskDofs
+        if not self.postureTaskDofs:
+            self.postureTaskDofs = []
+            for i in xrange(len(robot.halfSitting) - 6):
+                # Disable legs dofs.
+                if i < 12: #FIXME: not generic enough
+                    self.postureTaskDofs.append((i + 6, False))
+                else:
+                    self.postureTaskDofs.append((i + 6, True))
+
+        #self.postureTask = Task(self.robot.name + '_posture')
+        #self.postureFeature = FeatureGeneric(self.robot.name + '_postureFeature')
+        #self.postureFeatureDes = FeatureGeneric(self.robot.name + '_postureFeatureDes')
+        #self.postureError = PostureError('PostureError')
+        #plug(self.robot.device.state, self.postureError.state)
+        #plug(self.postureError.error, self.postureFeature.errorIN)
+        #self.postureFeature.jacobianIN.value = self.postureJacobian()
+        #self.postureFeatureDes.errorIN.value = self.computeDesiredValue()
+        #self.postureFeature.sdes.value = self.postureFeatureDes
+        #self.postureTask.add(self.postureFeature.name)
+        #self.postureTask.controlGain.value = 2.
+        
+        # This part is taken from feet_follower_graph
+        self.postureTask = Task(self.robot.name + '_posture')
+        
+        self.postureFeature = FeaturePosture(self.robot.name + '_postureFeature')
+        plug(self.robot.device.state, self.postureFeature.state)
+
+        posture = list(self.robot.halfSitting)
+        self.postureFeature.setPosture(tuple(posture))
+        for (dof, isEnabled) in self.postureTaskDofs:
+            self.postureFeature.selectDof(dof, isEnabled)
         self.postureTask.add(self.postureFeature.name)
         self.postureTask.controlGain.value = 2.
 
 	# Initialize the waist follower task.
 	print("Waist Task")
-        robot.features['waist'].selec.value = '111111'
-        plug(self.legsFollower.waist, robot.features['waist'].reference)
-        robot.tasks['waist'].controlGain.value = 1.
-
-        #self.waistTask = Task(robot.name + '_waist')
-        #self.waistFeature = FeatureGeneric(robot.name + '_waistFeature')
-        #self.waistFeatureDes = FeatureGeneric(robot.name + '_waistsFeatureDes')
-        #self.waistError = WaistError('WaistError')
-        #plug(robot.device.state, self.waistError.state)
-        #plug(self.waistError.error, self.waistFeature.errorIN)
-        #self.waistFeature.jacobianIN.value = self.waistJacobian()
-	#plug(self.legsFollower.waist, self.waistFeatureDes.errorIN)
-        #self.waistFeature.sdes.value = self.waistFeatureDes
-        #self.waistTask.add(self.waistFeature.name)
-        #self.waistTask.controlGain.value = 1.
+        self.robot.features['waist'].selec.value = '111111'
+        plug(self.legsFollower.waist, self.robot.features['waist'].reference)
+        self.robot.tasks['waist'].controlGain.value = 1.
 
 	# Initialize the legs follower task.
 	print("Legs Task")
-        self.legsTask = Task(robot.name + '_legs')
-        self.legsFeature = FeatureGeneric(robot.name + '_legsFeature')
-        self.legsFeatureDes = FeatureGeneric(robot.name + '_legsFeatureDes')
+        self.legsTask = Task(self.robot.name + '_legs')
+        self.legsFeature = FeatureGeneric(self.robot.name + '_legsFeature')
+        self.legsFeatureDes = FeatureGeneric(self.robot.name + '_legsFeatureDes')
         self.legsError = LegsError('LegsError')
-        plug(robot.device.state, self.legsError.state)
+        plug(self.robot.device.state, self.legsError.state)
         plug(self.legsError.error, self.legsFeature.errorIN)
         self.legsFeature.jacobianIN.value = self.legsJacobian()
 	plug(self.legsFollower.ldof, self.legsFeatureDes.errorIN)
@@ -133,26 +143,26 @@ class LegsFollowerGraph:
 
 	#CoM task
         print("Com Task")
-        print (0., 0., robot.dynamic.com.value[2])
-	robot.comTask.controlGain.value = 50.
-        robot.featureComDes.errorIN.value = (0., 0., robot.dynamic.com.value[2])
-        robot.featureCom.selec.value = '111'
-	plug(self.legsFollower.com, robot.featureComDes.errorIN)
+        print (0., 0., self.robot.dynamic.com.value[2])
+	self.robot.comTask.controlGain.value = 50.
+        self.robot.featureComDes.errorIN.value = (0., 0., self.robot.dynamic.com.value[2])
+        self.robot.featureCom.selec.value = '111'
+	plug(self.legsFollower.com, self.robot.featureComDes.errorIN)
 
         # Plug the legs follower zmp output signals.
-        plug(self.legsFollower.zmp, robot.device.zmp)
+        plug(self.legsFollower.zmp, self.robot.device.zmp)
 
 
-	solver.sot.remove(robot.comTask.name)
+	solver.sot.remove(self.robot.comTask.name)
 
 	print("Push in solver.")
         solver.sot.push(self.legsTask.name)
         solver.sot.push(self.postureTask.name)
-	solver.sot.push(robot.tasks['waist'].name)
-        solver.sot.push(robot.comTask.name)
+	solver.sot.push(self.robot.tasks['waist'].name)
+        solver.sot.push(self.robot.comTask.name)
         
-        solver.sot.remove(robot.tasks['left-ankle'].name)
-	solver.sot.remove(robot.tasks['right-ankle'].name)
+        solver.sot.remove(self.robot.tasks['left-ankle'].name)
+	solver.sot.remove(self.robot.tasks['right-ankle'].name)
 
 
 	print solver.sot.display()
@@ -184,7 +194,7 @@ class LegsFollowerGraph:
         return tuple(j)
 
     def computeDesiredValue(self):
-        e = robot.halfSitting
+        e = self.robot.halfSitting
         #e = halfSitting
         e_ = [e[3], e[4]]
         offset = 6 + 2 * 6
@@ -206,12 +216,12 @@ class LegsFollowerGraph:
 	self.trace.add('legs-follower.zmp', 'zmp')
 	self.trace.add('legs-follower.ldof', 'ldof')
 	self.trace.add('legs-follower.waist', 'waist')
-	self.trace.add(robot.device.name + '.state', 'state')
+	self.trace.add(self.robot.device.name + '.state', 'state')
 	self.trace.add(self.legsTask.name + '.error', 'errorLegs')
-        self.trace.add(robot.comTask.name + '.error', 'errorCom')
+        self.trace.add(self.robot.comTask.name + '.error', 'errorCom')
 
-        self.trace.add('legs-follower.outputStart','start')
-        self.trace.add('legs-follower.outputYaw','yaw')
+        #self.trace.add('legs-follower.outputStart','start')
+        #self.trace.add('legs-follower.outputYaw','yaw')
         self.trace.add('corba.planner_steps','steps')
         self.trace.add('corba.planner_outputGoal','goal')
         self.trace.add('corba.waist','waistMocap')
@@ -222,28 +232,28 @@ class LegsFollowerGraph:
 	self.trace.add('corba.helmet','helmetMocap')
 	self.trace.add('corba.planner_outputObs','obstacles')
 
-        self.trace.add(robot.dynamic.name + '.left-ankle',
-                       robot.dynamic.name + '-left-ankle')
-        self.trace.add(robot.dynamic.name + '.right-ankle',
-                       robot.dynamic.name + '-right-ankle')
+        self.trace.add(self.robot.dynamic.name + '.left-ankle',
+                       self.robot.dynamic.name + '-left-ankle')
+        self.trace.add(self.robot.dynamic.name + '.right-ankle',
+                       self.robot.dynamic.name + '-right-ankle')
 
 
 	# Recompute trace.triger at each iteration to enable tracing.
-	robot.device.after.addSignal('legs-follower.zmp')
-	robot.device.after.addSignal('legs-follower.outputStart')
-	robot.device.after.addSignal('legs-follower.outputYaw')
-	robot.device.after.addSignal('corba.planner_steps')
-	robot.device.after.addSignal('corba.planner_outputGoal')
-	robot.device.after.addSignal('corba.waist')
-	robot.device.after.addSignal('corba.left-foot')
-	robot.device.after.addSignal('corba.table')
-	robot.device.after.addSignal('corba.bar')
-	robot.device.after.addSignal('corba.chair')
-	robot.device.after.addSignal('corba.helmet')
-	robot.device.after.addSignal('corba.planner_outputObs')
-        robot.device.after.addSignal(robot.dynamic.name + '.left-ankle')
-	robot.device.after.addSignal(robot.dynamic.name + '.right-ankle')
-	robot.device.after.addSignal('trace.triger')
+	self.robot.device.after.addSignal('legs-follower.zmp')
+	self.robot.device.after.addSignal('legs-follower.outputStart')
+	self.robot.device.after.addSignal('legs-follower.outputYaw')
+	self.robot.device.after.addSignal('corba.planner_steps')
+	self.robot.device.after.addSignal('corba.planner_outputGoal')
+	self.robot.device.after.addSignal('corba.waist')
+	self.robot.device.after.addSignal('corba.left-foot')
+	self.robot.device.after.addSignal('corba.table')
+	self.robot.device.after.addSignal('corba.bar')
+	self.robot.device.after.addSignal('corba.chair')
+	self.robot.device.after.addSignal('corba.helmet')
+	self.robot.device.after.addSignal('corba.planner_outputObs')
+        self.robot.device.after.addSignal(self.robot.dynamic.name + '.left-ankle')
+	self.robot.device.after.addSignal(self.robot.dynamic.name + '.right-ankle')
+	self.robot.device.after.addSignal('trace.triger')
 	return
 
     def plugPlanner(self):
@@ -312,8 +322,8 @@ class LegsFollowerGraph:
 	self.postureTask.controlGain.value = 180.
         #self.waistTask.controlGain.value = 90.
 	self.legsTask.controlGain.value = 180.
-	robot.comTask.controlGain.value = 180.
-	robot.tasks['waist'].controlGain.value = 45.
+	self.robot.comTask.controlGain.value = 180.
+	self.robot.tasks['waist'].controlGain.value = 45.
 
 	self.setupTrace()
 	self.trace.start()
@@ -324,14 +334,3 @@ class LegsFollowerGraph:
 	self.legsFollower.stop()
 	self.trace.dump()
 	return
-
-
-f = LegsFollowerGraph()
-while True:
-    try:
-        corba.planner_radQ
-        break
-    except:
-        time.sleep(0.01)
-
-f.plug()

@@ -107,7 +107,7 @@ SET(FILES
   feet_follower_graph_with_correction.py
   math.py
   robot_viewer.py
-  legs_follower_graph.py
+  clean2_legs_follower_graph.py
   )
 
 FOREACH(FILE ${FILES})
@@ -173,6 +173,7 @@ SET(FILES
   feet_follower_from_file_los.py
   feet_follower_from_file_walk_on_a_thread.py
   feet_follower_analytical_pg_correction.py
+  clean2_legs_follower.py
   )
 
 FOREACH(FILE ${FILES})
