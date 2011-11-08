@@ -26,6 +26,8 @@ s = SwayMotionCorrection('s')
 
 plug(robot.frames['cameraBottomLeft'].position, s.wMcamera)
 plug(robot.dynamic.waist, s.wMwaist)
+plug(robot.dynamic.Jcom, s.Jcom)
+plug(robot.device.state, s.qdot)
 
 I = ((1., 0., 0., 0.),
      (0., 1., 0., 0.),
@@ -33,6 +35,7 @@ I = ((1., 0., 0., 0.),
      (0., 0., 0., 1.))
 
 s.cMo.value = I
+s.cMoTimestamp.value = (0., 0.)
 s.initialize()
 
 def recomputeVelocity(cMo = I, inputPgVelocity = (0., 0., 0.)):
