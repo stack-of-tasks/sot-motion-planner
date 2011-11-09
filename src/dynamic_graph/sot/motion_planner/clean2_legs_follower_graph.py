@@ -209,8 +209,8 @@ class LegsFollowerGraph(object):
 
     def setupTrace(self):
 	self.trace = TracerRealTime('trace')
-	self.trace.setBufferSize(2**26)
-	self.trace.open('/tmp/','trace_','.dat')
+	self.trace.setBufferSize(2**20)
+	self.trace.open('/tmp/','legs_follower_','.dat')
 	
 	self.trace.add('legs-follower.com', 'com')
 	self.trace.add('legs-follower.zmp', 'zmp')
