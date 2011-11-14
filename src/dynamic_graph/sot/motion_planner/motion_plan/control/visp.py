@@ -38,8 +38,6 @@ from dynamic_graph.ros import *
 class ControlViSP(Control):
     yaml_tag = u'visp'
 
-    enableControlFeedback = True
-
     def __init__(self, motion, yamlData):
         checkDict('object-name', yamlData)
         checkDict('position', yamlData)
@@ -51,6 +49,8 @@ class ControlViSP(Control):
         self.objectName = yamlData['object-name']
         self.frameName = yamlData['frame-name']
         self.position = yamlData['position']
+
+        self.cameraVelocityTopic = yamlData['camera-velocity']
 
         obj = motion.environment.get(self.objectName)
         if not obj:
@@ -93,12 +93,12 @@ class ControlViSP(Control):
 
 
         # Compute camera velocity and send it to the tracker.
-        # \dot{V_cam} = J_cam * q
-        if self.enableControlFeedback:
+        # \dot{V_cam} = J_cam * \dot{q}
+        if self.cameraVelocityTopic:
             if not 'velocityDerivator' in motion.robot.__dict__:
                 raise RuntimeError('Control feedback requires velocity computation.')
 
-            self.rosImport.add('twist', 'Vcam', 'Vcam')
+            self.rosImport.add('twistStamped', 'Vcam', self.cameraVelocityTopic)
 
             self.VCamEntity = Multiply_matrix_vector(
                 'VCamEntity{0}'.format(str(id(yamlData))))
@@ -152,9 +152,9 @@ class ControlViSP(Control):
             return False
         if len(self.rosExport.signals()) == 0:
             return False
-        if len(self.rosExport.signal(self.objectName).value) < 1:
+        if self.rosExport.signal(self.objectName).value[0][0] == 0.:
             return False
-        if len(self.rosExport.signal(self.objectName + 'Timestamp').value) < 1:
+        if self.rosExport.signal(self.objectName + 'Timestamp').value[0] == 0.:
             return False
         return True
 
