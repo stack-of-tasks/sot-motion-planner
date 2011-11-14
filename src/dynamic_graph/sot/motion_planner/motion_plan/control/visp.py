@@ -19,6 +19,7 @@ from __future__ import print_function
 import numpy as np
 from dynamic_graph import plug
 from dynamic_graph.sot.core import RobotSimu
+from dynamic_graph.sot.core.binary_op import Multiply_matrix_vector
 from dynamic_graph.sot.motion_planner.feet_follower import \
     ErrorEstimator
 from dynamic_graph.sot.motion_planner.feet_follower import \
@@ -32,10 +33,12 @@ from dynamic_graph.sot.motion_planner.motion_plan.tools import *
 
 from dynamic_graph.sot.motion_planner.math import *
 
-from dynamic_graph.ros import RosExport
+from dynamic_graph.ros import *
 
 class ControlViSP(Control):
     yaml_tag = u'visp'
+
+    enableControlFeedback = True
 
     def __init__(self, motion, yamlData):
         checkDict('object-name', yamlData)
@@ -67,15 +70,20 @@ class ControlViSP(Control):
         if motion.ros:
             self.ros = motion.ros
         else:
-            self.ros = RosExport('rosExport')
-        self.ros.add('matrixHomoStamped', self.objectName, self.position)
+            self.ros = Ros('ros')
+
+        # Define shorcuts to reduce code verbosity.
+        self.rosImport = self.ros.rosImport
+        self.rosExport = self.ros.rosExport
+
+        self.rosExport.add('matrixHomoStamped', self.objectName, self.position)
 
         self.robotPositionFromVisp.plannedObjectPosition.value = \
             obj.plannedPosition.dgRotationMatrix()
 
-        plug(self.ros.signal(self.objectName),
+        plug(self.rosExport.signal(self.objectName),
              self.robotPositionFromVisp.cMo)
-        plug(self.ros.signal(self.objectName + 'Timestamp'),
+        plug(self.rosExport.signal(self.objectName + 'Timestamp'),
              self.robotPositionFromVisp.cMoTimestamp)
 
         # Plug wMc/wMr to robotPositionFromVisp
@@ -84,6 +92,23 @@ class ControlViSP(Control):
         plug(motion.robot.dynamic.waist, self.robotPositionFromVisp.wMr)
 
 
+        # Compute camera velocity and send it to the tracker.
+        # \dot{V_cam} = J_cam * q
+        if self.enableControlFeedback:
+            if not 'velocityDerivator' in motion.robot.__dict__:
+                raise RuntimeError('Control feedback requires velocity computation.')
+
+            self.rosImport.add('twist', 'Vcam', 'Vcam')
+
+            self.VCamEntity = Multiply_matrix_vector(
+                'VCamEntity{0}'.format(str(id(yamlData))))
+
+            plug(motion.robot.frames[self.frameName].jacobian,
+                 self.VCamEntity.sin1)
+            plug(motion.robot.velocityDerivator.sout,
+                 self.VCamEntity.sin2)
+
+            plug(self.VCamEntity.sout, self.rosImport.signal('Vcam'))
 
     def start(self, name, feetFollowerWithCorrection):
         I = ((1.,0.,0.,0.), (0.,1.,0.,0.), (0.,0.,1.,0.), (0.,0.,0.,1.))
@@ -116,27 +141,27 @@ class ControlViSP(Control):
         return self.estimator
 
     def interactiveStart(self, name, feetFollowerWithCorrection):
-        while len(self.ros.signals()) == 0:
+        while len(self.rosExport.signals()) == 0:
             raw_input("Press enter after starting ROS visp_tracker node.")
-        while len(self.ros.signal(self.objectName).value) < 1:
+        while len(self.rosExport.signal(self.objectName).value) < 1:
             raw_input("Tracking not started...")
         return self.start(name, feetFollowerWithCorrection)
 
     def canStart(self):
-        if not self.ros:
+        if not self.rosExport:
             return False
-        if len(self.ros.signals()) == 0:
+        if len(self.rosExport.signals()) == 0:
             return False
-        if len(self.ros.signal(self.objectName).value) < 1:
+        if len(self.rosExport.signal(self.objectName).value) < 1:
             return False
-        if len(self.ros.signal(self.objectName + 'Timestamp').value) < 1:
+        if len(self.rosExport.signal(self.objectName + 'Timestamp').value) < 1:
             return False
         return True
 
     def setupTrace(self, errorEstimator):
         self.setupTraceErrorEstimator(self.estimator)
         for s in [self.objectName, self.objectName + 'Timestamp']:
-            addTrace(self.robot, self.trace, self.ros.name, s)
+            addTrace(self.robot, self.trace, self.rosExport.name, s)
 
         for s in ['cMo', 'cMoTimestamp',
                   'plannedObjectPosition',
