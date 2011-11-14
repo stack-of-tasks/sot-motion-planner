@@ -23,7 +23,7 @@ import textwrap
 
 from dynamic_graph.tracer_real_time import TracerRealTime
 from dynamic_graph import plug
-from dynamic_graph.ros import RosExport
+from dynamic_graph.ros import Ros
 from dynamic_graph.sot.motion_planner.feet_follower import \
     Supervisor
 from dynamic_graph.sot.motion_planner.feet_follower_graph_with_correction \
@@ -108,7 +108,7 @@ class MotionPlan(object):
 
         # Middleware proxies.
         self.corba = CorbaServer('corba_server')
-        self.ros = RosExport('rosExport')
+        self.ros = Ros(self.robot.device)
 
         # Posture feature.
         self.postureFeature = FeaturePosture(
@@ -151,9 +151,9 @@ class MotionPlan(object):
         for m in self.motion:
             if type(m) == MotionVisualPoint:
                 # FIXME: this is so wrong.
-                plug(self.ros.signal(m.objectName),
+                plug(self.ros.rosExport.signal(m.objectName),
                      m.vispPointProjection.cMo)
-                plug(self.ros.signal(m.objectName + 'Timestamp'),
+                plug(self.ros.rosExport.signal(m.objectName + 'Timestamp'),
                      m.vispPointProjection.cMoTimestamp)
 
         # If control elements are planned, correct the execution using
