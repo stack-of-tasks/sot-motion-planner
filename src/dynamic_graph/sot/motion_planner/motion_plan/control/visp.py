@@ -70,7 +70,7 @@ class ControlViSP(Control):
         if motion.ros:
             self.ros = motion.ros
         else:
-            self.ros = Ros('ros')
+            self.ros = Ros(self.robot)
 
         # Define shorcuts to reduce code verbosity.
         self.rosImport = self.ros.rosImport

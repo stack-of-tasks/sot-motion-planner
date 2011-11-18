@@ -108,7 +108,7 @@ class MotionPlan(object):
 
         # Middleware proxies.
         self.corba = CorbaServer('corba_server')
-        self.ros = Ros(self.robot.device)
+        self.ros = Ros(self.robot)
 
         # Posture feature.
         self.postureFeature = FeaturePosture(
