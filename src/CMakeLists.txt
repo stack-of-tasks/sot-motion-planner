@@ -79,12 +79,12 @@ SET(FEET_FOLLOWER_SOURCES
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
 
-EXEC_PROGRAM(
-  ${PYTHON_EXECUTABLE}
-  ARGS
-  "-c \"from distutils import sysconfig; print sysconfig.get_python_lib(0,0,prefix='')\""
-  OUTPUT_VARIABLE PYTHON_SITELIB
-  )
+#EXEC_PROGRAM(
+#  ${PYTHON_EXECUTABLE}
+#  ARGS
+#  "-c \"from distutils import sysconfig; print sysconfig.get_python_lib(0,0,prefix='')\""
+#  OUTPUT_VARIABLE PYTHON_SITELIB
+#  )
 
 
 
@@ -111,7 +111,7 @@ SET(FILES
   )
 
 FOREACH(FILE ${FILES})
-  PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")
+  PYTHON_INSTALL_ON_SITE("${PYTHON_MODULE}" "${FILE}" )
 ENDFOREACH()
 
 PYTHON_INSTALL_BUILD("${PYTHON_MODULE}"
