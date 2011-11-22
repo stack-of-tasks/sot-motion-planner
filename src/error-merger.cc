@@ -56,9 +56,6 @@ namespace command
 	  boost::shared_ptr<ErrorMerger::signalVectorIn_t> (signalWeight)));
       errorMerger.signalRegistration (*signal << *signalWeight);
 
-      errorMerger.errorOut ().addDependency (*signal);
-      errorMerger.errorOut ().addDependency (*signalWeight);
-
       return Value ();
     }
   } // end of namespace errorMerger.
@@ -72,10 +69,6 @@ ErrorMerger::ErrorMerger (const std::string& name)
 {
   signalRegistration (errorOut_);
   errorOut_.setNeedUpdateFromAllChildren (true);
-
-  ml::Vector zero (3);
-  zero.setZero ();
-  errorOut_.setConstant(zero);
 
   std::string docstring;
   addCommand

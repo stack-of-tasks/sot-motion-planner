@@ -55,7 +55,6 @@ class ControlMocap(Control):
 
         self.rosExport.add('matrixHomoStamped', self.signal, self.topic)
 
-        self.estimator = ErrorEstimator('estimator{0}'.format(id(yamlData)))
         self.converter = ThreeToTwoDimensionPoseConverter(
             'converter{0}'.format(id(yamlData)))
         plug(self.rosExport.signal(self.signal),
@@ -84,9 +83,9 @@ class ControlMocap(Control):
 
 
     def start(self, name, feetFollowerWithCorrection):
+        self.estimator = ErrorEstimator(name)
         self.estimator.setReferenceTrajectory(
             feetFollowerWithCorrection.referenceTrajectory.name)
-
 
         # FIXME: we use ankle position as foot position here
         # as Z does not matter.

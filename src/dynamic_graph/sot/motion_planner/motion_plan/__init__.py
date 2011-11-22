@@ -145,7 +145,7 @@ class MotionPlan(object):
 
         # For now, only 1 feet follower is allowed (must start at t=0).
         feetFollowerElement = find(lambda e: type(e) == MotionWalk, self.motion)
-        hasControl = len(self.control) > 0
+        self.hasControl = len(self.control) > 0
 
         # Plug motion signals which depend on control.
         for m in self.motion:
@@ -158,7 +158,7 @@ class MotionPlan(object):
 
         # If control elements are planned, correct the execution using
         # localization information.
-        if hasControl:
+        if self.hasControl:
             for i in xrange(len(self.motion)):
                 if type(self.motion[i]) != MotionWalk:
                     continue
@@ -266,6 +266,13 @@ class MotionPlan(object):
         # Provide a default ZMP value if required.
         self.robot.dynamic.com.recompute(self.robot.dynamic.com.time + 1)
         self.robot.device.zmp.value = self.robot.dynamic.com.value[0:2]
+
+        if self.hasControl:
+            for i in xrange(len(self.motion)):
+                if type(self.motion[i]) != MotionWalk:
+                    continue
+                self.motion[i].correction.errorEstimationStrategy.start(
+                    interactive = False)
 
         self.robot.startTracer()
 

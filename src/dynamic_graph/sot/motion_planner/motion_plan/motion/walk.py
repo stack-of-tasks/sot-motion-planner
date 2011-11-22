@@ -85,9 +85,12 @@ class MotionWalk(Motion):
 
 
         # Push the tasks into supervisor.
-        motion.supervisor.addFeetFollowerStartCall(
-            self.feetFollower.feetFollower.name,
-            self.interval[0])
+
+
+        if not 'control' in motion.plan or not motion.plan['control']:
+            motion.supervisor.addFeetFollowerStartCall(
+                self.feetFollower.feetFollower.name,
+                self.interval[0])
 
         motion.supervisor.addTask(self.feetFollower.comTask.name,
                                   self.interval[0], self.interval[1],
