@@ -23,4 +23,4 @@ from feet_follower import \
     FeetFollowerFromFile, FeetFollowerAnalyticalPg, \
     FeetFollowerWithCorrection, Randomizer, ErrorEstimator, ErrorMerger, \
     WaistYaw, VirtualSensor, RobotPositionFromVisp, VispPointProjection, \
-    Supervisor
+    Supervisor, ThreeToTwoDimensionPoseConverter

@@ -20,7 +20,7 @@ from __future__ import print_function
 from dynamic_graph import plug
 from dynamic_graph.sot.core import RobotSimu
 from dynamic_graph.sot.motion_planner.feet_follower import \
-    ErrorEstimator
+    ErrorEstimator, ThreeToTwoDimensionPoseConverter
 
 from dynamic_graph.sot.motion_planner.math import *
 from dynamic_graph.sot.motion_planner.motion_plan.motion.walk import MotionWalk
@@ -28,20 +28,38 @@ from dynamic_graph.sot.motion_planner.motion_plan.tools import *
 
 from dynamic_graph.sot.motion_planner.motion_plan.control.abstract import Control
 
+from dynamic_graph.ros import *
+
 class ControlMocap(Control):
     yaml_tag = u'mocap'
 
     trackedBody = None
 
     def __init__(self, motion, yamlData):
-        checkDict('tracked-body', yamlData)
-        checkDict('perceived-body', yamlData)
+        checkDict('topic', yamlData)
+        checkDict('signal', yamlData)
         Control.__init__(self, motion, yamlData)
 
-        self.corba = motion.corba
         self.robot = motion.robot
-        self.trackedBody = yamlData['tracked-body']
-        self.perceivedBody = yamlData['perceived-body']
+        self.topic = yamlData['topic']
+        self.signal = yamlData['signal']
+
+        if motion.ros:
+            self.ros = motion.ros
+        else:
+            self.ros = Ros(self.robot)
+
+        # Define shorcuts to reduce code verbosity.
+        self.rosImport = self.ros.rosImport
+        self.rosExport = self.ros.rosExport
+
+        self.rosExport.add('matrixHomoStamped', self.signal, self.topic)
+
+        self.estimator = ErrorEstimator('estimator{0}'.format(id(yamlData)))
+        self.converter = ThreeToTwoDimensionPoseConverter(
+            'converter{0}'.format(id(yamlData)))
+        plug(self.rosExport.signal(self.signal),
+             self.converter.signal('in'))
 
     def computeWorldTransformationFromFoot(self):
         """
@@ -52,16 +70,13 @@ class ControlMocap(Control):
         position of the tracked body, it deduces the transformation
         between the motion capture system and the control framework.
         """
-        self.corba.signal(self.perceivedBody).recompute(
-            self.corba.signal(self.perceivedBody).time + 1)
-        self.robot.dynamic.signal(
-            self.trackedBody).recompute(self.robot.dynamic.signal(
-                self.trackedBody).time + 1)
+        self.rosExport.signal(self.signal).recompute(
+            self.rosExport.signal(self.signal).time + 1)
+        self.robot.dynamic.signal(self.signal).recompute(
+            self.robot.dynamic.signal(self.signal).time + 1)
 
-        mocapMfoot = XYThetaToHomogeneousMatrix(
-            self.corba.signal(self.perceivedBody).value)
-        sotMfoot = np.matrix(self.robot.dynamic.signal(
-                self.trackedBody).value)
+        mocapMfoot = np.matrix(self.rosExport.signal(self.signal).value)
+        sotMfoot = np.matrix(self.robot.dynamic.signal(self.signal).value)
 
         # mocap position w.r.t sot frame
         sotMmocap = sotMfoot * np.linalg.inv(mocapMfoot)
@@ -69,7 +84,6 @@ class ControlMocap(Control):
 
 
     def start(self, name, feetFollowerWithCorrection):
-        self.estimator = ErrorEstimator(name)
         self.estimator.setReferenceTrajectory(
             feetFollowerWithCorrection.referenceTrajectory.name)
 
@@ -77,13 +91,17 @@ class ControlMocap(Control):
         # FIXME: we use ankle position as foot position here
         # as Z does not matter.
         plug(feetFollowerWithCorrection.referenceTrajectory.signal(
-                self.trackedBody), self.estimator.planned)
+                self.signal), self.estimator.planned)
 
-        if len(self.corba.signals()) == 3:
-            print ("evart-to-client not launched, abandon.")
+        if not self.rosExport:
             return False
-        if len(self.corba.signal(self.perceivedBody).value) != 3:
-            print ("{0} not tracked, abandon.".format(self.perceivedBody))
+        if len(self.rosExport.signals()) == 0:
+            return False
+        if self.rosExport.signal(self.signal).value[0][0] == 0.:
+            print ("tracking failed, abandon. Did you launch evart_bridge?")
+            return False
+        if self.rosExport.signal(self.signal + 'Timestamp').value[0] == 0.:
+            print ("tracking failed (no timestamp), abandon. Did you launch evart_bridge?")
             return False
 
         sMm = self.computeWorldTransformationFromFoot()
@@ -101,36 +119,40 @@ class ControlMocap(Control):
         else:
             self.estimator.realCommand.value = self.robot.device.robotState.value
 
-        plug(self.corba.signal(self.perceivedBody),
+        plug(self.converter.out,
              self.estimator.position)
-        plug(self.corba.signal(
-                self.perceivedBody + 'Timestamp'),
+        plug(self.rosExport.signal(self.signal + 'Timestamp'),
              self.estimator.positionTimestamp)
         self.setupTrace(self.estimator)
         return self.estimator
 
     def interactiveStart(self, name, feetFollowerWithCorrection):
-        while len(self.corba.signals()) == 3:
-            raw_input("Press enter after starting evart-to-corba.")
-        while len(self.corba.signal(self.perceivedBody).value) != 3:
+        while not self.rosExport or len(self.rosExport.signals()) == 0:
+            raw_input("Press enter after starting evart_bridge.")
+        while self.rosExport.signal(self.signal).value[0][0] == 0. or \
+                self.rosExport.signal(self.signal + 'Timestamp').value[0] == 0.:
             raw_input("Body not tracked...")
         return self.start(name, feetFollowerWithCorrection)
 
     def canStart(self):
-        if not self.corba:
+        if not self.rosExport:
             return False
-        if len(self.corba.signals()) == 3:
+        if len(self.rosExport.signals()) == 0:
             return False
-        if len(self.corba.signal(self.perceivedBody).value) != 3:
+        if self.rosExport.signal(self.signal).value[0][0] == 0.:
+            return False
+        if self.rosExport.signal(self.signal + 'Timestamp').value[0] == 0.:
             return False
         return True
 
     def setupTrace(self, errorEstimator):
+        print("fixme")
         self.setupTraceErrorEstimator(self.estimator)
-        for s in [self.perceivedBody, self.perceivedBody + 'Timestamp']:
-            addTrace(self.robot, self.trace, self.corba.name, s)
+        for s in [self.signal, self.signal + 'Timestamp']:
+            addTrace(self.robot, self.trace, self.rosExport.name, s)
+
+        addTrace(self.robot, self.trace, self.converter.name, 'out')
 
     def __str__(self):
         return "motion capture control element" + \
-            " (tracked: {0}, perceived: {1})".format(
-            self.trackedBody, self.perceivedBody)
+            " (topic: {0}, signal: {1})".format(self.topic, self.signal)

@@ -27,6 +27,14 @@ def matrixToTuple(M):
         res.append(tuple(i))
     return tuple(res)
 
+
+# Set roll and pitch angles to 0.
+#
+# Useful when making the assumption that the robot is walking on a flat
+# ground to cancel sensor errors.
+def CancelRollPitch(x):
+    return XYThetaToHomogeneousMatrix(HomogeneousMatrixToXYTheta(x))
+
 def XYThetaToHomogeneousMatrix(x):
     theta = x[2]
     return np.matrix(

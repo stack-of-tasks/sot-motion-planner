@@ -87,6 +87,10 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
             addTrace(self.motionPlan.robot,
                      self.motionPlan.trace,
                      self.errorEstimator.name, 'error')
+            for control in self.motionPlan.control:
+                control.setupTrace(self.motionPlan.trace)
+
+
         return True
 
     def interactiveStart(self):

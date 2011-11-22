@@ -75,6 +75,9 @@ SET(FEET_FOLLOWER_SOURCES
   time.cc
   supervisor.cc
 
+  three-to-two-dimension-pose-converter.cc
+  three-to-two-dimension-pose-converter.hh
+
   sway-motion-correction.cc
   )
 
