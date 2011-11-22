@@ -146,7 +146,6 @@ class ControlMocap(Control):
         return True
 
     def setupTrace(self, errorEstimator):
-        print("fixme")
         self.setupTraceErrorEstimator(self.estimator)
         for s in [self.signal, self.signal + 'Timestamp']:
             addTrace(self.robot, self.trace, self.rosExport.name, s)
