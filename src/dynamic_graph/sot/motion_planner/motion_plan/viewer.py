@@ -84,7 +84,10 @@ class MotionPlanViewer(object):
         self.enableFootsteps = enableFootsteps
         self.enableRobot = enableRobot
         self.enableFrames = enableFrames
-        self.elements = client.listElements()
+        if self.client:
+            self.elements = client.listElements()
+        else:
+            self.elements = None
         self.logCfg = logCfg
         self.logOpPoints = logOpPoints
 
@@ -101,7 +104,7 @@ class MotionPlanViewer(object):
             self.robot.dynamic.signal('right-ankle').value
             )
 
-        if not self.robotElementName in self.elements:
+        if self.client and not self.robotElementName in self.elements:
             raise RuntimeError(
                 'robot \'{0}\' does not exist in robot-viewer'.format(
                     self.robotElementName))
@@ -116,12 +119,16 @@ class MotionPlanViewer(object):
         self.reset()
 
     def cleanObjects(self):
+        if not self.client:
+            return
         for obj in self.elements:
             if obj != self.robotElementName:
                 self.client.destroyElement(obj)
 
 
     def createObject(self, name, filename, cfg = None):
+        if not self.client:
+            return
         if not name in self.elements:
             filename = searchFile(filename, self.plan.defaultDirectories)
             self.client.createElement('object', name, filename)
@@ -131,6 +138,8 @@ class MotionPlanViewer(object):
             self.client.updateElementConfig(name, cfg)
 
     def loadEnvironment(self):
+        if not self.client:
+            return
         for (name, obj) in self.plan.environment.items():
             namePlanned = name + '-planned'
             nameEstimated = name + '-estimated'
@@ -152,11 +161,15 @@ class MotionPlanViewer(object):
 
 
     def updateRobot(self, cfg = None):
+        if not self.client:
+            return
         if not cfg:
             cfg = self.robot.smallToFull(self.robot.device.state.value)
         self.client.updateElementConfig(self.robotElementName, cfg)
 
     def update(self):
+        if not self.client:
+            return
         self.updateRobot()
         if self.enableFootsteps:
             drawFootstepsFromPlan(
@@ -223,7 +236,7 @@ class MotionPlanViewer(object):
                                   Pose6d.fromRotationMatrix(
                         np.matrix(self.plan.robot.frames[f].position.value)).pose())
 
-        if self.enableFootsteps:
+        if self.enableFootsteps and self.client:
             drawFootstepsFromPlan(self.client, self.plan,
                                   self.elements, create = True)
 
