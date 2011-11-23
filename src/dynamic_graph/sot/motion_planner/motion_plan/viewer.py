@@ -107,7 +107,7 @@ class MotionPlanViewer(object):
                     self.robotElementName))
 
         #FIXME: find a better way to wipe out traces.
-        os.system("rm -f /tmp/motion_plan_*.dat")
+        os.system("rm -f /tmp/dg_*.dat")
 
         self.loadEnvironment()
 
