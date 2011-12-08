@@ -15,6 +15,8 @@
 
 INCLUDE(../cmake/python.cmake)
 
+INCLUDE_DIRECTORIES(${Eigen_INCLUDE_DIRS})
+
 FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
   ADD_LIBRARY(${NAME} SHARED ${SOURCES})
   SET_TARGET_PROPERTIES(${lib} PROPERTIES
@@ -30,6 +32,9 @@ FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mal)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} sot-core)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} roboptim-core)
+
+  ROSPACK_USE_DEPENDENCY(${NAME} walk_interfaces)
+  TARGET_LINK_LIBRARIES(${NAME} "yaml-cpp") #FIXME:
 
   #FIXME: plug-ins should not be interdependent...
   TARGET_LINK_LIBRARIES(${NAME} "${DYNAMIC_GRAPH_PLUGINDIR}/sot.so")
@@ -61,6 +66,7 @@ SET(FEET_FOLLOWER_SOURCES
 
   feet-follower.cc
   feet-follower-from-file.cc
+  feet-follower-ros.cc
   feet-follower-analytical-pg.cc analytical-pg/newPGstepStudy.cpp
   feet-follower-with-correction.cc
 
