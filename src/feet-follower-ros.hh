@@ -20,6 +20,7 @@
 # include <boost/filesystem.hpp>
 
 # include <sot/core/matrix-homogeneous.hh>
+# include <walk_interfaces/pattern-generator.hh>
 
 # include "discretized-trajectory.hh"
 # include "feet-follower.hh"
@@ -55,6 +56,7 @@ private:
 
 private:
   boost::optional<WalkMovement> trajectories_;
+  boost::optional<walk::PatternGenerator2d::footprints_t> footprints_;
   unsigned index_;
 };
 

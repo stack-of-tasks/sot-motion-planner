@@ -58,6 +58,7 @@ namespace command
 FeetFollowerRos::FeetFollowerRos (const std::string& name)
   : FeetFollower (name),
     trajectories_ (),
+    footprints_ (),
     index_ (0)
 {
   std::string docstring = "";
@@ -226,6 +227,7 @@ FeetFollowerRos::parseTrajectory (const std::string& trajectory)
 
       trajectories_ = WalkMovement (leftFoot, rightFoot, com, zmp,
 				    waistYaw, waist, gaze, wMs);
+      footprints_ = reader.footprints ();
     }
   catch (std::exception& e)
     {
