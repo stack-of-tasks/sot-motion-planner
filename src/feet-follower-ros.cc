@@ -219,9 +219,9 @@ FeetFollowerRos::parseTrajectory (const std::string& trajectory)
       trajectoryPtr_t waistYaw = boost::make_shared<sot::DiscretizedTrajectory>
 	(range, waistYawData, "waist yaw from ros");
       trajectoryPtr_t waist = boost::make_shared<sot::DiscretizedTrajectory>
-	(range, waistYawData, "waist trajectory from ros");
+	(range, waistData, "waist trajectory from ros");
       trajectoryPtr_t gaze = boost::make_shared<sot::DiscretizedTrajectory>
-	(range, waistYawData, "gaze trajectory from ros");
+	(range, gazeData, "gaze trajectory from ros");
 
       sot::MatrixHomogeneous wMs;
 
