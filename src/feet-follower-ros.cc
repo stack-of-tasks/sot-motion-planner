@@ -13,6 +13,8 @@
 // received a copy of the GNU Lesser General Public License along with
 // dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+#include <ros/ros.h>
+
 #include <sstream>
 
 #include <boost/shared_ptr.hpp>
@@ -49,8 +51,10 @@ namespace command
       FeetFollowerRos& feetFollowerRos =
 	static_cast<FeetFollowerRos&> (owner ());
       const std::vector<Value>& values = getParameterValues();
-      const std::string& trajectory = values[0].value();
-      feetFollowerRos.parseTrajectory (trajectory);
+      const std::string rosParameter = values[0].value();
+
+      feetFollowerRos.parseTrajectory (rosParameter);
+      return Value ();
     }
   };
 } // end of namespace command.
@@ -62,6 +66,8 @@ FeetFollowerRos::FeetFollowerRos (const std::string& name)
     index_ (0)
 {
   std::string docstring = "";
+  addCommand ("parseTrajectory", new command::RetrieveTrajectory
+	      (*this, docstring));
 }
 
 FeetFollowerRos::~FeetFollowerRos ()
@@ -140,10 +146,18 @@ public:
 // contains data points which are discretized every 5ms.
 // This is not necessary the case!
 void
-FeetFollowerRos::parseTrajectory (const std::string& trajectory)
+FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 {
   try
     {
+      int argc = 1;
+      char* argv[] = { strdup ("feet_follower_ros") };
+      ros::init (argc, argv, "feet_follower_ros");
+      ros::NodeHandle nh;
+      std::string trajectory;
+      if (!nh.getParam (rosParameter, trajectory))
+	throw std::runtime_error ("failed to retrieve trajectory");
+
       typedef roboptim::Function::vector_t vector_t;
       typedef roboptim::Function::discreteInterval_t interval_t;
       typedef boost::shared_ptr<sot::DiscretizedTrajectory> trajectoryPtr_t;

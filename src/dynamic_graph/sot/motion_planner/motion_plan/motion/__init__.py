@@ -21,3 +21,4 @@ from dynamic_graph.sot.motion_planner.motion_plan.motion.joint import *
 from dynamic_graph.sot.motion_planner.motion_plan.motion.task import *
 from dynamic_graph.sot.motion_planner.motion_plan.motion.visual_point import *
 from dynamic_graph.sot.motion_planner.motion_plan.motion.walk import *
+from dynamic_graph.sot.motion_planner.motion_plan.motion.walk_ros import *

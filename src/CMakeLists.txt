@@ -35,6 +35,7 @@ FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
 
   ROSPACK_USE_DEPENDENCY(${NAME} walk_interfaces)
   TARGET_LINK_LIBRARIES(${NAME} "yaml-cpp") #FIXME:
+  ROSPACK_USE_DEPENDENCY(${NAME} dynamic_graph_bridge)
 
   #FIXME: plug-ins should not be interdependent...
   TARGET_LINK_LIBRARIES(${NAME} "${DYNAMIC_GRAPH_PLUGINDIR}/sot.so")
@@ -165,6 +166,7 @@ SET(FILES
   task.py
   visual_point.py
   walk.py
+  walk_ros.py
   )
 FOREACH(FILE ${FILES})
   PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")

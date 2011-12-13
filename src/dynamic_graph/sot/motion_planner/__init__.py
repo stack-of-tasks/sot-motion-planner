@@ -20,7 +20,7 @@ from __future__ import print_function
 from localizer import Localizer
 
 from feet_follower import \
-    FeetFollowerFromFile, FeetFollowerAnalyticalPg, \
+    FeetFollowerFromFile, FeetFollowerAnalyticalPg, FeetFollowerRos, \
     FeetFollowerWithCorrection, Randomizer, ErrorEstimator, ErrorMerger, \
     WaistYaw, VirtualSensor, RobotPositionFromVisp, VispPointProjection, \
     Supervisor, ThreeToTwoDimensionPoseConverter
