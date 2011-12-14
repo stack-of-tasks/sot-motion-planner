@@ -110,32 +110,6 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
 		       "Vector"))
 
 {
-  leftAnkleOut_.addDependency (offsetIn_);
-  rightAnkleOut_.addDependency (offsetIn_);
-  comOut_.addDependency (offsetIn_);
-  zmpOut_.addDependency (offsetIn_);
-  waistOut_.addDependency (offsetIn_);
-  gazeOut_.addDependency (offsetIn_);
-
-  comVelocityOut_.addDependency (offsetIn_);
-  waistYawVelocityOut_.addDependency (offsetIn_);
-  leftAnkleVelocityOut_.addDependency (offsetIn_);
-  rightAnkleVelocityOut_.addDependency (offsetIn_);
-
-
-  leftAnkleOut_.addDependency (positionIn_);
-  rightAnkleOut_.addDependency (positionIn_);
-  comOut_.addDependency (positionIn_);
-  zmpOut_.addDependency (positionIn_);
-  waistOut_.addDependency (positionIn_);
-  gazeOut_.addDependency (positionIn_);
-
-  comVelocityOut_.addDependency (positionIn_);
-  waistYawVelocityOut_.addDependency (positionIn_);
-  leftAnkleVelocityOut_.addDependency (positionIn_);
-  rightAnkleVelocityOut_.addDependency (positionIn_);
-
-
   dbgFootstepsOut_.setNeedUpdateFromAllChildren (true);
 
   signalRegistration (offsetIn_ << positionIn_ << dbgFootstepsOut_);
@@ -183,6 +157,7 @@ FeetFollowerWithCorrection::impl_update ()
   referenceTrajectory_->updateCoM (com_, t_);
   referenceTrajectory_->updateZmp (zmp_, t_);
   referenceTrajectory_->updateWaistYaw (waistYaw_, t_);
+  referenceTrajectory_->updatePosture (posture_, t_);
 
   updateCorrection ();
 

@@ -23,7 +23,8 @@ from dynamic_graph import plug
 from dynamic_graph.sot.core import FeatureGeneric, TaskPD, Task, RobotSimu
 from dynamic_graph.sot.core.feature_position import FeaturePosition
 
-from dynamic_graph.sot.motion_planner.feet_follower import FeetFollowerRos
+from dynamic_graph.sot.motion_planner.feet_follower \
+    import FeetFollowerRos, FeetFollowerWithCorrection
 
 from dynamic_graph.sot.motion_planner.math import *
 from dynamic_graph.sot.motion_planner.motion_plan.tools import *
@@ -83,26 +84,8 @@ class MotionWalkRos(Motion):
                 '{0}_task_{1}'.format(self.name, op),
                 gain = self.initialGain)
 
-        # Plug the feet follower output signals.
-        plug(self.feetFollower.zmp, self.robot.device.zmp)
-
-        plug(self.feetFollower.com, self.featureComDes.errorIN)
-        plug(self.feetFollower.signal('left-ankle'),
-             self.features['left-ankle'].reference)
-        plug(self.feetFollower.signal('right-ankle'),
-             self.features['right-ankle'].reference)
-
-        # Plug velocities into TaskPD.
-        plug(self.feetFollower.comVelocity, self.comTask.errorDot)
-        for op in ['left-ankle', 'right-ankle']:
-            plug(self.feetFollower.signal(op + 'Velocity'),
-                 self.tasks[op].errorDot)
-        plug(self.feetFollower.waistYawVelocity,
-             self.tasks['waist'].errorDot)
-
         # Initialize the waist yaw task.
         self.features['waist'].selec.value = '111000'
-        plug(self.feetFollower.waistYaw, self.features['waist'].reference)
         self.tasks['waist'].controlGain.value = self.initialGain
 
         # Upper body posture
@@ -110,7 +93,6 @@ class MotionWalkRos(Motion):
         self.postureDes = FeatureGeneric("{0}_posture_des".format(self.name))
         self.posture.sdes.value = self.postureDes
 
-        plug(self.feetFollower.posture, self.postureDes.errorIN)
         plug(self.robot.device.state, self.posture.errorIN)
         self.posture.jacobianIN.value = self.jacobianPosture()
         self.posture.selec.value = '1' * len(self.robot.halfSitting)
@@ -118,6 +100,39 @@ class MotionWalkRos(Motion):
         self.postureTask = Task("{0}_posture_task".format(self.name))
         self.postureTask.add(self.posture.name)
         self.postureTask.controlGain.value = self.initialGain
+
+        # Create the correction entity.
+        self.correction = FeetFollowerWithCorrection(
+            '{0}_correction'.format(self.name))
+        # Set the reference trajectory.
+        self.correction.setReferenceTrajectory(self.feetFollower.name)
+
+        # Set the safety limits.
+        self.correction.setSafetyLimits(motion.maxX, motion.maxY, motion.maxTheta)
+
+        # Plug the feet follower output signals.
+        plug(self.correction.zmp, self.robot.device.zmp)
+
+        plug(self.correction.com, self.featureComDes.errorIN)
+        plug(self.correction.signal('left-ankle'),
+             self.features['left-ankle'].reference)
+        plug(self.correction.signal('right-ankle'),
+             self.features['right-ankle'].reference)
+        plug(self.correction.waistYaw, self.features['waist'].reference)
+        plug(self.correction.posture, self.postureDes.errorIN)
+
+
+        # Plug velocities into TaskPD.
+        plug(self.correction.comVelocity, self.comTask.errorDot)
+        for op in ['left-ankle', 'right-ankle']:
+            plug(self.correction.signal(op + 'Velocity'),
+                 self.tasks[op].errorDot)
+        plug(self.correction.waistYawVelocity,
+             self.tasks['waist'].errorDot)
+
+        # By default set error to zero.
+        self.correction.offset.value = (0., 0., 0.)
+
 
         #FIXME: HRP-2 specific
         unlockedDofsRleg = []
@@ -134,7 +149,7 @@ class MotionWalkRos(Motion):
         # Push the tasks into supervisor.
         if not 'control' in motion.plan or not motion.plan['control']:
             motion.supervisor.addFeetFollowerStartCall(
-                self.feetFollower.name,
+                self.correction.name,
                 self.interval[0])
 
         motion.supervisor.addTask(self.postureTask.name,
@@ -170,6 +185,7 @@ class MotionWalkRos(Motion):
                   'comVelocity', 'left-ankleVelocity',
                   'right-ankleVelocity', 'waistYawVelocity']:
             self.robot.addTrace(self.feetFollower.name, s)
+            self.robot.addTrace(self.correction.name, s)
 
     def canStart(self):
         return True #FIXME:
