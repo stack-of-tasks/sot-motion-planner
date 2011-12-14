@@ -69,26 +69,16 @@ class MotionPlanErrorEstimationStrategy(ErrorEstimationStrategy):
             self.errorEstimator.signal("weight_" + name).value = \
                 (control.weight,)
 
-            if self.motionPlan.trace and type(estimator) == ErrorEstimator:
-                addTrace(self.motionPlan.robot,
-                         self.motionPlan.trace,
-                         name, 'error')
-                addTrace(self.motionPlan.robot,
-                         self.motionPlan.trace,
-                         name, 'dbgPositionWorldFrame')
-                addTrace(self.motionPlan.robot,
-                         self.motionPlan.trace,
-                         name, 'dbgPlanned')
-                addTrace(self.motionPlan.robot,
-                         self.motionPlan.trace,
-                         name, 'dbgIndex')
+            if type(estimator) == ErrorEstimator:
+                self.motionPlan.robot.addTrace(name, 'error')
+                self.motionPlan.robot.addTrace(name, 'dbgPositionWorldFrame')
+                self.motionPlan.robot.addTrace(name, 'dbgPlanned')
+                self.motionPlan.robot.addTrace(name, 'dbgIndex')
 
         if self.motionPlan.trace:
-            addTrace(self.motionPlan.robot,
-                     self.motionPlan.trace,
-                     self.errorEstimator.name, 'error')
+            self.motionPlan.robot.addTrace(self.errorEstimator.name, 'error')
             for control in self.motionPlan.control:
-                control.setupTrace(self.motionPlan.trace)
+                control.setupTrace(self.motionPlan.robot.tracer)
 
 
         return True

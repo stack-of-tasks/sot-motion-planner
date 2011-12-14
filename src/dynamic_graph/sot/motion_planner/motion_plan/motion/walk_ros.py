@@ -42,8 +42,15 @@ class MotionWalkRos(Motion):
 
         self.rosParameter = yamlData['ros-parameter']
 
+        self.initialLeftAnklePosition = \
+            self.robot.features['left-ankle'].reference.value
+        self.initialRightAnklePosition = \
+            self.robot.features['right-ankle'].reference.value
+
         self.feetFollower = FeetFollowerRos(
             "{0}_feet_follower".format(self.name))
+        self.setAnklePosition()
+        self.setInitialFeetPosition()
         print("Parsing trajectory...")
         self.feetFollower.parseTrajectory(self.rosParameter)
         print("done.")
@@ -113,7 +120,7 @@ class MotionWalkRos(Motion):
         motion.supervisor.addTask(self.comTask.name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 3,
-                                  tuple(self.extraUnlockedDofs))
+                                 tuple(self.extraUnlockedDofs))
         motion.supervisor.addTask(self.tasks['left-ankle'].name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 2,
@@ -132,8 +139,27 @@ class MotionWalkRos(Motion):
         return fmt
 
     def setupTrace(self, trace):
-        pass
-        #self.feetFollower.setupTrace()
+        print("setup trace for walk_ros")
+        # Feet follower
+        for s in ['zmp', 'waist',
+                  'com', 'left-ankle', 'right-ankle', 'waistYaw',
+                  'comVelocity', 'left-ankleVelocity',
+                  'right-ankleVelocity', 'waistYawVelocity']:
+            self.robot.addTrace(self.feetFollower.name, s)
 
     def canStart(self):
         return True #FIXME:
+
+    def setAnklePosition(self):
+        # Setup feet to ankle transformation.
+        anklePosL = self.robot.dynamic.getAnklePositionInFootFrame()
+        anklePosR = (anklePosL[0], -anklePosL[1], anklePosL[2])
+
+        self.feetFollower.setLeftFootToAnkle(translationToSE3(anklePosL))
+        self.feetFollower.setRightFootToAnkle(translationToSE3(anklePosR))
+
+    def setInitialFeetPosition(self):
+        self.feetFollower.setInitialLeftAnklePosition(
+            self.initialLeftAnklePosition)
+        self.feetFollower.setInitialRightAnklePosition(
+            self.initialRightAnklePosition)

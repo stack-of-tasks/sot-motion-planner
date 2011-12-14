@@ -1,8 +1,8 @@
 # Walk from ROS
 
-duration: 10
+duration: 30
 
 motion:
   - walk-ros:
-      interval: [0, 10]
+      interval: [0, 30]
       ros-parameter: /halfsteps_pattern_generator/walk_movement

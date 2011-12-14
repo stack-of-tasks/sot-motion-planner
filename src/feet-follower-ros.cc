@@ -85,7 +85,7 @@ FeetFollowerRos::impl_update ()
   using sot::Trajectory;
   using roboptim::Function;
 
-  if (!trajectories_)
+  if (!trajectories_ || !started_)
     return;
 
   const double t = index_ * STEP;
@@ -99,7 +99,7 @@ FeetFollowerRos::impl_update ()
   const Trajectory::vector_t& com = (*trajectories_->com) (t);
 
   if (leftFoot.size () != 4 || rightFoot.size () != 4
-      || com.size () != 2 || zmp.size () != 2)
+      || com.size () != 3 || zmp.size () != 2)
     {
       std::cerr << "bad size" << std::endl;
       return;
@@ -124,7 +124,7 @@ FeetFollowerRos::impl_update ()
   for (unsigned i = 0; i < 2; ++i)
     comH (i) = com[i], zmpH (i) = zmp[i];
 
-  comH (2) = comZ_;
+  comH (2) = com[2];
   zmpH (2) = 0.;
 
   comH (3) = zmpH (3) = 1.;
@@ -176,6 +176,7 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 	(0.,
 	 td.total_microseconds () * 1e-6,
 	 STEP);
+
       std::vector<vector_t> leftFootData;
       std::vector<vector_t> rightFootData;
       std::vector<vector_t> comData;
@@ -187,7 +188,8 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
       vector_t leftFootElt (4);
       vector_t rightFootElt (4);
       vector_t comElt (3);
-      vector_t zmpElt (3);
+      vector_t zmpElt (2);
+      vector_t waistYawElt (1);
       for (unsigned i = 0;
 	   i < reader.leftFootTrajectory ().data ().size (); ++i)
 	{
@@ -217,15 +219,20 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 	    reader.centerOfMassTrajectory ().data ()[i].position[0];
 	  comElt (1) =
 	    reader.centerOfMassTrajectory ().data ()[i].position[1];
+	  comElt (2) =
+	    reader.centerOfMassTrajectory ().data ()[i].position[2];
 	  zmpElt (0) =
 	    reader.zmpTrajectory ().data ()[i].position[0];
 	  zmpElt (1) =
 	    reader.zmpTrajectory ().data ()[i].position[1];
 
+	  waistYawElt (0) = reader.postureTrajectory ().data ()[i].position[0];
+
 	  leftFootData.push_back (leftFootElt);
 	  rightFootData.push_back (rightFootElt);
 	  comData.push_back (comElt);
 	  zmpData.push_back (zmpElt);
+	  waistYawData.push_back (waistYawElt);
 	}
 
       trajectoryPtr_t leftFoot = boost::make_shared<sot::DiscretizedTrajectory>
@@ -238,15 +245,30 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 	(range, zmpData, "zmp from ros");
       trajectoryPtr_t waistYaw = boost::make_shared<sot::DiscretizedTrajectory>
 	(range, waistYawData, "waist yaw from ros");
+
+      // Empty trajectories.
+      waistData.resize (zmpData.size (), vector_t (16));
       trajectoryPtr_t waist = boost::make_shared<sot::DiscretizedTrajectory>
 	(range, waistData, "waist trajectory from ros");
+      gazeData.resize (zmpData.size (), vector_t (16));
       trajectoryPtr_t gaze = boost::make_shared<sot::DiscretizedTrajectory>
 	(range, gazeData, "gaze trajectory from ros");
 
-      sot::MatrixHomogeneous wMs;
+      // wMw_traj = wMa * aMw_traj = wMa * (w_trajMa)^{-1}
+      //
+      // wMa = ankle position in dynamic-graph frame (initialLeftAnklePosition_)
+      // w_trajMa = ankle position in pattern generator frame (initialConfig)
+      sot::MatrixHomogeneous wMw_traj =
+	initialLeftAnklePosition_
+	* computeAnklePositionInWorldFrame (leftFootData[0][0], leftFootData[0][1],
+					    leftFootData[0][2], leftFootData[0][3],
+					    leftFootToAnkle_).inverse ();
 
       trajectories_ = WalkMovement (leftFoot, rightFoot, com, zmp,
-				    waistYaw, waist, gaze, wMs);
+				    waistYaw, waist, gaze, wMw_traj);
+
+
+
       footprints_ = reader.footprints ();
     }
   catch (std::exception& e)

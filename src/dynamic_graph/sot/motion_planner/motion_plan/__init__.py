@@ -218,9 +218,8 @@ class MotionPlan(object):
             self.motion.append(cls(self, data, self.defaultDirectories))
             self.logger.debug('adding motion element \'{0}\''.format(tag))
 
-        if self.trace:
-            for motion in self.motion:
-                motion.setupTrace(self.trace)
+        for motion in self.motion:
+            motion.setupTrace(self.robot.tracer)
 
 
     def loadControl(self):
@@ -288,6 +287,7 @@ class MotionPlan(object):
         self.supervisor.stop()
         self.solver.sot.clear()
         self.robot.stopTracer()
+        self.logger.info('motion_plan stopped')
 
     def canStart(self):
         return (reduce(lambda acc, c: c.canStart() and acc,

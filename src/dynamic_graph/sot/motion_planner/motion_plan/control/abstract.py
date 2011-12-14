@@ -24,7 +24,6 @@ class Control(object):
         self.weight = yamlData['weight']
 
         self.robot = motion.robot
-        self.trace = motion.trace
 
     def start(self, name, feetFollowerWithCorrection):
         raise NotImplementedError
