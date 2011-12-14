@@ -224,7 +224,7 @@ class MotionPlan(object):
             return
 
         controlClasses = [ControlConstant, ControlMocap, ControlViSP,
-                          ControlHueblob, ControlVirtualSensor]
+                          ControlHueblob, ControlVirtualSensor, ControlRos]
 
         for control in self.plan['control']:
             if len(control.items()) != 1:

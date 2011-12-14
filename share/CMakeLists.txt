@@ -52,6 +52,7 @@ INSTALL(
   sot-motion-planner/plan/walk-in-place-visp-head.yaml
   sot-motion-planner/plan/walk-in-place.yaml
   sot-motion-planner/plan/walk-ros.yaml
+  sot-motion-planner/plan/walk-ros-ctrl.yaml
   sot-motion-planner/plan/several-walk-motions.yaml
   sot-motion-planner/plan/several-walk-motions-mocap.yaml
   DESTINATION share/sot-motion-planner/plan)

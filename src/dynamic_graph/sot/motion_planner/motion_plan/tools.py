@@ -58,7 +58,7 @@ def find(f, seq):
 
 def checkDict(k, d):
     if not k in d:
-        raise RuntimError('missing key {0}'.format(k))
+        raise RuntimeError('missing key {0}'.format(k))
 
 def searchFile(f, defaultDirectories):
     if not f:

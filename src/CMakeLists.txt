@@ -151,6 +151,7 @@ SET(FILES
   mocap.py
   virtual_sensor.py
   visp.py
+  control_ros.py
   )
 FOREACH(FILE ${FILES})
   PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")

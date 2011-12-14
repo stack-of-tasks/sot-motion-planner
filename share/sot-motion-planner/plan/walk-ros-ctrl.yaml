@@ -1,0 +1,14 @@
+# Walk from ROS
+
+duration: 30
+
+motion:
+  - walk-ros:
+      interval: [0, 30]
+      ros-parameter: /halfsteps_pattern_generator/walk_movement
+
+control:
+  - control-ros:
+      weight: 1.
+      topic: /localization
+      signal: localization

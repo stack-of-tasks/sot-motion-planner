@@ -22,3 +22,4 @@ from dynamic_graph.sot.motion_planner.motion_plan.control.hueblob import *
 from dynamic_graph.sot.motion_planner.motion_plan.control.mocap import *
 from dynamic_graph.sot.motion_planner.motion_plan.control.virtual_sensor import *
 from dynamic_graph.sot.motion_planner.motion_plan.control.visp import *
+from dynamic_graph.sot.motion_planner.motion_plan.control.control_ros import *
