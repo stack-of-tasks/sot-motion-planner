@@ -10,5 +10,5 @@ motion:
 control:
   - control-ros:
       weight: 1.
-      topic: /localization
-      signal: localization
+      topic: /error
+      signal: error
