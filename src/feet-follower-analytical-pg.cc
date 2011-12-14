@@ -334,6 +334,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   std::vector<vector_t> comData;
   std::vector<vector_t> zmpData;
   std::vector<vector_t> waistYawData;
+  std::vector<vector_t> postureData;
   std::vector<vector_t> waistData;
   std::vector<vector_t> gazeData;
 
@@ -342,6 +343,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
   comData.reserve (stepFeatures.size);
   zmpData.reserve (stepFeatures.size);
   waistYawData.reserve (stepFeatures.size);
+  postureData.reserve (stepFeatures.size);
   waistData.reserve (stepFeatures.size);
   gazeData.reserve (stepFeatures.size);
 
@@ -489,6 +491,7 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
      boost::make_shared<sot::DiscretizedTrajectory> (range, zmpData, "zmp"),
      boost::make_shared<sot::DiscretizedTrajectory>
      (range, waistYawData, "waist-yaw"),
+     boost::make_shared<sot::DiscretizedTrajectory> (range, postureData, "posture"),
      boost::make_shared<sot::DiscretizedTrajectory> (range, waistData, "waist"),
      boost::make_shared<sot::DiscretizedTrajectory> (range, gazeData, "gaze"),
      wMw_traj);

@@ -16,8 +16,11 @@
 # dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import print_function
+
+import numpy as np
+
 from dynamic_graph import plug
-from dynamic_graph.sot.core import FeatureGeneric, TaskPD, RobotSimu
+from dynamic_graph.sot.core import FeatureGeneric, TaskPD, Task, RobotSimu
 from dynamic_graph.sot.core.feature_position import FeaturePosition
 
 from dynamic_graph.sot.motion_planner.feet_follower import FeetFollowerRos
@@ -102,13 +105,30 @@ class MotionWalkRos(Motion):
         plug(self.feetFollower.waistYaw, self.features['waist'].reference)
         self.tasks['waist'].controlGain.value = self.initialGain
 
+        # Upper body posture
+        self.posture = FeatureGeneric("{0}_posture".format(self.name))
+        self.postureDes = FeatureGeneric("{0}_posture_des".format(self.name))
+        self.posture.sdes.value = self.postureDes
 
+        plug(self.feetFollower.posture, self.postureDes.errorIN)
+        plug(self.robot.device.state, self.posture.errorIN)
+        self.posture.jacobianIN.value = self.jacobianPosture()
+        self.posture.selec.value = '1' * len(self.robot.halfSitting)
+
+        self.postureTask = Task("{0}_posture_task".format(self.name))
+        self.postureTask.add(self.posture.name)
+        self.postureTask.controlGain.value = self.initialGain
+
+        #FIXME: HRP-2 specific
         unlockedDofsRleg = []
         unlockedDofsLleg = []
+        unlockedDofsUpperBody = []
         for i in xrange(6):
-            #FIXME: HRP-2 specific
             unlockedDofsRleg.append(6 + i)
             unlockedDofsLleg.append(6 + 6 + i)
+
+        for i in xrange(len(self.robot.halfSitting) - 6 - 12):
+            unlockedDofsUpperBody.append(6 + 12 + i)
 
 
         # Push the tasks into supervisor.
@@ -117,6 +137,10 @@ class MotionWalkRos(Motion):
                 self.feetFollower.name,
                 self.interval[0])
 
+        motion.supervisor.addTask(self.postureTask.name,
+                                  self.interval[0], self.interval[1],
+                                  self.priority + 4,
+                                  tuple(unlockedDofsUpperBody))
         motion.supervisor.addTask(self.comTask.name,
                                   self.interval[0], self.interval[1],
                                   self.priority + 3,
@@ -163,3 +187,12 @@ class MotionWalkRos(Motion):
             self.initialLeftAnklePosition)
         self.feetFollower.setInitialRightAnklePosition(
             self.initialRightAnklePosition)
+
+    def jacobianPosture(self):
+        size = len(self.robot.halfSitting)
+        J = np.matrix(np.identity(size))
+
+        #FIXME: not generic enough
+        for i in xrange(6 + 12):
+            J[i, i] = 0.
+        return matrixToTuple(J)

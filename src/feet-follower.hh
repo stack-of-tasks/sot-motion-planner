@@ -129,6 +129,7 @@ struct WalkMovement
 			 const trajectoryPtr_t& waistYaw,
 			 const trajectoryPtr_t& waist,
 			 const trajectoryPtr_t& gaze,
+			 const trajectoryPtr_t& posture,
 			 const sot::MatrixHomogeneous& wMs);
 
   /// \brief Left foot trajectory.
@@ -145,6 +146,9 @@ struct WalkMovement
 
   /// \brief Waist yaw reference trajectory.
   trajectoryPtr_t waistYaw;
+
+  /// \brief Posture reference trajectory.
+  trajectoryPtr_t posture;
 
   /// \brief Waist reference trajectory.
   trajectoryPtr_t waist;
@@ -200,6 +204,7 @@ public:
   sot::MatrixHomogeneous& updateGaze (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateLeftAnkle (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateRightAnkle (sot::MatrixHomogeneous& res, int t);
+  ml::Vector& updatePosture (ml::Vector& res, int t);
 
   ml::Vector& updateCoMVelocity (ml::Vector& res, int t);
   ml::Vector& updateWaistYawVelocity (ml::Vector& res, int t);
@@ -308,6 +313,7 @@ protected:
   sot::MatrixHomogeneous gaze_;
   sot::MatrixHomogeneous leftAnkle_;
   sot::MatrixHomogeneous rightAnkle_;
+  ml::Vector posture_;
 
   ml::Vector comVelocity_;
   ml::Vector waistYawVelocity_;
@@ -330,6 +336,7 @@ protected:
   signalFoot_t gazeOut_;
   signalFoot_t leftAnkleOut_;
   signalFoot_t rightAnkleOut_;
+  signalCoM_t postureOut_;
 
   signalCoMVelocity_t comVelocityOut_;
   signalFootVelocity_t waistYawVelocityOut_;

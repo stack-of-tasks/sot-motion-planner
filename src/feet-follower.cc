@@ -84,6 +84,7 @@ WalkMovement::WalkMovement
  const trajectoryPtr_t& waistYaw,
  const trajectoryPtr_t& waist,
  const trajectoryPtr_t& gaze,
+ const trajectoryPtr_t& posture,
  const sot::MatrixHomogeneous& wMw_traj)
   : leftFoot (leftFoot),
     rightFoot (rightFoot),
@@ -92,6 +93,7 @@ WalkMovement::WalkMovement
     waistYaw (waistYaw),
     waist (waist),
     gaze (gaze),
+    posture (posture),
     wMw_traj (wMw_traj)
 {}
 
@@ -108,6 +110,7 @@ FeetFollower::FeetFollower (const std::string& name)
     gaze_ (),
     leftAnkle_ (),
     rightAnkle_ (),
+    posture_ (),
     comVelocity_ (3),
     waistYawVelocity_ (3),
     leftAnkleVelocity_ (6),
@@ -133,6 +136,9 @@ FeetFollower::FeetFollower (const std::string& name)
     rightAnkleOut_
     (INIT_SIGNAL_OUT
      ("right-ankle", FeetFollower::updateRightAnkle, "MatrixHomo")),
+    postureOut_
+    (INIT_SIGNAL_OUT
+     ("posture", FeetFollower::updatePosture, "Vector")),
 
     comVelocityOut_ (INIT_SIGNAL_OUT ("comVelocity",
 				      FeetFollower::updateCoMVelocity,
@@ -155,6 +161,7 @@ FeetFollower::FeetFollower (const std::string& name)
   signalRegistration (zmpOut_ << comOut_ << waistYawOut_
 		      << waistOut_ << gazeOut_
 		      << leftAnkleOut_ << rightAnkleOut_
+		      << postureOut_
 		      << comVelocityOut_ << waistYawVelocityOut_
 		      << leftAnkleVelocityOut_ << rightAnkleVelocityOut_);
 
@@ -165,6 +172,7 @@ FeetFollower::FeetFollower (const std::string& name)
   gazeOut_.setNeedUpdateFromAllChildren (true);
   leftAnkleOut_.setNeedUpdateFromAllChildren (true);
   rightAnkleOut_.setNeedUpdateFromAllChildren (true);
+  postureOut_.setNeedUpdateFromAllChildren (true);
 
   comVelocityOut_.setNeedUpdateFromAllChildren (true);
   waistYawVelocityOut_.setNeedUpdateFromAllChildren (true);
@@ -261,6 +269,15 @@ FeetFollower::updateWaistYaw (sot::MatrixHomogeneous& res, int t)
   if (t > t_)
     update (t);
   res = waistYaw_;
+  return res;
+}
+
+ml::Vector&
+FeetFollower::updatePosture (ml::Vector& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = posture_;
   return res;
 }
 
