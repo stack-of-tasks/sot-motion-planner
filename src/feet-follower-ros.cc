@@ -80,6 +80,54 @@ FeetFollowerRos::impl_start ()
 }
 
 void
+FeetFollowerRos::updateVelocities ()
+{
+  using sot::Trajectory;
+  using roboptim::Function;
+
+  const double t = (index_) * STEP;
+  const double tnext = (index_ + 1) * STEP;
+
+  if (t >= Function::getUpperBound (trajectories_->leftFoot->getRange ()) ||
+      tnext >= Function::getUpperBound (trajectories_->leftFoot->getRange ()))
+    {
+      comVelocity_.setZero ();
+      waistYawVelocity_.setZero ();
+      leftAnkleVelocity_.setZero ();
+      rightAnkleVelocity_.setZero ();
+      return;
+    }
+
+  const Trajectory::vector_t& leftFoot = (*trajectories_->leftFoot) (t);
+  const Trajectory::vector_t& rightFoot = (*trajectories_->rightFoot) (t);
+  const Trajectory::vector_t& com = (*trajectories_->com) (t);
+  const Trajectory::vector_t& waistYaw = (*trajectories_->waistYaw) (t);
+
+  const Trajectory::vector_t& leftFootNext = (*trajectories_->leftFoot) (tnext);
+  const Trajectory::vector_t& rightFootNext =
+    (*trajectories_->rightFoot) (tnext);
+  const Trajectory::vector_t& comNext = (*trajectories_->com) (tnext);
+  const Trajectory::vector_t& waistYawNext = (*trajectories_->waistYaw) (tnext);
+
+  comVelocity_.accessToMotherLib () = (comNext - com) / STEP;
+
+  waistYawVelocity_ (0) = 0.;
+  waistYawVelocity_ (1) = 0.;
+  waistYawVelocity_ (2) = waistYawNext[0] - waistYaw[0];
+
+  //FIXME: foot <-> ankle
+  leftAnkleVelocity_.setZero ();
+  leftAnkleVelocity_ (0) = (leftFootNext[0] - leftFoot[0]) / STEP;
+  leftAnkleVelocity_ (1) = (leftFootNext[1] - leftFoot[1]) / STEP;
+  leftAnkleVelocity_ (5) = (leftFootNext[2] - leftFoot[2]) / STEP;
+
+  rightAnkleVelocity_.setZero ();
+  rightAnkleVelocity_ (0) = (rightFootNext[0] - rightFoot[0]) / STEP;
+  rightAnkleVelocity_ (1) = (rightFootNext[1] - rightFoot[1]) / STEP;
+  rightAnkleVelocity_ (5) = (rightFootNext[2] - rightFoot[2]) / STEP;
+}
+
+void
 FeetFollowerRos::impl_update ()
 {
   using sot::Trajectory;
@@ -97,6 +145,7 @@ FeetFollowerRos::impl_update ()
   const Trajectory::vector_t& rightFoot = (*trajectories_->rightFoot) (t);
   const Trajectory::vector_t& zmp = (*trajectories_->zmp) (t);
   const Trajectory::vector_t& com = (*trajectories_->com) (t);
+  const Trajectory::vector_t& waistYaw = (*trajectories_->waistYaw) (t);
 
   if (leftFoot.size () != 4 || rightFoot.size () != 4
       || com.size () != 3 || zmp.size () != 2)
@@ -136,6 +185,19 @@ FeetFollowerRos::impl_update ()
 
   for (unsigned i = 0; i < 3; ++i)
     com_ (i) = comH (i), zmp_ (i) = zmpH (i);
+
+  jrlMathTools::Angle theta (waistYaw[0]);
+  ml::Vector xytheta (3);
+  xytheta (0) = xytheta (1) = 0.;
+  xytheta (2) = theta.value ();
+
+  waistYaw_ =
+    trajectories_->wMw_traj * XYThetaToMatrixHomogeneous (xytheta);
+  waistYaw_ (0, 3) = 0.;
+  waistYaw_ (1, 3) = 0.;
+  waistYaw_ (2, 3) = 0.;
+
+  updateVelocities ();
 
   if (started_)
     ++index_;
