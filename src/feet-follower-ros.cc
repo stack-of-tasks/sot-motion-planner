@@ -74,6 +74,12 @@ FeetFollowerRos::~FeetFollowerRos ()
 {}
 
 void
+FeetFollowerRos::impl_start ()
+{
+  std::cout << "FeetFollower ROS started" << std::endl;
+}
+
+void
 FeetFollowerRos::impl_update ()
 {
   using sot::Trajectory;

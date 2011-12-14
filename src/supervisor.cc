@@ -140,7 +140,7 @@ namespace command
 		 (Value::DOUBLE),
 		 docstring)
     {}
-    
+
     Value
     AddFeetFollowerStartCall::doExecute ()
     {
@@ -164,6 +164,7 @@ namespace command
 
       if (ff)
 	entity.addFeetFollowerStartCall (ff, time);
+      std::cout << "feet follower start call registered" << std::endl;
       return Value ();
     }
 
@@ -423,13 +424,15 @@ Supervisor::stop ()
   tOrigin_ = -1;
   sot_ = 0;
   featurePosture_ = 0;
+  std::cout << "supervisor stopped" << std::endl;
 }
 
 void
 Supervisor::start ()
 {
   if (tOrigin_ < 0.)
-    tOrigin_ = t_;
+    tOrigin_ = std::max (t_, 0.);
+  std::cout << "supervisor started at t = " << tOrigin_ << std::endl;
 }
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (Supervisor, "Supervisor");

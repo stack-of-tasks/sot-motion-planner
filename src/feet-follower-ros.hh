@@ -53,6 +53,7 @@ public:
 
 private:
   virtual void impl_update ();
+  virtual void impl_start ();
 
 private:
   boost::optional<WalkMovement> trajectories_;
