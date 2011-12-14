@@ -25,6 +25,7 @@
 #include "feet-follower-ros.hh"
 #include "discretized-trajectory.hh"
 
+#include <dynamic_graph_bridge/ros_init.hh>
 #include <walk_interfaces/pattern-generator.hh>
 #include <walk_interfaces/yaml.hh>
 
@@ -224,10 +225,7 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 {
   try
     {
-      int argc = 1;
-      char* argv[] = { strdup ("feet_follower_ros") };
-      ros::init (argc, argv, "feet_follower_ros");
-      ros::NodeHandle nh;
+      ros::NodeHandle& nh = dynamicgraph::rosInit();
       std::string trajectory;
       if (!nh.getParam (rosParameter, trajectory))
 	throw std::runtime_error ("failed to retrieve trajectory");

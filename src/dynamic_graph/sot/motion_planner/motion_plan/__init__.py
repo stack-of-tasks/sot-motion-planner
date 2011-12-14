@@ -103,9 +103,6 @@ class MotionPlan(object):
 
         self.duration = float(self.plan['duration'])
 
-        # Trace
-        self.trace = self.robot.tracer
-
         # Middleware proxies.
         self.corba = CorbaServer('corba_server')
         self.ros = Ros(self.robot)
