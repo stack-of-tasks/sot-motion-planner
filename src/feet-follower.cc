@@ -110,7 +110,7 @@ FeetFollower::FeetFollower (const std::string& name)
     gaze_ (),
     leftAnkle_ (),
     rightAnkle_ (),
-    posture_ (),
+    posture_ (36 - 6 - 12), //FIXME:
     comVelocity_ (3),
     waistYawVelocity_ (3),
     leftAnkleVelocity_ (6),

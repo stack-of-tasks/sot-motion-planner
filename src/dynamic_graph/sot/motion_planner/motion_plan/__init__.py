@@ -144,6 +144,8 @@ class MotionPlan(object):
         feetFollowerElement = find(lambda e: type(e) == MotionWalk, self.motion)
         self.hasControl = len(self.control) > 0
 
+        controlRosElement = find(lambda e: type(e) == ControlRos, self.control)
+
         # Plug motion signals which depend on control.
         for m in self.motion:
             if type(m) == MotionVisualPoint:
@@ -157,6 +159,11 @@ class MotionPlan(object):
         # localization information.
         if self.hasControl:
             for i in xrange(len(self.motion)):
+                if type(self.motion[i]) == MotionWalkRos and controlRosElement:
+                    print("plugging error estimation from ROS")
+                    plug(self.ros.rosExport.signal(controlRosElement.signal),
+                         self.motion[i].correction)
+
                 if type(self.motion[i]) != MotionWalk:
                     continue
                 # Add correction graph.

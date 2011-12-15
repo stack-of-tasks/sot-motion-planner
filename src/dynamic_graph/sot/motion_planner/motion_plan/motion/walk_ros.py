@@ -147,10 +147,9 @@ class MotionWalkRos(Motion):
 
 
         # Push the tasks into supervisor.
-        if not 'control' in motion.plan or not motion.plan['control']:
-            motion.supervisor.addFeetFollowerStartCall(
-                self.correction.name,
-                self.interval[0])
+        motion.supervisor.addFeetFollowerStartCall(
+            self.correction.name,
+            self.interval[0])
 
         motion.supervisor.addTask(self.postureTask.name,
                                   self.interval[0], self.interval[1],
