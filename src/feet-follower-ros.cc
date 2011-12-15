@@ -13,10 +13,13 @@
 // received a copy of the GNU Lesser General Public License along with
 // dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
 
+#include <cassert>
+
 #include <ros/ros.h>
 
 #include <sstream>
 
+#include <boost/foreach.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
@@ -346,10 +349,66 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 
       trajectories_ = WalkMovement (leftFoot, rightFoot, com, zmp,
 				    waistYaw, waist, gaze, posture, wMw_traj);
-
-
-
       footprints_ = reader.footprints ();
+
+
+      // Compute support feet.
+      double t = 0.;
+      WalkMovement::SupportFoot supportFoot =
+	WalkMovement::SUPPORT_FOOT_DOUBLE;
+
+      if (reader.startWithLeftFoot())
+	supportFoot = WalkMovement::SUPPORT_FOOT_RIGHT;
+      else
+	supportFoot = WalkMovement::SUPPORT_FOOT_LEFT;
+
+      // First footstep is lost currently.
+      if (supportFoot == WalkMovement::SUPPORT_FOOT_LEFT)
+	supportFoot = WalkMovement::SUPPORT_FOOT_RIGHT;
+      else if (supportFoot == WalkMovement::SUPPORT_FOOT_RIGHT)
+	supportFoot = WalkMovement::SUPPORT_FOOT_LEFT;
+      else
+	assert (0 && "should never happen");
+
+      using namespace boost::gregorian;
+      walk::Time epoch (date (1970, 1, 1));
+      for (unsigned i = 0; i < reader.footprints ().size (); ++i)
+	{
+	  const ReaderPatternGenerator2d::footprint_t& footprint =
+	    reader.footprints ()[i];
+
+	  // Each footprint beginning is a double support.
+	  t = (footprint.beginTime - epoch).total_nanoseconds () / 1e9;
+	  trajectories_->supportFoot.push_back
+	    (std::make_pair (t, WalkMovement::SUPPORT_FOOT_DOUBLE));
+
+	  // Then a feet is lifted (if we are not the last step).
+	  if (i + 1 < reader.footprints ().size ())
+	    {
+	      const ReaderPatternGenerator2d::footprint_t& next =
+		reader.footprints ()[i + 1];
+
+	      t = (next.beginTime -
+		   (footprint.beginTime + footprint.duration)
+		   ).total_nanoseconds () / 1e9;
+
+	      trajectories_->supportFoot.push_back
+		(std::make_pair (t, supportFoot));
+	    }
+
+	  if (supportFoot == WalkMovement::SUPPORT_FOOT_LEFT)
+	    supportFoot = WalkMovement::SUPPORT_FOOT_RIGHT;
+	  else if (supportFoot == WalkMovement::SUPPORT_FOOT_RIGHT)
+	    supportFoot = WalkMovement::SUPPORT_FOOT_LEFT;
+	  else
+	    assert (0 && "should never happen");
+	}
+
+      for (unsigned i = 0; i < trajectories_->supportFoot.size (); ++i)
+	{
+	  std::cout << trajectories_->supportFoot[i].first << " / "
+		    << trajectories_->supportFoot[i].second << std::endl;
+	}
     }
   catch (std::exception& e)
     {

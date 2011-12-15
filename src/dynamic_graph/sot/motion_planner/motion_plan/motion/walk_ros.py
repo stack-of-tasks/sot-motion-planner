@@ -133,6 +133,10 @@ class MotionWalkRos(Motion):
         # By default set error to zero.
         self.correction.offset.value = (0., 0., 0.)
 
+        #FIXME: this is wrong !!
+        plug(self.robot.dynamic.signal('waist'),
+             self.correction.position)
+
 
         #FIXME: HRP-2 specific
         unlockedDofsRleg = []
