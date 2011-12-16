@@ -47,9 +47,9 @@ rospy.init_node('error_estimator')
 
 
 # Frame ids.
-baseLinkFrameId = rospy.get_param('~base_link_frame_id', 'base_link')
+baseLinkFrameId = rospy.get_param('~base_link_frame_id', 'left_ankle') #FIXME:
 mapFrameId = rospy.get_param('~map_frame_id', 'map')
-planFrameId = rospy.get_param('~plan_frame_id', 'plan') #FIXME: this should be plan instead.
+planFrameId = rospy.get_param('~plan_frame_id', 'plan')
 
 tr = tf.TransformerROS()
 tl = tf.TransformListener()
@@ -67,13 +67,15 @@ while not rospy.is_shutdown():
         (wMhbl_q, wMhbl_t) = tl.lookupTransform(mapFrameId,
                                                 baseLinkFrameId, rospy.Time(0))
     except:
-        rospy.logwarn("failed to retrieve base_link position w.r.t. the map frame")
+        rospy.logwarn("failed to retrieve {0} position w.r.t. the {1} frame".format(
+                baseLinkFrameId, mapFrameId))
         continue
     try:
         (wMbl_q, wMbl_t) = tl.lookupTransform(planFrameId,
                                               baseLinkFrameId, rospy.Time(0))
     except:
-        rospy.logwarn("failed to retrieve base_link position w.r.t. the map frame")
+        rospy.logwarn("failed to retrieve {0} position w.r.t. the {1} frame".format(
+                baseLinkFrameId, planFrameId))
         continue
 
     wMhbl = np.matrix(tr.fromTranslationRotation(wMhbl_q, wMhbl_t))

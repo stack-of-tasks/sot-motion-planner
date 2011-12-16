@@ -138,8 +138,9 @@ class MotionWalkRos(Motion):
         # By default set error to zero.
         self.correction.offset.value = (0., 0., 0.)
 
-        #FIXME: this is wrong !!
-        plug(self.robot.dynamic.signal('waist'),
+        #FIXME: this should match the ROS topic error frame_id.
+        # Unfortunately we do not have any way to retrieve it for now.
+        plug(self.robot.dynamic.signal('left-ankle'),
              self.correction.position)
 
 
