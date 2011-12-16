@@ -21,7 +21,6 @@ import yaml
 import numpy as np
 import textwrap
 
-from dynamic_graph.tracer_real_time import TracerRealTime
 from dynamic_graph import plug
 from dynamic_graph.ros import Ros
 from dynamic_graph.sot.motion_planner.feet_follower import \
@@ -77,8 +76,6 @@ class MotionPlan(object):
 
     postureFeature = None
     postureTask = None
-
-    trace = None
 
     started = False
 
@@ -268,8 +265,8 @@ class MotionPlan(object):
         self.logger.info('execution starts')
 
         # Provide a default ZMP value if required.
-        self.robot.dynamic.com.recompute(self.robot.dynamic.com.time + 1)
-        self.robot.device.zmp.value = self.robot.dynamic.com.value[0:2]
+        #self.robot.dynamic.com.recompute(self.robot.dynamic.com.time + 1)
+        #self.robot.device.zmp.value = self.robot.dynamic.com.value[0:2]
 
         if self.hasControl:
             for i in xrange(len(self.motion)):
