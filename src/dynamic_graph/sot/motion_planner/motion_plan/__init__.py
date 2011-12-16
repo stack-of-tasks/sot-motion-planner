@@ -162,7 +162,7 @@ class MotionPlan(object):
                 if type(self.motion[i]) == MotionWalkRos and controlRosElement:
                     print("plugging error estimation from ROS")
                     plug(self.ros.rosExport.signal(controlRosElement.signal),
-                         self.motion[i].correction)
+                         self.motion[i].correction.offset)
 
                 if type(self.motion[i]) != MotionWalk:
                     continue

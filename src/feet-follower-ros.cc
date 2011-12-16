@@ -362,39 +362,24 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
       else
 	supportFoot = WalkMovement::SUPPORT_FOOT_LEFT;
 
-      // First footstep is lost currently.
-      if (supportFoot == WalkMovement::SUPPORT_FOOT_LEFT)
-	supportFoot = WalkMovement::SUPPORT_FOOT_RIGHT;
-      else if (supportFoot == WalkMovement::SUPPORT_FOOT_RIGHT)
-	supportFoot = WalkMovement::SUPPORT_FOOT_LEFT;
-      else
-	assert (0 && "should never happen");
-
       using namespace boost::gregorian;
-      walk::Time epoch (date (1970, 1, 1));
-      for (unsigned i = 0; i < reader.footprints ().size (); ++i)
+      for (unsigned i = 1; i < reader.footprints ().size (); ++i)
 	{
-	  const ReaderPatternGenerator2d::footprint_t& footprint =
+	  const ReaderPatternGenerator2d::footprint_t& current =
 	    reader.footprints ()[i];
+	  const ReaderPatternGenerator2d::footprint_t& previous =
+	    reader.footprints ()[i - 1];
 
-	  // Each footprint beginning is a double support.
-	  t = (footprint.beginTime - epoch).total_nanoseconds () / 1e9;
+	  t = current.beginTime.time_of_day ().total_nanoseconds () / 1e9;
 	  trajectories_->supportFoot.push_back
 	    (std::make_pair (t, WalkMovement::SUPPORT_FOOT_DOUBLE));
 
-	  // Then a feet is lifted (if we are not the last step).
-	  if (i + 1 < reader.footprints ().size ())
-	    {
-	      const ReaderPatternGenerator2d::footprint_t& next =
-		reader.footprints ()[i + 1];
+	  // Then a feet is lifted.
+	  t = (previous.beginTime.time_of_day ()
+	       + previous.duration).total_nanoseconds () / 1e9;
 
-	      t = (next.beginTime -
-		   (footprint.beginTime + footprint.duration)
-		   ).total_nanoseconds () / 1e9;
-
-	      trajectories_->supportFoot.push_back
-		(std::make_pair (t, supportFoot));
-	    }
+	  trajectories_->supportFoot.push_back
+	    (std::make_pair (t, supportFoot));
 
 	  if (supportFoot == WalkMovement::SUPPORT_FOOT_LEFT)
 	    supportFoot = WalkMovement::SUPPORT_FOOT_RIGHT;

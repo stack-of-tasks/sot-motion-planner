@@ -110,6 +110,11 @@ class MotionWalkRos(Motion):
         # Set the safety limits.
         self.correction.setSafetyLimits(motion.maxX, motion.maxY, motion.maxTheta)
 
+        self.correction.setFootsteps(
+            2., # 2 seconds per step
+            makeFootsteps([]))
+
+
         # Plug the feet follower output signals.
         plug(self.correction.zmp, self.robot.device.zmp)
 
