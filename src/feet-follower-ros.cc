@@ -388,12 +388,6 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 	  else
 	    assert (0 && "should never happen");
 	}
-
-      for (unsigned i = 0; i < trajectories_->supportFoot.size (); ++i)
-	{
-	  std::cout << trajectories_->supportFoot[i].first << " / "
-		    << trajectories_->supportFoot[i].second << std::endl;
-	}
     }
   catch (std::exception& e)
     {
