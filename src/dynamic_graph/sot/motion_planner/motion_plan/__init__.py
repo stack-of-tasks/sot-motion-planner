@@ -264,10 +264,6 @@ class MotionPlan(object):
         self.started = True
         self.logger.info('execution starts')
 
-        # Provide a default ZMP value if required.
-        #self.robot.dynamic.com.recompute(self.robot.dynamic.com.time + 1)
-        #self.robot.device.zmp.value = self.robot.dynamic.com.value[0:2]
-
         if self.hasControl:
             for i in xrange(len(self.motion)):
                 if type(self.motion[i]) != MotionWalk:
