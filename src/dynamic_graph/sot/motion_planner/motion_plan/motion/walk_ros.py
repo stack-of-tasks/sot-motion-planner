@@ -45,6 +45,10 @@ class MotionWalkRos(Motion):
         self.name = id(yamlData)
 
         self.rosParameter = yamlData['ros-parameter']
+        self.rosLeftAnkle = yamlData['ros-left-ankle']
+
+        motion.ros.rosImport.add('matrixHomoStamped',
+                                 'left-ankle', self.rosLeftAnkle)
 
         self.initialLeftAnklePosition = \
             self.robot.features['left-ankle'].reference.value
@@ -58,6 +62,9 @@ class MotionWalkRos(Motion):
         print("Parsing trajectory...")
         self.feetFollower.parseTrajectory(self.rosParameter)
         print("done.")
+
+        plug(self.feetFollower.signal('left-ankle'),
+             motion.ros.rosImport.signal('left-ankle'))
 
         # Center of mass features and task.
         (self.featureCom, self.featureComDes, self.comTask) = \

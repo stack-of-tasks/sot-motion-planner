@@ -50,7 +50,7 @@ rospy.init_node('error_estimator')
 baseLinkMapFrameId = rospy.get_param(
     '~base_link_map_frame_id', '/mocap_world/left_foot/origin') #FIXME:
 baseLinkPlanFrameId = rospy.get_param(
-    '~base_link_plan_frame_id', '/left_ankle') #FIXME:
+    '~base_link_plan_frame_id', '/plan_left_ankle') #FIXME:
 mapFrameId = rospy.get_param('~map_frame_id', '/world')
 planFrameId = rospy.get_param('~plan_frame_id', '/world')
 
