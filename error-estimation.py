@@ -47,9 +47,12 @@ rospy.init_node('error_estimator')
 
 
 # Frame ids.
-baseLinkFrameId = rospy.get_param('~base_link_frame_id', 'left_ankle') #FIXME:
-mapFrameId = rospy.get_param('~map_frame_id', 'map')
-planFrameId = rospy.get_param('~plan_frame_id', 'plan')
+baseLinkMapFrameId = rospy.get_param(
+    '~base_link_map_frame_id', '/mocap_world/left_foot/origin') #FIXME:
+baseLinkPlanFrameId = rospy.get_param(
+    '~base_link_plan_frame_id', '/left_ankle') #FIXME:
+mapFrameId = rospy.get_param('~map_frame_id', '/world')
+planFrameId = rospy.get_param('~plan_frame_id', '/world')
 
 tr = tf.TransformerROS()
 tl = tf.TransformListener()
@@ -57,29 +60,55 @@ tl = tf.TransformListener()
 pub = rospy.Publisher('error', Vector3Stamped)
 error = Vector3Stamped()
 error.header.seq = 0
-error.header.frame_id = baseLinkFrameId
+error.header.frame_id = baseLinkPlanFrameId
+
+
+ok = False
+rospy.loginfo("Waiting for frames...")
+rate = rospy.Rate(10.0)
+t = rospy.Time(0)
+while not ok and not rospy.is_shutdown():
+    try:
+        tl.waitForTransform(
+            planFrameId, baseLinkPlanFrameId,
+            t, rospy.Duration(0.1))
+        tl.waitForTransform(
+            mapFrameId, baseLinkMapFrameId,
+            t, rospy.Duration(0.1))
+        ok = True
+    except tf.Exception as e:
+        rospy.logdebug("error while waiting for frames: {0}".format(e))
+        ok = False
+        rate.sleep()
+if rospy.is_shutdown():
+    sys.exit(0)
 
 rospy.loginfo("start streaming execution error")
 
 while not rospy.is_shutdown():
     rospy.sleep(0.01)
+    t = rospy.Time()
     try:
         (wMhbl_q, wMhbl_t) = tl.lookupTransform(mapFrameId,
-                                                baseLinkFrameId, rospy.Time(0))
+                                                baseLinkMapFrameId,
+                                                t)
     except:
         rospy.logwarn("failed to retrieve {0} position w.r.t. the {1} frame".format(
-                baseLinkFrameId, mapFrameId))
+                baseLinkMapFrameId, mapFrameId))
         continue
     try:
         (wMbl_q, wMbl_t) = tl.lookupTransform(planFrameId,
-                                              baseLinkFrameId, rospy.Time(0))
+                                              baseLinkPlanFrameId,
+                                              t)
     except:
         rospy.logwarn("failed to retrieve {0} position w.r.t. the {1} frame".format(
-                baseLinkFrameId, planFrameId))
+                baseLinkPlanFrameId, planFrameId))
         continue
 
     wMhbl = np.matrix(tr.fromTranslationRotation(wMhbl_q, wMhbl_t))
+
     wMbl = np.matrix(tr.fromTranslationRotation(wMbl_q, wMbl_t))
+
     hblMbl = np.linalg.inv(wMhbl) * wMbl
 
     error.header.seq += 1
