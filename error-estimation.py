@@ -85,7 +85,7 @@ while not rospy.is_shutdown():
     error.header.seq += 1
     error.header.stamp = rospy.Time.now()
     error.vector.x = hblMbl[0, 3]
-    error.vector.y = hblMbl[0, 3]
+    error.vector.y = hblMbl[1, 3]
     error.vector.z = atan2(hblMbl[1, 0], hblMbl[0, 0]) #FIXME: double check this
 
     pub.publish(error)
