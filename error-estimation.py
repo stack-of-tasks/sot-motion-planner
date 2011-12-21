@@ -32,6 +32,7 @@
 
 from __future__ import print_function
 
+import sys
 from math import atan2
 import numpy as np
 import roslib; roslib.load_manifest('dynamic_graph_bridge')
@@ -54,8 +55,7 @@ baseLinkPlanFrameId = rospy.get_param(
 mapFrameId = rospy.get_param('~map_frame_id', '/world')
 planFrameId = rospy.get_param('~plan_frame_id', '/world')
 
-tr = tf.TransformerROS()
-tl = tf.TransformListener()
+tl = tf.TransformListener(True, rospy.Duration(10.))
 
 pub = rospy.Publisher('error', Vector3Stamped)
 error = Vector3Stamped()
@@ -65,7 +65,7 @@ error.header.frame_id = baseLinkPlanFrameId
 
 ok = False
 rospy.loginfo("Waiting for frames...")
-rate = rospy.Rate(10.0)
+rate = rospy.Rate(.1)
 t = rospy.Time(0)
 while not ok and not rospy.is_shutdown():
     try:
@@ -77,37 +77,43 @@ while not ok and not rospy.is_shutdown():
             t, rospy.Duration(0.1))
         ok = True
     except tf.Exception as e:
-        rospy.logdebug("error while waiting for frames: {0}".format(e))
+        rospy.logwarn("error while waiting for frames: {0}".format(e))
         ok = False
         rate.sleep()
 if rospy.is_shutdown():
     sys.exit(0)
 
-rospy.loginfo("start streaming execution error")
+rospy.loginfo("started")
 
+# This delay has been experimentally setup for the LAAS motion capture
+# system.
+offsetPlan = rospy.Duration(-1.)
+
+rate = rospy.Rate(10.)
 while not rospy.is_shutdown():
-    rospy.sleep(0.01)
-    t = rospy.Time()
+    rate.sleep()
+
+    tMap = tl.getLatestCommonTime(mapFrameId,
+                                  baseLinkMapFrameId)
+    tPlan = tl.getLatestCommonTime(planFrameId,
+                                   baseLinkPlanFrameId)
+
+    # Take the min to make sure that we have data for both.
+    tPlan = tMap = min(tMap, tPlan)
+    # Then subscribe an optional offset.
+    tPlan += offsetPlan
     try:
-        (wMhbl_q, wMhbl_t) = tl.lookupTransform(mapFrameId,
-                                                baseLinkMapFrameId,
-                                                t)
-    except:
-        rospy.logwarn("failed to retrieve {0} position w.r.t. the {1} frame".format(
-                baseLinkMapFrameId, mapFrameId))
-        continue
-    try:
-        (wMbl_q, wMbl_t) = tl.lookupTransform(planFrameId,
-                                              baseLinkPlanFrameId,
-                                              t)
-    except:
-        rospy.logwarn("failed to retrieve {0} position w.r.t. the {1} frame".format(
-                baseLinkPlanFrameId, planFrameId))
+        (wMhbl_q, wMhbl_t) = tl.lookupTransform(
+            mapFrameId, baseLinkMapFrameId, tMap)
+        (wMbl_q, wMbl_t) = tl.lookupTransform(
+            planFrameId, baseLinkPlanFrameId, t)
+    except Exception as e:
+        rospy.logwarn(e)
         continue
 
-    wMhbl = np.matrix(tr.fromTranslationRotation(wMhbl_q, wMhbl_t))
+    wMhbl = np.matrix(tl.fromTranslationRotation(wMhbl_q, wMhbl_t))
 
-    wMbl = np.matrix(tr.fromTranslationRotation(wMbl_q, wMbl_t))
+    wMbl = np.matrix(tl.fromTranslationRotation(wMbl_q, wMbl_t))
 
     hblMbl = np.linalg.inv(wMhbl) * wMbl
 
@@ -115,6 +121,6 @@ while not rospy.is_shutdown():
     error.header.stamp = rospy.Time.now()
     error.vector.x = hblMbl[0, 3]
     error.vector.y = hblMbl[1, 3]
-    error.vector.z = atan2(hblMbl[1, 0], hblMbl[0, 0]) #FIXME: double check this
+    error.vector.z = atan2(hblMbl[1, 0], hblMbl[0, 0])
 
     pub.publish(error)

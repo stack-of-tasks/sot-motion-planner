@@ -137,7 +137,7 @@ FeetFollowerRos::impl_update ()
   using sot::Trajectory;
   using roboptim::Function;
 
-  if (!trajectories_ || !started_)
+  if (!trajectories_)
     return;
 
   const double t = index_ * STEP;
