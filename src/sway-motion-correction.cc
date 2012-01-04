@@ -136,16 +136,13 @@ protected:
   }
 
   ml::Vector&
-  updateDbgcMoWithCorrection (ml::Vector& v, int)
+  updateDbgcMoWithCorrection (ml::Vector& v, int t)
   {
     vpHomogeneousMatrix cMo = convert(cMo_(t));
     vpPoseVector posecMo(cMo); 
     //FIXEME: instead of modifying directly the pose vector,
     // transform the correction into an homogeneous matrix ...   
-    vpPoseVector poseccMo = posecMo-integralLbk_+E_;
-
-    //FIXME! compute ccMo
-    vpColVector poseccMo(6);
+    vpColVector poseccMo = posecMo - integralLbk_ + E_;
     v = convert(poseccMo);
     return v;
   }
