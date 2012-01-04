@@ -138,7 +138,15 @@ protected:
   ml::Vector&
   updateDbgcMoWithCorrection (ml::Vector& v, int)
   {
-    //FIXME: compute ccmo !!!
+    vpHomogeneousMatrix cMo = convert(cMo_(t));
+    vpPoseVector posecMo(cMo); 
+    //FIXEME: instead of modifying directly the pose vector,
+    // transform the correction into an homogeneous matrix ...   
+    vpPoseVector poseccMo = posecMo-integralLbk_+E_;
+
+    //FIXME! compute ccMo
+    vpColVector poseccMo(6);
+    v = convert(poseccMo);
     return v;
   }
 
