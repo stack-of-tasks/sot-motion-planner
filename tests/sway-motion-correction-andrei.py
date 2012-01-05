@@ -198,16 +198,11 @@ pg.parseCmd(':HerdtOnline 0.1 0.0 0.0')
 pg.velocitydes.value =(0.1,0.0,0.0)
 
 # --- TRACER -----------------------------------------------------------------
-from dynamic_graph.tracer import *
-from dynamic_graph.tracer_real_time import *
-tr = Tracer('tr')
-tr.open('/tmp/','','.dat')
-tr.start()
-robot.after.addSignal('tr.triger')
+tr = r.tracer
 
 #tr.add(dyn.name+'.ffposition','ff')
-tr.add(taskRF.featureDes.name+'.position','refr')
-tr.add(taskLF.featureDes.name+'.position','refl')
+#tr.add(taskRF.featureDes.name+'.position','refr')
+#tr.add(taskLF.featureDes.name+'.position','refl')
 
 
 # smc
@@ -233,22 +228,33 @@ I = ((1., 0., 0., 0.),
 smc.cMo.value = I
 smc.cMoTimestamp.value = (0., 0.)
 
-cdMo = ((1., 0., 0., 1.),
+cdMo = ((1., 0., 0., 0.),
         (0., 1., 0., 0.),
-        (0., 0., 1., 0.),
+        (0., 0., 1., -1.),
         (0., 0., 0., 1.))
 
 t = 0
+smc.setMaximumVelocity(0.2, 0.2, 0.1)
 smc.initialize(cdMo, t)
-
 
 r.device.increment(timeStep)
 r.device.increment(timeStep)
 r.device.increment(timeStep)
 
 # plug vdes
-plug(pg.dcomref, smc.inputPgVelocity)
 plug(smc.outputPgVelocity, pg.velocitydes)
+
+r.addTrace(smc.name, 'dbgE')
+r.addTrace(smc.name, 'dbgCorrectedE')
+r.addTrace(smc.name, 'dbgVelocityWithoutCorrection')
+r.addTrace(smc.name, 'outputPgVelocity')
+r.addTrace(smc.name, 'dbgcMoWithCorrection')
+
+r.addTrace(pg.name, 'velocitydes')
+r.addTrace(pg.name, 'dcomref')
+
+tr.start()
+
 
 ###########################################
 # TO BE REMOVED BEFORE RUNNING ON OPENHRP #
@@ -257,20 +263,16 @@ plug(smc.outputPgVelocity, pg.velocitydes)
 def play(maxIter = 4000, clt = None):
     print("started")
 
-    t = timeStep * 3.
+    t = 3
     # Main.
     #  Main loop
     for i in xrange(maxIter):
-        r.device.increment(timeStep)
-        t += timeStep
-
         smc.dbgE.recompute(t)
         smc.dbgCorrectedE.recompute(t)
         smc.dbgVelocityWithoutCorrection.recompute(t)
         smc.dbgcMoWithCorrection.recompute(t)
 
         print("--- {0} ---".format(t))
-        print("input velocity: {0}".format(smc.inputPgVelocity.value))
         print("output velocity: {0}".format(smc.outputPgVelocity.value))
         print("E: {0}".format(smc.dbgE.value))
         print("corrected E: {0}".format(smc.dbgCorrectedE.value))
@@ -280,5 +282,12 @@ def play(maxIter = 4000, clt = None):
         if clt:
             clt.updateElementConfig(
                 'hrp', r.smallToFull(r.device.state.value))
+
+        r.device.increment(timeStep)
+        t += 1
+
+    print("dumping")
+    tr.dump()
+    tr.close()
 
 play(clt = clt)

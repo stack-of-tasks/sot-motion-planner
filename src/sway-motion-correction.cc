@@ -29,6 +29,7 @@
 #include <visp/vpFeatureTranslation.h>
 #include <visp/vpFeatureThetaU.h>
 #include <visp/vpVelocityTwistMatrix.h>
+#include <visp/vpExponentialMap.h>
 
 
 #include "common.hh"
@@ -124,7 +125,7 @@ protected:
   }
   ml::Vector& updateDbgE (ml::Vector& v, int)
   {
-    v = convert (task_.error);
+    v = convert (E_);
     return v;
   }
 
@@ -138,12 +139,7 @@ protected:
   ml::Vector&
   updateDbgcMoWithCorrection (ml::Vector& v, int t)
   {
-    vpHomogeneousMatrix cMo = convert(cMo_(t));
-    vpPoseVector posecMo(cMo);
-    //FIXEME: instead of modifying directly the pose vector,
-    // transform the correction into an homogeneous matrix ...
-    vpColVector poseccMo = posecMo - integralLbk_ + E_;
-    v = convert(poseccMo);
+    v = convert(vpPoseVector(vcMo_));
     return v;
   }
 
@@ -173,8 +169,6 @@ protected:
   /// \brief Task computing the control law.
   vpServo task_;
 
-  /// \brief Input pattern generator velocity (signal).
-  signalVectorIn_t inputPgVelocity_;
   /// \brief Output pattern generator velocity (signal).
   signalVectorOut_t outputPgVelocity_;
 
@@ -213,6 +207,11 @@ protected:
 
   /// \brief FIXME
   vpColVector integralLbk_;
+
+  vpHomogeneousMatrix rcMvc_;
+  vpHomogeneousMatrix vcMo_;
+  vpColVector velocityWithCorrection_;
+  vpColVector previousOutput_;
 };
 
 namespace command
@@ -252,8 +251,6 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
 
     task_ (),
 
-    inputPgVelocity_ (dg::nullptr,
-		      MAKE_SIGNAL_STRING (name, true, "Vector", "inputPgVelocity")),
     outputPgVelocity_ (INIT_SIGNAL_OUT
 		       ("outputPgVelocity",
 			SwayMotionCorrection::updateVelocity, "Vector")),
@@ -264,12 +261,12 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
 		   MAKE_SIGNAL_STRING
 		   (name, true, "Vector", "cMoTimestamp")),
 
-    wMcom_ (dg::nullptr,
-	      MAKE_SIGNAL_STRING
-	      (name, true, "Vector", "wMcom")),
     wMwaist_ (dg::nullptr,
 	      MAKE_SIGNAL_STRING
 	      (name, true, "MatrixHomo", "wMwaist")),
+    wMcom_ (dg::nullptr,
+	      MAKE_SIGNAL_STRING
+	      (name, true, "Vector", "wMcom")),
     wMcamera_ (dg::nullptr,
 	       MAKE_SIGNAL_STRING
 	       (name, true, "MatrixHomo", "wMcamera")),
@@ -307,9 +304,13 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
     correctedE_ (6),
     velocityWithoutCorrection_ (6),
     cMoWithCorrection_ (),
-    integralLbk_ (6)
+    integralLbk_ (6),
+    rcMvc_ (),
+    vcMo_ (),
+    velocityWithCorrection_ (),
+    previousOutput_ (3)
 {
-  signalRegistration (inputPgVelocity_ << outputPgVelocity_
+  signalRegistration (outputPgVelocity_
 		      << cMo_ << cMoTimestamp_
 		      << wMcom_ << wMwaist_ << wMcamera_
 		      << Jcom_ << Jwaist_ << qdot_
@@ -319,12 +320,18 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
 
   for (unsigned i = 0; i < vmax_.getCols (); ++i)
     vmax_[i] = 0.;
+  for (unsigned i = 0; i < previousOutput_.getCols (); ++i)
+    previousOutput_[i] = 0.;
 
   task_.setServo (vpServo::EYEINHAND_CAMERA);
   task_.setInteractionMatrixType (vpServo::CURRENT);
   task_.setLambda (lambda_);
 
-  //outputPgVelocity_.setNeedUpdateFromAllChildren (true);
+  outputPgVelocity_.setNeedUpdateFromAllChildren (true);
+  dbgCorrectedE_.setNeedUpdateFromAllChildren (true);
+  dbgE_.setNeedUpdateFromAllChildren (true);
+  dbgVelocityWithoutCorrection_.setNeedUpdateFromAllChildren (true);
+  dbgcMoWithCorrection_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
   addCommand
@@ -351,6 +358,11 @@ SwayMotionCorrection::initialize (const vpHomogeneousMatrix& cdMo, int t)
 
   for (unsigned i = 0; i < 6; ++i)
     E_[i] = 0.;
+
+  for (unsigned i = 0; i < 3; ++i)
+    previousOutput_[i] = 0.;
+  vcMo_.setIdentity ();
+  rcMvc_.setIdentity ();
 
   cdMo_ = cdMo;
   cdMc_ = cdMo_ * convert(cMo_ (t).inverse ());
@@ -397,7 +409,7 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velCom, int t)
       velCom.resize (3);
       velCom.setZero ();
     }
-  if (!initialized_ || inputPgVelocity_ (t).size() != 3)
+  if (!initialized_)
     {
       velCom.resize (3);
       velCom.setZero ();
@@ -436,57 +448,113 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velCom, int t)
     dcom[i] = dcom_(i);
   dcom[2] = dwaist_(5);
 
-  // Convert input com velocity.
-  vpColVector inputComVel (3);
-  for (unsigned i = 0; i < 3; ++i)
-    {
-      inputComVel[i] = inputPgVelocity_ (t) (i);
-    }
-
-  // Compute the difference between the reference and the current
-  // velocity.
-  vpColVector bk (6);
-  bk[0] = inputComVel[0] - dcom[0];
-  bk[1] = inputComVel[1] - dcom[1];
-  bk[2] = bk[3] = bk[4] = 0.;
-  bk[5] = inputComVel[2] - dcom[2];
-
-
   // Here we compute the control law without the correction
   // but we only use the interaction matrix L.
   // The result can be used as a reference w/o correction.
   velocityWithoutCorrection_ = task_.computeControlLaw ();
+  E_ = task_.error;
 
   // Change the velocity frame from camera to com.
   vpVelocityTwistMatrix camVcom = fromComToCameraTwist (t);
 
-  vpColVector swayMotionCorrection = task_.L * camVcom * bk;
+  vpColVector virtualComVel (6);
+  for (unsigned i = 0; i < 2; ++i)
+    virtualComVel[i] = previousOutput_[i];
+  virtualComVel[2] = 0.;
+  virtualComVel[3] = 0.;
+  virtualComVel[4] = 0.;
+  virtualComVel[5] = previousOutput_[2];
+
+  std::cout << "virtualComVel" << std::endl
+	    << virtualComVel << std::endl;
+
+  vpColVector virtualCamVel = camVcom * virtualComVel;
+
+  std::cout << "virtualCamVel" << std::endl
+	    << virtualCamVel << std::endl;
+
+
+  vpHomogeneousMatrix cMvc = vpExponentialMap::direct (virtualCamVel, STEP);
+  std::cout << "cMvc" << std::endl;
+  std::cout << cMvc << std::endl;
+
+
+  vpColVector realComVel (6);
+  for (unsigned i = 0; i < 2; ++i)
+    realComVel[i] = dcom[i];
+  realComVel[2] = 0.;
+  realComVel[3] = 0.;
+  realComVel[4] = 0.;
+  realComVel[5] = dcom[2];
+
+  vpColVector realCamVel = camVcom * realComVel;
+
+  std::cout << "realCamVel" << std::endl
+	    << virtualComVel << std::endl;
+
+  vpHomogeneousMatrix cMrc = vpExponentialMap::direct (realCamVel, STEP);
+  std::cout << "cMrc" << std::endl;
+  std::cout << cMrc << std::endl;
+
+  rcMvc_ = rcMvc_ * (cMrc.inverse () * cMvc);
+
+  std::cout << "rcMvc_" << std::endl;
+  std::cout << rcMvc_ << std::endl;
 
   //FIXME: should we change this to t(cmo-1) - t(cmo) ?
-  integralLbk_ += swayMotionCorrection * STEP;
-  E_ += integralLbk_ * STEP;
+  vcMo_ = rcMvc_.inverse () * convert (cMo_ (t));
 
-  vpColVector correctedError = task_.error - integralLbk_ + E_;
-  double lambda = task_.lambda.getLastValue ();
-  vpColVector correctedVcam = -1. * lambda * task_.L.pseudoInverse () * correctedError;
+  std::cout << "vcMo" << std::endl;
+  std::cout << vcMo_ << std::endl;
 
-  vpColVector correctedVelCom = camVcom.inverse () * correctedVcam;
+  // Compute new control law (corrected).
+  vpHomogeneousMatrix cdMvc = cdMc_ * rcMvc_;
+  FT_.buildFrom (cdMvc);
+  FThU_.buildFrom (cdMvc);
+
+  velocityWithCorrection_ = task_.computeControlLaw ();
+
+  std::cout << "cdMvc: "
+	    << cdMvc
+	    << std::endl;
+
+  std::cout << "camVcom: "
+	    << camVcom
+	    << std::endl;
+
+  std::cout << "velocityWithCorrection_ (com): "
+	    << camVcom.inverse () * velocityWithCorrection_
+	    << std::endl;
+
+  correctedE_ = task_.error;
 
   // Compute bounded camera velocity.
+  // Convert 3d to 2d + dtheta.
   vpColVector correctedVelComBounded =
-    this->velocitySaturation (correctedVelCom);
+    this->velocitySaturation
+    (camVcom.inverse () * velocityWithCorrection_);
+
+  std::cout << "velocityWithCorrection_ bounded (com): "
+	    << correctedVelComBounded
+	    << std::endl;
 
   // If the error is low, stop.
-  if (shouldStop(correctedError))
+  if (shouldStop(correctedE_))
     {
       stop ();
       for (unsigned i = 0; i < 3; ++i)
-	velCom (i) = 0.;
+	{
+	  velCom (i) = 0.;
+	  previousOutput_ = 0.;
+	}
     }
   else
-    // Fill signal.
-    for (unsigned i = 0; i < 3; ++i)
-      velCom (i) = correctedVelComBounded[i];
+    {
+      // Fill signal.
+      for (unsigned i = 0; i < 3; ++i)
+	velCom (i) = correctedVelComBounded[i];
+      previousOutput_ = correctedVelComBounded;
+    }
   return velCom;
 }
 
@@ -537,17 +605,22 @@ SwayMotionCorrection::velocitySaturation (const vpColVector& velocity)
 vpVelocityTwistMatrix
 SwayMotionCorrection::fromComToCameraTwist (int t)
 {
-  ml::Vector wMcom (4);
+  vpHomogeneousMatrix wMcom = convert (wMwaist_ (t));
   for (unsigned i = 0; i < 3; ++i)
-    wMcom (i) = wMcom_ (t) (i);
-  wMcom (3) = 1.;
+    wMcom[i][3] = wMcom_ (t) (i);
 
-  ml::Vector cameraMcom =
-    wMcamera_ (t).inverse () * wMcom;
-  vpHomogeneousMatrix cameraMcom_;
-  for (unsigned i = 0; i < 3; ++i)
-    cameraMcom_[i][3] = cameraMcom (i);
-  vpVelocityTwistMatrix cameraVcom (cameraMcom_);
+  vpHomogeneousMatrix cameraMcom =
+    convert (wMcamera_ (t).inverse ()) * wMcom;
+
+  // std::cout << "wMcom_" << std::endl;
+  // std::cout << wMcom_ << std::endl;
+
+  // std::cout << "wMcamera_" << std::endl;
+  // std::cout << wMcamera_ (t) << std::endl;
+
+  // std::cout << "cameraMcom" << std::endl;
+  // std::cout << cameraMcom << std::endl;
+  vpVelocityTwistMatrix cameraVcom (cameraMcom);
   return cameraVcom;
 }
 
