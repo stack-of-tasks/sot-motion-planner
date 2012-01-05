@@ -139,9 +139,9 @@ protected:
   updateDbgcMoWithCorrection (ml::Vector& v, int t)
   {
     vpHomogeneousMatrix cMo = convert(cMo_(t));
-    vpPoseVector posecMo(cMo); 
+    vpPoseVector posecMo(cMo);
     //FIXEME: instead of modifying directly the pose vector,
-    // transform the correction into an homogeneous matrix ...   
+    // transform the correction into an homogeneous matrix ...
     vpColVector poseccMo = posecMo - integralLbk_ + E_;
     v = convert(poseccMo);
     return v;
@@ -185,7 +185,7 @@ protected:
   /// \brief waist position w.r.t world frame.
   signalMatrixHomoIn_t wMwaist_;
   /// \brief com position w.r.t world frame.
-  signalMatrixHomoIn_t wMcom_;
+  signalVectorIn_t wMcom_;
   /// \brief Camera position w.r.t. world frame.
   signalMatrixHomoIn_t wMcamera_;
 
@@ -266,7 +266,7 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
 
     wMcom_ (dg::nullptr,
 	      MAKE_SIGNAL_STRING
-	      (name, true, "MatrixHomo", "wMcom")),
+	      (name, true, "Vector", "wMcom")),
     wMwaist_ (dg::nullptr,
 	      MAKE_SIGNAL_STRING
 	      (name, true, "MatrixHomo", "wMwaist")),
@@ -323,6 +323,8 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
   task_.setServo (vpServo::EYEINHAND_CAMERA);
   task_.setInteractionMatrixType (vpServo::CURRENT);
   task_.setLambda (lambda_);
+
+  //outputPgVelocity_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
   addCommand
@@ -395,8 +397,9 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velCom, int t)
       velCom.resize (3);
       velCom.setZero ();
     }
-  if (!initialized_)
+  if (!initialized_ || inputPgVelocity_ (t).size() != 3)
     {
+      velCom.resize (3);
       velCom.setZero ();
       return velCom;
     }
@@ -436,7 +439,9 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velCom, int t)
   // Convert input com velocity.
   vpColVector inputComVel (3);
   for (unsigned i = 0; i < 3; ++i)
-    inputComVel[i] = inputPgVelocity_ (t) (i);
+    {
+      inputComVel[i] = inputPgVelocity_ (t) (i);
+    }
 
   // Compute the difference between the reference and the current
   // velocity.
@@ -445,6 +450,7 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velCom, int t)
   bk[1] = inputComVel[1] - dcom[1];
   bk[2] = bk[3] = bk[4] = 0.;
   bk[5] = inputComVel[2] - dcom[2];
+
 
   // Here we compute the control law without the correction
   // but we only use the interaction matrix L.
@@ -475,13 +481,12 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velCom, int t)
     {
       stop ();
       for (unsigned i = 0; i < 3; ++i)
-      velCom (i) = 0.;
+	velCom (i) = 0.;
     }
   else
     // Fill signal.
     for (unsigned i = 0; i < 3; ++i)
       velCom (i) = correctedVelComBounded[i];
-
   return velCom;
 }
 
@@ -532,9 +537,17 @@ SwayMotionCorrection::velocitySaturation (const vpColVector& velocity)
 vpVelocityTwistMatrix
 SwayMotionCorrection::fromComToCameraTwist (int t)
 {
-  vpHomogeneousMatrix cameraMcom =
-    convert (wMcamera_ (t).inverse () * wMcom_ (t));
-  vpVelocityTwistMatrix cameraVcom (cameraMcom);
+  ml::Vector wMcom (4);
+  for (unsigned i = 0; i < 3; ++i)
+    wMcom (i) = wMcom_ (t) (i);
+  wMcom (3) = 1.;
+
+  ml::Vector cameraMcom =
+    wMcamera_ (t).inverse () * wMcom;
+  vpHomogeneousMatrix cameraMcom_;
+  for (unsigned i = 0; i < 3; ++i)
+    cameraMcom_[i][3] = cameraMcom (i);
+  vpVelocityTwistMatrix cameraVcom (cameraMcom_);
   return cameraVcom;
 }
 

@@ -24,10 +24,14 @@ from dynamic_graph.sot.motion_planner.feet_follower import SwayMotionCorrection
 robot = Hrp2Laas("robot")
 s = SwayMotionCorrection('s')
 
+robot.device.control.value = (0.,) * 36
+
 plug(robot.frames['cameraBottomLeft'].position, s.wMcamera)
 plug(robot.dynamic.waist, s.wMwaist)
+plug(robot.dynamic.com, s.wMcom)
 plug(robot.dynamic.Jcom, s.Jcom)
-plug(robot.device.state, s.qdot)
+plug(robot.dynamic.Jwaist, s.Jwaist)
+plug(robot.device.control, s.qdot)
 
 I = ((1., 0., 0., 0.),
      (0., 1., 0., 0.),
@@ -36,7 +40,10 @@ I = ((1., 0., 0., 0.),
 
 s.cMo.value = I
 s.cMoTimestamp.value = (0., 0.)
-s.initialize()
+
+cdMo = I
+t = 0
+s.initialize(cdMo, t)
 
 def recomputeVelocity(cMo = I, inputPgVelocity = (0., 0., 0.)):
     global s
