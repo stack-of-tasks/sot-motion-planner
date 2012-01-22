@@ -130,22 +130,24 @@ class LegsFollowerGraph(object):
 	print("Legs Task")
         self.legsTask = Task(self.robot.name + '_legs')
         self.legsFeature = FeatureGeneric(self.robot.name + '_legsFeature')
-        self.legsFeatureDes = FeatureGeneric(self.robot.name + '_legsFeatureDes')
+        legsFeatureDesName = self.robot.name + '_legsFeatureDes'
+        self.legsFeatureDes = FeatureGeneric(legsFeatureDesName)
         self.legsError = LegsError('LegsError')
         plug(self.robot.device.state, self.legsError.state)
-        plug(self.legsError.error, self.legsFeature.errorIN)
-        self.legsFeature.jacobianIN.value = self.legsJacobian()
-	plug(self.legsFollower.ldof, self.legsFeatureDes.errorIN)
-        self.legsFeature.sdes.value = self.legsFeatureDes
+
+        self.legsFeature.setReference(legsFeatureDesName)
+        self.legsFeatureDes.errorIN.value = self.legsFollower.ldof.value        
+        self.legsFeature.jacobianIN.value = self.legsJacobian().value
+        plug(self.legsError.error, self.legsFeature.errorIN)            
+
         self.legsTask.add(self.legsFeature.name)
         self.legsTask.controlGain.value = 5.
-
 
 	#CoM task
         print("Com Task")
         print (0., 0., self.robot.dynamic.com.value[2])
 	self.robot.comTask.controlGain.value = 50.
-        self.robot.featureComDes.errorIN.value = (0., 0., self.robot.dynamic.com.value[2])
+        self.robot.featureComDes.errorIN.value =  (0., 0., self.robot.dynamic.com.value[2])
         self.robot.featureCom.selec.value = '111'
 	plug(self.legsFollower.com, self.robot.featureComDes.errorIN)
 
