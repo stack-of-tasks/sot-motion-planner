@@ -17,6 +17,7 @@
 
 print("Run legs_follower_graph.py  v2.0.")
 import time
+import rpdb2; 
 
 from dynamic_graph import plug
 
@@ -135,9 +136,12 @@ class LegsFollowerGraph(object):
         self.legsError = LegsError('LegsError')
         plug(self.robot.device.state, self.legsError.state)
 
+        rpdb2.start_embedded_debugger('password')
+        # self.legsFeatureDes.errorIN.value = self.legsFollower.ldof.value        
+        plug(self.legsFollower.ldof,self.legsFeatureDes.errorIN)
+        self.legsFeature.jacobianIN.value = self.legsJacobian()
+
         self.legsFeature.setReference(legsFeatureDesName)
-        self.legsFeatureDes.errorIN.value = self.legsFollower.ldof.value        
-        self.legsFeature.jacobianIN.value = self.legsJacobian().value
         plug(self.legsError.error, self.legsFeature.errorIN)            
 
         self.legsTask.add(self.legsFeature.name)
