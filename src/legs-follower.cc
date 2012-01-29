@@ -33,8 +33,6 @@
 #include <dynamic-graph/null-ptr.hh>
 #include <dynamic-graph/pool.h>
 #include <dynamic-graph/signal-time-dependent.h>
-#define VP_DEBUG
-#define VP_DEBUG_MODE 40
 #include <sot/core/debug.hh>
 
 #include <sot/core/matrix-homogeneous.hh>
@@ -370,7 +368,9 @@ LegsFollower::updateRefFromCorba()
   int begin = (int) (r(2)/0.005 + 0.001);
   int end   = (int) (r(3)/0.005 + 0.001);
 
-  std::cout << t_ << " New message : ID "<< lastID << " with " << r.size() << " values, from " << begin*0.005 << " to " << end*0.005 << ", end of path = "<< endOfPath <<"."<< std::endl;
+  std::cout << t_ << " New message : ID "<< lastID << " with " << r.size() 
+	    << " values, from " << begin*0.005 << " to " << end*0.005 
+	    << ", end of path = "<< endOfPath <<"."<< std::endl;
 
   int currIndex = t_-startIndex_;
   if( (started_ == RUN || started_ == STOP) && currIndex > begin){

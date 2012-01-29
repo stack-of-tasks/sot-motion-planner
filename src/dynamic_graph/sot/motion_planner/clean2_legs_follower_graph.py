@@ -47,13 +47,13 @@ halfSitting = (0.0, 0.0, 0.648702, 0.0, 0.0, 0.0,
 #0.261799, 0.17452999999999999, 0.0, -0.52359900000000004, 0.0, 0.0, 0.10000000000000001)
 
 
-def oneVector(i):
-    r = [0.,] * 36
+def oneVector(i,statelength):
+    r = [0.,] * statelength
     r[i] = 1.
     return tuple(r)
 
-def zeroVector():
-    r = [0.,] * 36
+def zeroVector(statelength):
+    r = [0.,] * statelength
     return tuple(r)
 
 class LegsFollowerGraph(object):
@@ -82,6 +82,7 @@ class LegsFollowerGraph(object):
         self.robot = robot
         self.solver = solver
 	self.legsFollower = LegsFollower('legs-follower')
+        self.statelength = len(robot.device.state.value)
 
  	# Initialize the posture task.
 	print("Posture Task")
@@ -94,18 +95,6 @@ class LegsFollowerGraph(object):
                     self.postureTaskDofs.append((i + 6, False))
                 else:
                     self.postureTaskDofs.append((i + 6, True))
-
-        #self.postureTask = Task(self.robot.name + '_posture')
-        #self.postureFeature = FeatureGeneric(self.robot.name + '_postureFeature')
-        #self.postureFeatureDes = FeatureGeneric(self.robot.name + '_postureFeatureDes')
-        #self.postureError = PostureError('PostureError')
-        #plug(self.robot.device.state, self.postureError.state)
-        #plug(self.postureError.error, self.postureFeature.errorIN)
-        #self.postureFeature.jacobianIN.value = self.postureJacobian()
-        #self.postureFeatureDes.errorIN.value = self.computeDesiredValue()
-        #self.postureFeature.sdes.value = self.postureFeatureDes
-        #self.postureTask.add(self.postureFeature.name)
-        #self.postureTask.controlGain.value = 2.
         
         # This part is taken from feet_follower_graph
         self.postureTask = Task(self.robot.name + '_posture')
@@ -179,18 +168,18 @@ class LegsFollowerGraph(object):
     def legsJacobian(self):
         j = []
         for i in xrange(12):
-            j.append(oneVector(6+i)) 
+            j.append(oneVector(6+i,self.statelength)) 
         return tuple(j)
 
     def waistJacobian(self):
         j = []
         for i in xrange(6):
-            j.append(oneVector(i)) 
+            j.append(oneVector(i,self.statelength)) 
         return tuple(j)
 
     def postureJacobian(self):
         j = []
-        for i in xrange(36):
+        for i in xrange(self.statelength):
             if i >= 6 + 2 * 6:
                 j.append(oneVector(i))
             if i == 3 or i == 4:
