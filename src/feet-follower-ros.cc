@@ -228,7 +228,7 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 {
   try
     {
-      ros::NodeHandle& nh = dynamicgraph::rosInit();
+      ros::NodeHandle& nh = dynamicgraph::rosInit(false);
       std::string trajectory;
       if (!nh.getParam (rosParameter, trajectory))
 	throw std::runtime_error ("failed to retrieve trajectory");
