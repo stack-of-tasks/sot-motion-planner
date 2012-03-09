@@ -15,6 +15,8 @@
 
 INCLUDE(../cmake/python.cmake)
 
+FINDPYTHON()
+
 INCLUDE_DIRECTORIES(${Eigen_INCLUDE_DIRS})
 
 FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
@@ -89,16 +91,6 @@ SET(FEET_FOLLOWER_SOURCES
   )
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
-
-
-EXEC_PROGRAM(
-  ${PYTHON_EXECUTABLE}
-  ARGS
-  "-c \"from distutils import sysconfig; print sysconfig.get_python_lib(0,0,prefix='')\""
-  OUTPUT_VARIABLE PYTHON_SITELIB
-  )
-
-
 
 SET(TRAJECTORY_PATH "${CMAKE_SOURCE_DIR}/tests")
 CONFIG_FILES(dynamic_graph/sot/motion_planner/feet_follower_graph.py)
