@@ -19,7 +19,7 @@ from __future__ import print_function
 import numpy as np
 from dynamic_graph import plug
 from dynamic_graph.sot.core import RobotSimu
-from dynamic_graph.sot.core.binary_op import Multiply_matrix_vector
+from dynamic_graph.sot.core.operator import Multiply_matrix_vector
 from dynamic_graph.sot.motion_planner.feet_follower import \
     ErrorEstimator
 from dynamic_graph.sot.motion_planner.feet_follower import \
