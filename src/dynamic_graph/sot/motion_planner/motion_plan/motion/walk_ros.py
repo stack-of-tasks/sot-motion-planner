@@ -98,7 +98,7 @@ class MotionWalkRos(Motion):
         # Upper body posture
         self.posture = FeatureGeneric("{0}_posture".format(self.name))
         self.postureDes = FeatureGeneric("{0}_posture_des".format(self.name))
-        self.posture.sdes.value = self.postureDes
+        self.posture.setReference (self.postureDes.name)
 
         plug(self.robot.device.state, self.posture.errorIN)
         self.posture.jacobianIN.value = self.jacobianPosture()

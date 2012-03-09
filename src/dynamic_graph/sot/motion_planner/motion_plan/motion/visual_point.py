@@ -64,7 +64,7 @@ class MotionVisualPoint(Motion):
         plug(self.vispPointProjection.Z, self.fvp.Z)
 
         self.fvp.Z.value = 1.
-        self.fvp.sdes.value = self.fvpDes
+        self.fvp.setReference (self.fvpDes.name)
         self.fvp.selec.value = '11'
         plug(motion.robot.frames[self.frameName].jacobian, self.fvp.Jq)
 
