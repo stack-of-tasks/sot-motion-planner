@@ -54,6 +54,15 @@ baseLinkPlanFrameId = rospy.get_param(
     '~base_link_plan_frame_id', '/plan_left_ankle') #FIXME:
 mapFrameId = rospy.get_param('~map_frame_id', '/world')
 planFrameId = rospy.get_param('~plan_frame_id', '/world')
+timeOffset = rospy.get_param('~offset', 0.) #FIXME:
+
+banner  =  "Starting error estimation.\n"
+banner += "* base link (map):   {0}\n".format(baseLinkMapFrameId)
+banner += "* base link (world): {0}\n".format(baseLinkPlanFrameId)
+banner += "* map frame:         {0}\n".format(mapFrameId)
+banner += "* plan frame:        {0}\n".format(planFrameId)
+banner += "* time offset:       {0}\n".format(timeOffset)
+rospy.loginfo(banner)
 
 tl = tf.TransformListener(True, rospy.Duration(10.))
 
@@ -87,7 +96,7 @@ rospy.loginfo("started")
 
 # This delay has been experimentally setup for the LAAS motion capture
 # system.
-offsetPlan = rospy.Duration(-1.)
+offsetPlan = rospy.Duration(timeOffset)
 
 rate = rospy.Rate(10.)
 while not rospy.is_shutdown():
