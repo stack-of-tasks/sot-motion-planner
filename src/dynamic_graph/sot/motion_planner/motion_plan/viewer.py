@@ -307,6 +307,6 @@ class MotionPlanViewer(object):
         sys.stdout.write('\n')
         self.logger.info('execution finished')
         self.storePositions()
-        if self.plan.trace:
-            self.plan.trace.dump()
+        if self.robot.tracer:
+            self.robot.tracer.dump()
         self.plan.stop()
