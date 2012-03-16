@@ -300,13 +300,44 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 	  //FIXME: not generic enough.
 	  waistYawElt (0) = reader.postureTrajectory ().data ()[i].position[0];
 
-	  for (unsigned i = 0; i < 6 + 12; ++i)
-	    postureElt (i) = 0.;
+	  // Yaw only.
+	  if (reader.postureTrajectory ().data ()[i].position.rows () == 1)
+	    {
+	      // Set to half-sitting.
+	      static const double halfSitting[36] = {
+		// Free flyer
+		0., 0., 0.648702, 0., 0. , 0.,
 
-	  for (unsigned j = 0; j < postureElt.size () - 6 - 12; ++j)
-	    postureElt (j + 6 + 12) =
-	      reader.postureTrajectory ().data ()[i].position[j + 1];
+		// Legs
+		0., 0., -0.453786, 0.872665, -0.418879, 0.,
+		0., 0., -0.453786, 0.872665, -0.418879, 0.,
 
+		// Chest and head
+		0., 0., 0., 0.,
+
+		// Arms
+		0.261799, -0.17453, 0., -0.523599, 0., 0., 0.1,
+		0.261799, 0.17453,  0., -0.523599, 0., 0., 0.1
+	      };
+
+	      for (unsigned i = 0; i < 6 + 30; ++i)
+		postureElt (i) = halfSitting[i];
+
+	      // Override yaw using data.
+	      postureElt (5) =
+		reader.postureTrajectory ().data ()[i].position[0];
+	    }
+	  // Full body.
+	  else if
+	    (reader.postureTrajectory ().data ()[i].position.rows () == 36)
+	    {
+	      for (unsigned i = 0; i < 6 + 12; ++i)
+		postureElt (i) = 0.;
+
+	      for (unsigned j = 0; j < postureElt.size () - 6 - 12; ++j)
+		postureElt (j + 6 + 12) =
+		  reader.postureTrajectory ().data ()[i].position[j + 1];
+	    }
 
 	  leftFootData.push_back (leftFootElt);
 	  rightFootData.push_back (rightFootElt);
