@@ -51,12 +51,18 @@ public:
 
   void parseTrajectory (const std::string& trajectory);
 
+  bool canStart () const
+  {
+    return ready_;
+  }
+
 private:
   virtual void impl_update ();
   virtual void impl_start ();
   void updateVelocities ();
 
 private:
+  volatile bool ready_;
   boost::optional<WalkMovement> trajectories_;
   boost::optional<walk::PatternGenerator2d::footprints_t> footprints_;
   unsigned index_;

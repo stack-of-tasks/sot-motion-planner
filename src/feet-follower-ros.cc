@@ -19,9 +19,11 @@
 
 #include <sstream>
 
+#include <boost/bind.hpp>
 #include <boost/foreach.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/thread.hpp>
 
 #include "common.hh"
 #include "discretized-trajectory.hh"
@@ -57,20 +59,43 @@ namespace command
       const std::vector<Value>& values = getParameterValues();
       const std::string rosParameter = values[0].value();
 
-      feetFollowerRos.parseTrajectory (rosParameter);
+      boost::thread
+	(boost::bind
+	 (&FeetFollowerRos::parseTrajectory,
+	  boost::ref (feetFollowerRos), rosParameter));
       return Value ();
+    }
+  };
+
+  class CanStart : public Command
+  {
+  public:
+    CanStart (FeetFollowerRos& entity,
+			const std::string& docstring)
+      : Command (entity, std::vector<Value::Type> (), docstring)
+    {}
+
+    virtual Value doExecute ()
+    {
+      FeetFollowerRos& feetFollowerRos =
+	static_cast<FeetFollowerRos&> (owner ());
+
+      return Value (feetFollowerRos.canStart ());
     }
   };
 } // end of namespace command.
 
 FeetFollowerRos::FeetFollowerRos (const std::string& name)
   : FeetFollower (name),
+    ready_ (false),
     trajectories_ (),
     footprints_ (),
     index_ (0)
 {
   std::string docstring = "";
   addCommand ("parseTrajectory", new command::RetrieveTrajectory
+	      (*this, docstring));
+  addCommand ("canStart", new command::CanStart
 	      (*this, docstring));
 }
 
@@ -80,6 +105,8 @@ FeetFollowerRos::~FeetFollowerRos ()
 void
 FeetFollowerRos::impl_start ()
 {
+  if (!ready_)
+    throw std::runtime_error ("failed to call start");
   std::cout << "FeetFollower ROS started" << std::endl;
 }
 
@@ -213,12 +240,12 @@ FeetFollowerRos::impl_update ()
     ++index_;
 }
 
-class ReaderPatternGenerator2d : public walk::PatternGenerator2d
-{
-public:
-  virtual void computeTrajectories()
-  {}
-};
+// class ReaderPatternGenerator2d : public walk::PatternGenerator2d
+// {
+// public:
+//   virtual void computeTrajectories()
+//   {}
+// };
 
 // FIXME: here we make the assumption that the trajectory
 // contains data points which are discretized every 5ms.
@@ -226,6 +253,7 @@ public:
 void
 FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 {
+  ready_ = false;
   try
     {
       ros::NodeHandle& nh = dynamicgraph::rosInit(false);
@@ -238,7 +266,8 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
       typedef boost::shared_ptr<sot::DiscretizedTrajectory> trajectoryPtr_t;
       std::stringstream ss;
       ss << trajectory;
-      walk::YamlReader<ReaderPatternGenerator2d> reader (ss);
+
+      walk::YamlReader<walk::PatternGenerator2d> reader (ss);
 
       walk::TimeDuration td = reader.leftFootTrajectory ().computeLength ();
       interval_t range
@@ -261,6 +290,7 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
       vector_t zmpElt (2);
       vector_t waistYawElt (1);
       vector_t postureElt (36);
+
       for (unsigned i = 0;
 	   i < reader.leftFootTrajectory ().data ().size (); ++i)
 	{
@@ -396,9 +426,9 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
       using namespace boost::gregorian;
       for (unsigned i = 1; i < reader.footprints ().size (); ++i)
 	{
-	  const ReaderPatternGenerator2d::footprint_t& current =
+	  const walk::PatternGenerator2d::footprint_t& current =
 	    reader.footprints ()[i];
-	  const ReaderPatternGenerator2d::footprint_t& previous =
+	  const walk::PatternGenerator2d::footprint_t& previous =
 	    reader.footprints ()[i - 1];
 
 	  t = current.beginTime.time_of_day ().total_nanoseconds () / 1e9;
@@ -424,6 +454,7 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
     {
       std::cerr << e.what () << std::endl;
     }
+  ready_ = true;
 }
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (FeetFollowerRos, "FeetFollowerRos");

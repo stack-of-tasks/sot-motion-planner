@@ -204,7 +204,7 @@ class MotionWalkRos(Motion):
             self.robot.addTrace(self.correction.name, s)
 
     def canStart(self):
-        return True #FIXME:
+        return self.feetFollower.canStart()
 
     def setAnklePosition(self):
         # Setup feet to ankle transformation.

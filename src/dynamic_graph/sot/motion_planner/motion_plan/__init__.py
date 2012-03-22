@@ -287,9 +287,14 @@ class MotionPlan(object):
         self.logger.info('motion_plan stopped')
 
     def canStart(self):
-        return (reduce(lambda acc, c: c.canStart() and acc,
-                      self.control, True) and
-                # Search for motion elements starting at t = 0.
-                reduce(lambda acc, c: (c.interval[0] == 0.
-                                       or c.canStart()) and acc,
-                       self.motion, True))
+        controlCanStart = reduce(lambda acc, c: c.canStart() or acc,
+                                 self.control, False)
+        motionCanStart = reduce(lambda acc, c: c.canStart() or acc,
+                                self.motion, False)
+
+        if len(self.control) == 0:
+            controlCanStart = True
+        if len(self.motion) == 0:
+            motionCanStart = True
+
+        return controlCanStart and motionCanStart
