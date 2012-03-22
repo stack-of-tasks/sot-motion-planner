@@ -5,5 +5,5 @@ duration: 30
 motion:
   - walk-ros:
       interval: [0, 30]
-      ros-parameter: /halfsteps_pattern_generator/walk_movement
+      ros-parameter: /walk_movement
       ros-left-ankle: /plan_left_ankle
