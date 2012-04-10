@@ -24,6 +24,8 @@
 
 #include <jrl/mathtools/angle.hh>
 
+#include <dynamic-graph/signal-caster.h>
+#include <dynamic-graph/signal-cast-helper.h>
 #include <dynamic-graph/command-setter.h>
 
 #include "common.hh"
@@ -47,7 +49,10 @@ VispPointProjection::VispPointProjection (const std::string& name)
 		   VispPointProjection::updateXy, "Vector")),
     zOut_ (INIT_SIGNAL_OUT
 		  ("Z",
-		   VispPointProjection::updateZ, "double"))
+		   VispPointProjection::updateZ, "double")),
+    now_ ("VispProjection("+name+")::output(boost::posix_time::ptime)::now"),
+    cMoTimestampOut_ ("VispProjection("+name+
+		      ")::output(boost::posix_time::ptime)::cMoBoostPtime")
 {
   signalRegistration (cMoIn_<< cMoTimestampIn_ << xyOut_ << zOut_);
   xyOut_.setNeedUpdateFromAllChildren (true);
@@ -74,6 +79,11 @@ VispPointProjection::update (int t)
   boost::posix_time::ptime cMoTime =
     sot::motionPlanner::timestampToDateTime (cMoTimestampIn_ (t));
 
+  now_.setConstant (now);
+  cMoTimestampOut_.setConstant (cMoTime);
+  now_.setTime (t);
+  cMoTimestampOut_.setTime (t);
+
   // If z is near zero or cMo too old (tracking may have been
   // lost), set to zero to stop the movement.
   if (now - cMoTime > seconds (1) || std::fabs (Z) < 1e-6)
@@ -91,3 +101,6 @@ VispPointProjection::update (int t)
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (VispPointProjection,
 				    "VispPointProjection");
+
+dynamicgraph::DefaultCastRegisterer <boost::posix_time::ptime>
+ptimeCastRegisterer;

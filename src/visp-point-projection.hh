@@ -41,6 +41,8 @@ public:
   /// \brief Output double signal.
   typedef dg::SignalTimeDependent<double, int>
   signalDoubleOut_t;
+  /// Output ptime signal
+  typedef dg::Signal <boost::posix_time::ptime, int> signalPtimeOut_t;
 
 
   /// \name Constructor and destructor.
@@ -80,6 +82,10 @@ private:
   signalVectorOut_t xyOut_;
   /// \brief Z
   signalDoubleOut_t zOut_;
+  /// Time when calling update method
+  signalPtimeOut_t now_;
+  /// cMo time stamp as <boost::posix_time::ptime
+  signalPtimeOut_t cMoTimestampOut_;
 };
 
 #endif //! SOT_MOTION_PLANNER_VISP_POINT_PROJECTION_HH
