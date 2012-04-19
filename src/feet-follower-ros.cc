@@ -32,7 +32,7 @@
 
 #include <dynamic_graph_bridge/ros_init.hh>
 #include <walk_interfaces/pattern-generator.hh>
-#include <walk_interfaces/yaml.hh>
+#include <walk_interfaces/binary.hh>
 
 const double FeetFollowerRos::STEP = 0.005;
 
@@ -240,13 +240,6 @@ FeetFollowerRos::impl_update ()
     ++index_;
 }
 
-// class ReaderPatternGenerator2d : public walk::PatternGenerator2d
-// {
-// public:
-//   virtual void computeTrajectories()
-//   {}
-// };
-
 // FIXME: here we make the assumption that the trajectory
 // contains data points which are discretized every 5ms.
 // This is not necessary the case!
@@ -267,7 +260,7 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
       std::stringstream ss;
       ss << trajectory;
 
-      walk::YamlReader<walk::PatternGenerator2d> reader (ss);
+      walk::BinaryReader<walk::ReaderPatternGenerator2d> reader (ss);
 
       walk::TimeDuration td = reader.leftFootTrajectory ().computeLength ();
       interval_t range
@@ -426,9 +419,9 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
       using namespace boost::gregorian;
       for (unsigned i = 1; i < reader.footprints ().size (); ++i)
 	{
-	  const walk::PatternGenerator2d::footprint_t& current =
+	  const walk::ReaderPatternGenerator2d::footprint_t& current =
 	    reader.footprints ()[i];
-	  const walk::PatternGenerator2d::footprint_t& previous =
+	  const walk::ReaderPatternGenerator2d::footprint_t& previous =
 	    reader.footprints ()[i - 1];
 
 	  t = current.beginTime.time_of_day ().total_nanoseconds () / 1e9;

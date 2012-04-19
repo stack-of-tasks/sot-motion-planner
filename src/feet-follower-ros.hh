@@ -25,6 +25,36 @@
 # include "discretized-trajectory.hh"
 # include "feet-follower.hh"
 
+namespace walk
+{
+  struct ReaderPatternGenerator2d;
+  template <>
+  struct PatternGeneratorTraits<ReaderPatternGenerator2d>
+  {
+    /// \brief Footprint definition.
+    typedef walk::StampedFootprint2d Footprint;
+
+    /// \brief Trajectory in \f$SO(3)\f$.
+    typedef DiscretizedTrajectory<StampedPosition3d> Trajectory3d;
+    /// \brief Trajectory in \f$SO(2)\f$.
+    typedef DiscretizedTrajectory<StampedPosition2d> Trajectory2d;
+    /// \brief Trajectory in \f$R^2\f$.
+    typedef DiscretizedTrajectory<StampedVector2d> TrajectoryV2d;
+    /// \brief Trajectory in \f$R^3\f$.
+    typedef DiscretizedTrajectory<StampedVector3d> TrajectoryV3d;
+    /// \brief Trajectory in \f$R^n\f$.
+    typedef DiscretizedTrajectory<StampedVectorNd> TrajectoryNd;
+  };
+
+  class ReaderPatternGenerator2d
+    : public walk::PatternGenerator<ReaderPatternGenerator2d>
+  {
+  public:
+    virtual void computeTrajectories()
+    {}
+  };
+} // end of namespace walk.
+
 class FeetFollowerRos : public FeetFollower
 {
   DYNAMIC_GRAPH_ENTITY_DECL ();
@@ -64,7 +94,7 @@ private:
 private:
   volatile bool ready_;
   boost::optional<WalkMovement> trajectories_;
-  boost::optional<walk::PatternGenerator2d::footprints_t> footprints_;
+  boost::optional<walk::ReaderPatternGenerator2d::footprints_t> footprints_;
   unsigned index_;
 };
 
