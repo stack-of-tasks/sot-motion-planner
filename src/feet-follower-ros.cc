@@ -250,18 +250,20 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
   try
     {
       ros::NodeHandle& nh = dynamicgraph::rosInit(false);
-      std::string trajectory;
+      XmlRpc::XmlRpcValue trajectory;
       if (!nh.getParam (rosParameter, trajectory))
 	throw std::runtime_error ("failed to retrieve trajectory");
 
+      std::vector<char>& rawTrajectory = trajectory;
       typedef roboptim::Function::vector_t vector_t;
       typedef roboptim::Function::discreteInterval_t interval_t;
       typedef boost::shared_ptr<sot::DiscretizedTrajectory> trajectoryPtr_t;
-      std::stringstream ss;
-      ss << trajectory;
-
+      std::stringstream ss(std::stringstream::in
+			   | std::stringstream::out
+			   | std::stringstream::binary);
+      for (unsigned i = 0; i < rawTrajectory.size(); ++i)
+	ss << rawTrajectory[i];
       walk::BinaryReader<walk::ReaderPatternGenerator2d> reader (ss);
-
       walk::TimeDuration td = reader.leftFootTrajectory ().computeLength ();
       interval_t range
 	(0.,
