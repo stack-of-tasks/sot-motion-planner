@@ -97,6 +97,37 @@ namespace command
     virtual Value doExecute();
   };
 
+  class GetFinalLeftWristPosition : public Command
+  {
+  public:
+    GetFinalLeftWristPosition (FeetFollower& entity,
+			       const std::string& docstring);
+    virtual Value doExecute();
+  };
+
+  class GetFinalRightWristPosition : public Command
+  {
+  public:
+    GetFinalRightWristPosition (FeetFollower& entity,
+			       const std::string& docstring);
+    virtual Value doExecute();
+  };
+
+  class GetInitialLeftWristPosition : public Command
+  {
+  public:
+    GetInitialLeftWristPosition (FeetFollower& entity,
+			       const std::string& docstring);
+    virtual Value doExecute();
+  };
+
+  class GetInitialRightWristPosition : public Command
+  {
+  public:
+    GetInitialRightWristPosition (FeetFollower& entity,
+			       const std::string& docstring);
+    virtual Value doExecute();
+  };
 }
 
 
@@ -204,12 +235,16 @@ public:
   sot::MatrixHomogeneous& updateGaze (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateLeftAnkle (sot::MatrixHomogeneous& res, int t);
   sot::MatrixHomogeneous& updateRightAnkle (sot::MatrixHomogeneous& res, int t);
+  sot::MatrixHomogeneous& updateLeftWrist (sot::MatrixHomogeneous& res, int t);
+  sot::MatrixHomogeneous& updateRightWrist (sot::MatrixHomogeneous& res, int t);
   ml::Vector& updatePosture (ml::Vector& res, int t);
 
   ml::Vector& updateCoMVelocity (ml::Vector& res, int t);
   ml::Vector& updateWaistYawVelocity (ml::Vector& res, int t);
   ml::Vector& updateLeftAnkleVelocity (ml::Vector& res, int t);
   ml::Vector& updateRightAnkleVelocity (ml::Vector& res, int t);
+  ml::Vector& updateLeftWristVelocity (ml::Vector& res, int t);
+  ml::Vector& updateRightWristVelocity (ml::Vector& res, int t);
 
   double getTime () const;
 
@@ -242,6 +277,16 @@ public:
     return rightAnkleOut_;
   }
 
+  signalFoot_t& leftWristOut ()
+  {
+    return leftWristOut_;
+  }
+
+  signalFoot_t& rightWristOut ()
+  {
+    return rightWristOut_;
+  }
+
   signalCoMVelocity_t& comVelocityOut ()
   {
     return comVelocityOut_;
@@ -260,6 +305,16 @@ public:
   signalFootVelocity_t& rightAnkleVelocityOut ()
   {
     return rightAnkleVelocityOut_;
+  }
+
+  signalFootVelocity_t& leftWristVelocityOut ()
+  {
+    return leftWristVelocityOut_;
+  }
+
+  signalFootVelocity_t& rightWristVelocityOut ()
+  {
+    return rightWristVelocityOut_;
   }
 
   bool started () const
@@ -299,6 +354,27 @@ public:
     return initialRightAnklePosition_;
   }
 
+  const maal::boost::Matrix& finalLeftWristPosition () const
+  {
+    return finalLeftWristPosition_;
+  }
+
+  const maal::boost::Matrix& finalRightWristPosition () const
+  {
+    return finalRightWristPosition_;
+  }
+
+  const maal::boost::Matrix& initialLeftWristPosition () const
+  {
+    return initialLeftWristPosition_;
+  }
+
+  const maal::boost::Matrix& initialRightWristPosition () const
+  {
+    return initialRightWristPosition_;
+  }
+
+
   /// \brief Number of steps (positions) in the trajectory.
   virtual boost::optional<int> trajectorySize () const = 0;
 
@@ -313,18 +389,26 @@ protected:
   sot::MatrixHomogeneous gaze_;
   sot::MatrixHomogeneous leftAnkle_;
   sot::MatrixHomogeneous rightAnkle_;
+  sot::MatrixHomogeneous leftWrist_;
+  sot::MatrixHomogeneous rightWrist_;
   ml::Vector posture_;
 
   ml::Vector comVelocity_;
   ml::Vector waistYawVelocity_;
   ml::Vector leftAnkleVelocity_;
   ml::Vector rightAnkleVelocity_;
+  ml::Vector leftWristVelocity_;
+  ml::Vector rightWristVelocity_;
 
   double comZ_;
   sot::MatrixHomogeneous leftFootToAnkle_;
   sot::MatrixHomogeneous rightFootToAnkle_;
   sot::MatrixHomogeneous initialLeftAnklePosition_;
   sot::MatrixHomogeneous initialRightAnklePosition_;
+  sot::MatrixHomogeneous leftFootToWrist_;
+  sot::MatrixHomogeneous rightFootToWrist_;
+  sot::MatrixHomogeneous initialLeftWristPosition_;
+  sot::MatrixHomogeneous initialRightWristPosition_;
 
   bool started_;
   double startTime_;
@@ -336,6 +420,8 @@ protected:
   signalFoot_t gazeOut_;
   signalFoot_t leftAnkleOut_;
   signalFoot_t rightAnkleOut_;
+  signalFoot_t leftWristOut_;
+  signalFoot_t rightWristOut_;
   signalCoM_t postureOut_;
 
   signalCoMVelocity_t comVelocityOut_;
@@ -345,6 +431,12 @@ protected:
 
   sot::MatrixHomogeneous finalLeftAnklePosition_;
   sot::MatrixHomogeneous finalRightAnklePosition_;
+
+  signalFootVelocity_t leftWristVelocityOut_;
+  signalFootVelocity_t rightWristVelocityOut_;
+
+  sot::MatrixHomogeneous finalLeftWristPosition_;
+  sot::MatrixHomogeneous finalRightWristPosition_;
 
   void setComZ(const double& v)
   {
@@ -369,6 +461,16 @@ protected:
   void setInitialRightAnklePosition(const maal::boost::Matrix& v)
   {
     initialRightAnklePosition_ = v;
+  }
+
+  void setInitialLeftWristPosition(const maal::boost::Matrix& v)
+  {
+    initialLeftWristPosition_ = v;
+  }
+
+  void setInitialRightWristPosition(const maal::boost::Matrix& v)
+  {
+    initialRightWristPosition_ = v;
   }
 };
 

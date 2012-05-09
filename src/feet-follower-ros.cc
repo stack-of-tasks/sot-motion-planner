@@ -263,7 +263,9 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 			   | std::stringstream::binary);
       for (unsigned i = 0; i < rawTrajectory.size(); ++i)
 	ss << rawTrajectory[i];
-      walk::BinaryReader<walk::ReaderPatternGenerator2d> reader (ss);
+      //walk::BinaryReader<walk::ReaderPatternGenerator2d> reader (ss);
+      walk::BinaryReader<walk::ReaderPatternGenerator2d> reader
+	("/tmp/walk.bin");
       walk::TimeDuration td = reader.leftFootTrajectory ().computeLength ();
       interval_t range
 	(0.,

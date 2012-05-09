@@ -110,16 +110,22 @@ FeetFollower::FeetFollower (const std::string& name)
     gaze_ (),
     leftAnkle_ (),
     rightAnkle_ (),
+    leftWrist_ (),
+    rightWrist_ (),
     posture_ (36 - 6 - 12), //FIXME:
     comVelocity_ (3),
     waistYawVelocity_ (3),
     leftAnkleVelocity_ (6),
     rightAnkleVelocity_ (6),
+    leftWristVelocity_ (6),
+    rightWristVelocity_ (6),
     comZ_ (0.),
     leftFootToAnkle_ (),
     rightFootToAnkle_ (),
     initialLeftAnklePosition_ (),
     initialRightAnklePosition_ (),
+    initialLeftWristPosition_ (),
+    initialRightWristPosition_ (),
     started_ (false),
     startTime_ (-1.),
     comOut_ (INIT_SIGNAL_OUT ("com", FeetFollower::updateCoM, "Vector")),
@@ -136,6 +142,12 @@ FeetFollower::FeetFollower (const std::string& name)
     rightAnkleOut_
     (INIT_SIGNAL_OUT
      ("right-ankle", FeetFollower::updateRightAnkle, "MatrixHomo")),
+    leftWristOut_
+    (INIT_SIGNAL_OUT
+     ("left-wrist", FeetFollower::updateLeftWrist, "MatrixHomo")),
+    rightWristOut_
+    (INIT_SIGNAL_OUT
+     ("right-wrist", FeetFollower::updateRightWrist, "MatrixHomo")),
     postureOut_
     (INIT_SIGNAL_OUT
      ("posture", FeetFollower::updatePosture, "Vector")),
@@ -154,16 +166,28 @@ FeetFollower::FeetFollower (const std::string& name)
     (INIT_SIGNAL_OUT
      ("right-ankleVelocity",
       FeetFollower::updateRightAnkleVelocity, "MatrixHomo")),
+    leftWristVelocityOut_
+    (INIT_SIGNAL_OUT
+     ("left-wristVelocity",
+      FeetFollower::updateLeftWristVelocity, "MatrixHomo")),
+    rightWristVelocityOut_
+    (INIT_SIGNAL_OUT
+     ("right-wristVelocity",
+      FeetFollower::updateRightWristVelocity, "MatrixHomo")),
 
     finalLeftAnklePosition_ (),
-    finalRightAnklePosition_ ()
+    finalRightAnklePosition_ (),
+    finalLeftWristPosition_ (),
+    finalRightWristPosition_ ()
 {
   signalRegistration (zmpOut_ << comOut_ << waistYawOut_
 		      << waistOut_ << gazeOut_
 		      << leftAnkleOut_ << rightAnkleOut_
+		      << leftWristOut_ << rightWristOut_
 		      << postureOut_
 		      << comVelocityOut_ << waistYawVelocityOut_
-		      << leftAnkleVelocityOut_ << rightAnkleVelocityOut_);
+		      << leftAnkleVelocityOut_ << rightAnkleVelocityOut_
+		      << leftWristVelocityOut_ << rightWristVelocityOut_);
 
   zmpOut_.setNeedUpdateFromAllChildren (true);
   comOut_.setNeedUpdateFromAllChildren (true);
@@ -172,12 +196,16 @@ FeetFollower::FeetFollower (const std::string& name)
   gazeOut_.setNeedUpdateFromAllChildren (true);
   leftAnkleOut_.setNeedUpdateFromAllChildren (true);
   rightAnkleOut_.setNeedUpdateFromAllChildren (true);
+  leftWristOut_.setNeedUpdateFromAllChildren (true);
+  rightWristOut_.setNeedUpdateFromAllChildren (true);
   postureOut_.setNeedUpdateFromAllChildren (true);
 
   comVelocityOut_.setNeedUpdateFromAllChildren (true);
   waistYawVelocityOut_.setNeedUpdateFromAllChildren (true);
   leftAnkleVelocityOut_.setNeedUpdateFromAllChildren (true);
   rightAnkleVelocityOut_.setNeedUpdateFromAllChildren (true);
+  leftWristVelocityOut_.setNeedUpdateFromAllChildren (true);
+  rightWristVelocityOut_.setNeedUpdateFromAllChildren (true);
 
   std::string docstring;
   addCommand ("setComZ", new Setter<FeetFollower, double>
@@ -198,6 +226,14 @@ FeetFollower::FeetFollower (const std::string& name)
 	      (*this,
 	       &FeetFollower::setInitialRightAnklePosition, docstring));
 
+  addCommand ("setInitialLeftWristPosition",
+	      new Setter<FeetFollower, maal::boost::Matrix>
+	      (*this, &FeetFollower::setInitialLeftWristPosition, docstring));
+  addCommand ("setInitialRightWristPosition",
+	      new Setter<FeetFollower, maal::boost::Matrix>
+	      (*this,
+	       &FeetFollower::setInitialRightWristPosition, docstring));
+
   addCommand ("getStartTime",
 	      new Getter<FeetFollower, double>
 	      (*this,
@@ -212,6 +248,17 @@ FeetFollower::FeetFollower (const std::string& name)
 	      new command::GetFinalLeftAnklePosition (*this, docstring));
   addCommand ("getFinalRightAnklePosition",
 	      new command::GetFinalRightAnklePosition (*this, docstring));
+
+  addCommand ("getInitialLeftWristPosition",
+	      new command::GetInitialLeftWristPosition (*this, docstring));
+  addCommand ("getInitialRightWristPosition",
+	      new command::GetInitialRightWristPosition (*this, docstring));
+
+  addCommand ("getFinalLeftWristPosition",
+	      new command::GetFinalLeftWristPosition (*this, docstring));
+  addCommand ("getFinalRightWristPosition",
+	      new command::GetFinalRightWristPosition (*this, docstring));
+
 
   addCommand ("start", new command::Start (*this, docstring));
 }
@@ -317,6 +364,24 @@ FeetFollower::updateRightAnkle (sot::MatrixHomogeneous& res, int t)
   return res;
 }
 
+sot::MatrixHomogeneous&
+FeetFollower::updateLeftWrist (sot::MatrixHomogeneous& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = leftWrist_;
+  return res;
+}
+
+sot::MatrixHomogeneous&
+FeetFollower::updateRightWrist (sot::MatrixHomogeneous& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = rightWrist_;
+  return res;
+}
+
 ml::Vector&
 FeetFollower::updateCoMVelocity (ml::Vector& res, int t)
 {
@@ -350,6 +415,24 @@ FeetFollower::updateRightAnkleVelocity (ml::Vector& res, int t)
   if (t > t_)
     update (t);
   res = rightAnkleVelocity_;
+  return res;
+}
+
+ml::Vector&
+FeetFollower::updateLeftWristVelocity (ml::Vector& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = leftWristVelocity_;
+  return res;
+}
+
+ml::Vector&
+FeetFollower::updateRightWristVelocity (ml::Vector& res, int t)
+{
+  if (t > t_)
+    update (t);
+  res = rightWristVelocity_;
   return res;
 }
 
@@ -430,6 +513,51 @@ namespace command
   {
     FeetFollower& entity = static_cast<FeetFollower&>(owner ());
     return Value (entity.initialRightAnklePosition ());
+  }
+
+
+  GetFinalLeftWristPosition::GetFinalLeftWristPosition
+  (FeetFollower& entity, const std::string& docstring)
+    : Command (entity, std::vector<Value::Type> (), docstring)
+  {}
+
+  Value GetFinalLeftWristPosition::doExecute()
+  {
+    FeetFollower& entity = static_cast<FeetFollower&>(owner ());
+    return Value (entity.finalLeftWristPosition ());
+  }
+
+  GetFinalRightWristPosition::GetFinalRightWristPosition
+  (FeetFollower& entity, const std::string& docstring)
+    : Command (entity, std::vector<Value::Type> (), docstring)
+  {}
+
+  Value GetFinalRightWristPosition::doExecute()
+  {
+    FeetFollower& entity = static_cast<FeetFollower&>(owner ());
+    return Value (entity.finalRightWristPosition ());
+  }
+
+  GetInitialLeftWristPosition::GetInitialLeftWristPosition
+  (FeetFollower& entity, const std::string& docstring)
+    : Command (entity, std::vector<Value::Type> (), docstring)
+  {}
+
+  Value GetInitialLeftWristPosition::doExecute()
+  {
+    FeetFollower& entity = static_cast<FeetFollower&>(owner ());
+    return Value (entity.initialLeftWristPosition ());
+  }
+
+  GetInitialRightWristPosition::GetInitialRightWristPosition
+  (FeetFollower& entity, const std::string& docstring)
+    : Command (entity, std::vector<Value::Type> (), docstring)
+  {}
+
+  Value GetInitialRightWristPosition::doExecute()
+  {
+    FeetFollower& entity = static_cast<FeetFollower&>(owner ());
+    return Value (entity.initialRightWristPosition ());
   }
 
 
