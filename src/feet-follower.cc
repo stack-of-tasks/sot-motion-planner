@@ -79,6 +79,8 @@ computeAnklePositionInWorldFrame (double footX, double footY, double footZ, doub
 WalkMovement::WalkMovement
 (const trajectoryPtr_t& leftFoot,
  const trajectoryPtr_t& rightFoot,
+ const trajectoryPtr_t& leftWrist,
+ const trajectoryPtr_t& rightWrist,
  const trajectoryPtr_t& com,
  const trajectoryPtr_t& zmp,
  const trajectoryPtr_t& waistYaw,
@@ -88,6 +90,8 @@ WalkMovement::WalkMovement
  const sot::MatrixHomogeneous& wMw_traj)
   : leftFoot (leftFoot),
     rightFoot (rightFoot),
+    leftWrist (leftWrist),
+    rightWrist (rightWrist),
     com (com),
     zmp (zmp),
     waistYaw (waistYaw),

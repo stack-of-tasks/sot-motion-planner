@@ -47,13 +47,15 @@
 const double FeetFollowerFromFile::STEP = 0.005;
 
 WalkMovement loadFromFile(const fs::path& LeftFootPath,
-			    const fs::path& RightFootPath,
-			    const fs::path& ComPath,
-			    const fs::path& ZmpPath,
-			    const fs::path& WaistYawPath,
-			    const fs::path& WaistPath,
-			    const fs::path& GazePath,
-			    const fs::path& PosturePath,
+			  const fs::path& RightFootPath,
+			  const fs::path& LeftWristPath,
+			  const fs::path& RightWristPath,
+			  const fs::path& ComPath,
+			  const fs::path& ZmpPath,
+			  const fs::path& WaistYawPath,
+			  const fs::path& WaistPath,
+			  const fs::path& GazePath,
+			  const fs::path& PosturePath,
 			  const double& step)
 {
   return WalkMovement
@@ -61,6 +63,10 @@ WalkMovement loadFromFile(const fs::path& LeftFootPath,
      (LeftFootPath, step, "left-ankle"),
      sot::DiscretizedTrajectory::loadTrajectoryFromFile
      (RightFootPath, step, "right-ankle"),
+     sot::DiscretizedTrajectory::loadTrajectoryFromFile
+     (LeftWristPath, step, "left-wrist"),
+     sot::DiscretizedTrajectory::loadTrajectoryFromFile
+     (RightWristPath, step, "right-wrist"),
      sot::DiscretizedTrajectory::loadTrajectoryFromFile
      (ComPath, step, "com"),
      sot::DiscretizedTrajectory::loadTrajectoryFromFile
@@ -97,6 +103,8 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
   fs::path trajectoryPath (dirname);
   fs::path trajectoryLeftFootPath = trajectoryPath / "left-ankle.dat";
   fs::path trajectoryRightFootPath = trajectoryPath / "right-ankle.dat";
+  fs::path trajectoryLeftWristPath = trajectoryPath / "left-wrist.dat";
+  fs::path trajectoryRightWristPath = trajectoryPath / "right-wrist.dat";
   fs::path trajectoryComPath = trajectoryPath / "com.dat";
   fs::path trajectoryZmpPath = trajectoryPath / "zmp.dat";
   fs::path trajectoryWaistYawPath = trajectoryPath / "waist-yaw.dat";
@@ -119,6 +127,20 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
 
   if (!fs::exists (trajectoryRightFootPath)
       || fs::is_directory (trajectoryRightFootPath))
+    {
+      std::cerr << "invalid right-ankle trajectory file" << std::endl;
+      return;
+    }
+
+  if (!fs::exists (trajectoryLeftWristPath)
+      || fs::is_directory (trajectoryLeftWristPath))
+    {
+      std::cerr << "invalid left-ankle trajectory file" << std::endl;
+      return;
+    }
+
+  if (!fs::exists (trajectoryRightWristPath)
+      || fs::is_directory (trajectoryRightWristPath))
     {
       std::cerr << "invalid right-ankle trajectory file" << std::endl;
       return;
@@ -168,6 +190,8 @@ FeetFollowerFromFile::readTrajectory (const std::string& dirname)
 
   trajectories_ = loadFromFile (trajectoryLeftFootPath,
 				trajectoryRightFootPath,
+				trajectoryLeftWristPath,
+				trajectoryRightWristPath,
 				trajectoryComPath,
 				trajectoryZmpPath,
 				trajectoryWaistYawPath,

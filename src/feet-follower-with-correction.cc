@@ -142,6 +142,8 @@ FeetFollowerWithCorrection::updateVelocities ()
   //FIXME: for now just forward velocity without correction.
   referenceTrajectory_->updateLeftAnkleVelocity (leftAnkleVelocity_, t_);
   referenceTrajectory_->updateRightAnkleVelocity (rightAnkleVelocity_, t_);
+  referenceTrajectory_->updateLeftWristVelocity (leftWristVelocity_, t_);
+  referenceTrajectory_->updateRightWristVelocity (rightWristVelocity_, t_);
   referenceTrajectory_->updateCoMVelocity (comVelocity_, t_);
   referenceTrajectory_->updateWaistYawVelocity (waistYawVelocity_, t_);
 }
@@ -154,6 +156,8 @@ FeetFollowerWithCorrection::impl_update ()
 
   referenceTrajectory_->updateLeftAnkle (leftAnkle_, t_);
   referenceTrajectory_->updateRightAnkle (rightAnkle_, t_);
+  referenceTrajectory_->updateLeftWrist (leftWrist_, t_);
+  referenceTrajectory_->updateRightWrist (rightWrist_, t_);
   referenceTrajectory_->updateCoM (com_, t_);
   referenceTrajectory_->updateZmp (zmp_, t_);
   referenceTrajectory_->updateWaistYaw (waistYaw_, t_);

@@ -155,6 +155,8 @@ struct WalkMovement
 
   explicit WalkMovement (const trajectoryPtr_t& leftFoot,
 			 const trajectoryPtr_t& rightFoot,
+			 const trajectoryPtr_t& leftWrist,
+			 const trajectoryPtr_t& rightWrist,
 			 const trajectoryPtr_t& com,
 			 const trajectoryPtr_t& zmp,
 			 const trajectoryPtr_t& waistYaw,
@@ -168,6 +170,12 @@ struct WalkMovement
 
   /// \brief Right foot trajectory.
   trajectoryPtr_t rightFoot;
+
+  /// \brief Left wrist trajectory.
+  trajectoryPtr_t leftWrist;
+
+  /// \brief Right wrist trajectory.
+  trajectoryPtr_t rightWrist;
 
   /// \brief Center of mass trajectory.
   trajectoryPtr_t com;

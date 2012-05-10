@@ -126,6 +126,8 @@ FeetFollowerRos::updateVelocities ()
       waistYawVelocity_.setZero ();
       leftAnkleVelocity_.setZero ();
       rightAnkleVelocity_.setZero ();
+      leftWristVelocity_.setZero ();
+      rightWristVelocity_.setZero ();
       return;
     }
 
@@ -156,6 +158,10 @@ FeetFollowerRos::updateVelocities ()
   rightAnkleVelocity_ (0) = (rightFootNext[0] - rightFoot[0]) / STEP;
   rightAnkleVelocity_ (1) = (rightFootNext[1] - rightFoot[1]) / STEP;
   rightAnkleVelocity_ (5) = (rightFootNext[2] - rightFoot[2]) / STEP;
+
+  // for now null speed assumed.
+  leftWristVelocity_.setZero ();
+  rightWristVelocity_.setZero ();
 }
 
 void
@@ -174,6 +180,8 @@ FeetFollowerRos::impl_update ()
 
   const Trajectory::vector_t& leftFoot = (*trajectories_->leftFoot) (t);
   const Trajectory::vector_t& rightFoot = (*trajectories_->rightFoot) (t);
+  const Trajectory::vector_t& leftWrist = (*trajectories_->leftWrist) (t);
+  const Trajectory::vector_t& rightWrist = (*trajectories_->rightWrist) (t);
   const Trajectory::vector_t& zmp = (*trajectories_->zmp) (t);
   const Trajectory::vector_t& com = (*trajectories_->com) (t);
   const Trajectory::vector_t& waistYaw = (*trajectories_->waistYaw) (t);
@@ -198,6 +206,14 @@ FeetFollowerRos::impl_update ()
     computeAnklePositionInWorldFrame
     (rightFoot[0], rightFoot[1], rightFoot[2], rightFoot[3],
      rightFootToAnkle_);
+
+  // wrists
+  for (unsigned i = 0; i < 3; ++i)
+    for (unsigned j = 0; j < 3; ++j)
+      {
+	leftWrist_ (i, j) = leftWrist[i * 3 + j];
+	leftWrist_ (i, j) = rightWrist[i * 3 + j];
+      }
 
   ml::Vector comH (4);
   ml::Vector zmpH (4);
@@ -274,6 +290,8 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 
       std::vector<vector_t> leftFootData;
       std::vector<vector_t> rightFootData;
+      std::vector<vector_t> leftWristData;
+      std::vector<vector_t> rightWristData;
       std::vector<vector_t> comData;
       std::vector<vector_t> zmpData;
       std::vector<vector_t> waistYawData;
@@ -283,6 +301,8 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 
       vector_t leftFootElt (4);
       vector_t rightFootElt (4);
+      vector_t leftWristElt (9);
+      vector_t rightWristElt (9);
       vector_t comElt (3);
       vector_t zmpElt (2);
       vector_t waistYawElt (1);
@@ -312,6 +332,11 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 	    std::atan2
 	    (reader.rightFootTrajectory ().data ()[i].position (1, 0),
 	     reader.rightFootTrajectory ().data ()[i].position (0, 0));
+
+	  for (unsigned tmp = 0; tmp < 4; ++tmp)
+	    for (unsigned tmp2 = 0; tmp2 < 4; ++tmp2)
+	      leftWristElt (tmp + tmp2 * 4) =
+		reader.leftFootTrajectory ().data ()[i].position (tmp, tmp2);
 
 	  comElt (0) =
 	    reader.centerOfMassTrajectory ().data ()[i].position[0];
@@ -347,8 +372,8 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 		0.261799, 0.17453,  0., -0.523599, 0., 0., 0.1
 	      };
 
-	      for (unsigned i = 0; i < 6 + 30; ++i)
-		postureElt (i) = halfSitting[i];
+	      for (unsigned tmp = 0; tmp < 6 + 30; ++tmp)
+		postureElt (tmp) = halfSitting[tmp];
 
 	      // Override yaw using data.
 	      postureElt (5) =
@@ -358,8 +383,8 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 	  else if
 	    (reader.postureTrajectory ().data ()[i].position.rows () == 36)
 	    {
-	      for (unsigned i = 0; i < 6 + 12; ++i)
-		postureElt (i) = 0.;
+	      for (unsigned tmp = 0; tmp < 6 + 12; ++tmp)
+		postureElt (tmp) = 0.;
 
 	      for (unsigned j = 0; j < postureElt.size () - 6 - 12; ++j)
 		postureElt (j + 6 + 12) =
@@ -368,6 +393,8 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 
 	  leftFootData.push_back (leftFootElt);
 	  rightFootData.push_back (rightFootElt);
+	  leftWristData.push_back (leftWristElt);
+	  rightWristData.push_back (rightWristElt);
 	  comData.push_back (comElt);
 	  zmpData.push_back (zmpElt);
 	  waistYawData.push_back (waistYawElt);
@@ -378,6 +405,10 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 	(range, leftFootData, "left foot from ros");
       trajectoryPtr_t rightFoot = boost::make_shared<sot::DiscretizedTrajectory>
 	(range, rightFootData, "right foot from ros");
+      trajectoryPtr_t leftWrist = boost::make_shared<sot::DiscretizedTrajectory>
+	(range, leftWristData, "left wrist from ros");
+      trajectoryPtr_t rightWrist = boost::make_shared<sot::DiscretizedTrajectory>
+	(range, rightWristData, "right wrist from ros");
       trajectoryPtr_t com = boost::make_shared<sot::DiscretizedTrajectory>
 	(range, comData, "com from ros");
       trajectoryPtr_t zmp = boost::make_shared<sot::DiscretizedTrajectory>
@@ -405,7 +436,8 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 					    leftFootData[0][2], leftFootData[0][3],
 					    leftFootToAnkle_).inverse ();
 
-      trajectories_ = WalkMovement (leftFoot, rightFoot, com, zmp,
+      trajectories_ = WalkMovement (leftFoot, rightFoot,
+				    leftWrist, rightWrist, com, zmp,
 				    waistYaw, waist, gaze, posture, wMw_traj);
       footprints_ = reader.footprints ();
 

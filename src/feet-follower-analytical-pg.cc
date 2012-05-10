@@ -149,6 +149,7 @@ FeetFollowerAnalyticalPg::impl_update ()
   if (t >= Function::getUpperBound (trajectories_->leftFoot->getRange ()))
     return;
 
+  // no wrist here
   const Trajectory::vector_t& leftFoot = (*trajectories_->leftFoot) (t);
   const Trajectory::vector_t& rightFoot = (*trajectories_->rightFoot) (t);
   const Trajectory::vector_t& zmp = (*trajectories_->zmp) (t);
@@ -331,6 +332,8 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 
   std::vector<vector_t> leftFootData;
   std::vector<vector_t> rightFootData;
+  std::vector<vector_t> leftWristData;
+  std::vector<vector_t> rightWristData;
   std::vector<vector_t> comData;
   std::vector<vector_t> zmpData;
   std::vector<vector_t> waistYawData;
@@ -340,6 +343,8 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
 
   leftFootData.reserve (stepFeatures.size);
   rightFootData.reserve (stepFeatures.size);
+  leftWristData.reserve (stepFeatures.size);
+  rightWristData.reserve (stepFeatures.size);
   comData.reserve (stepFeatures.size);
   zmpData.reserve (stepFeatures.size);
   waistYawData.reserve (stepFeatures.size);
@@ -351,6 +356,8 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
     {
       vector_t leftFoot (4);
       vector_t rightFoot (4);
+      vector_t leftWrist (6);
+      vector_t rightWrist (6);
       vector_t com (3);
       vector_t zmp (3);
       vector_t waistYaw (1);
@@ -372,6 +379,10 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
       rightFoot[1] = stepFeatures.rightfootYtraj[i];
       rightFoot[2] = stepFeatures.rightfootHeight[i];
       rightFoot[3] = rightFootOrient.value ();
+
+      for (unsigned tmp = 0; tmp < 3; ++tmp)
+	for (unsigned tmp2 = 0; tmp2 < 3; ++tmp2)
+	  leftWrist[i] = rightWrist[i] = (tmp == tmp2) ? 1. : 0.;
 
       com[0] = stepFeatures.comTrajX[i];
       com[1] = stepFeatures.comTrajY[i];
@@ -487,6 +498,10 @@ FeetFollowerAnalyticalPg::generateTrajectory ()
      (range, leftFootData, "left-foot"),
      boost::make_shared<sot::DiscretizedTrajectory>
      (range, rightFootData, "right-foot"),
+     boost::make_shared<sot::DiscretizedTrajectory>
+     (range, leftWristData, "left-wrist"),
+     boost::make_shared<sot::DiscretizedTrajectory>
+     (range, rightWristData, "right-wrist"),
      boost::make_shared<sot::DiscretizedTrajectory> (range, comData, "com"),
      boost::make_shared<sot::DiscretizedTrajectory> (range, zmpData, "zmp"),
      boost::make_shared<sot::DiscretizedTrajectory>
