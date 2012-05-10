@@ -208,11 +208,11 @@ FeetFollowerRos::impl_update ()
      rightFootToAnkle_);
 
   // wrists
-  for (unsigned i = 0; i < 3; ++i)
-    for (unsigned j = 0; j < 3; ++j)
+  for (unsigned i = 0; i < 4; ++i)
+    for (unsigned j = 0; j < 4; ++j)
       {
-	leftWrist_ (i, j) = leftWrist[i * 3 + j];
-	leftWrist_ (i, j) = rightWrist[i * 3 + j];
+	leftWrist_ (i, j) = leftWrist[i * 4 + j];
+	leftWrist_ (i, j) = rightWrist[i * 4 + j];
       }
 
   ml::Vector comH (4);
@@ -279,9 +279,9 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 			   | std::stringstream::binary);
       for (unsigned i = 0; i < rawTrajectory.size(); ++i)
 	ss << rawTrajectory[i];
-      //walk::BinaryReader<walk::ReaderPatternGenerator2d> reader (ss);
-      walk::BinaryReader<walk::ReaderPatternGenerator2d> reader
-	("/tmp/walk.bin");
+      walk::BinaryReader<walk::ReaderPatternGenerator2d> reader (ss);
+      // walk::BinaryReader<walk::ReaderPatternGenerator2d> reader
+      // 	("/tmp/walk.bin");
       walk::TimeDuration td = reader.leftFootTrajectory ().computeLength ();
       interval_t range
 	(0.,
@@ -301,8 +301,8 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 
       vector_t leftFootElt (4);
       vector_t rightFootElt (4);
-      vector_t leftWristElt (9);
-      vector_t rightWristElt (9);
+      vector_t leftWristElt (4 * 4);
+      vector_t rightWristElt (4 * 4);
       vector_t comElt (3);
       vector_t zmpElt (2);
       vector_t waistYawElt (1);
@@ -335,7 +335,7 @@ FeetFollowerRos::parseTrajectory (const std::string& rosParameter)
 
 	  for (unsigned tmp = 0; tmp < 4; ++tmp)
 	    for (unsigned tmp2 = 0; tmp2 < 4; ++tmp2)
-	      leftWristElt (tmp + tmp2 * 4) =
+	      leftWristElt (tmp * 4 + tmp2) =
 		reader.leftFootTrajectory ().data ()[i].position (tmp, tmp2);
 
 	  comElt (0) =

@@ -84,7 +84,8 @@ class MotionWalkRos(Motion):
         # Operational points features/tasks.
         self.features = dict()
         self.tasks = dict()
-        for op in ['left-ankle', 'right-ankle', 'waist']:
+        for op in ['left-ankle', 'right-ankle', 'waist',
+                   'left-wrist', 'right-wrist']:
             (self.features[op], self.tasks[op]) = \
                 self.robot.createOperationalPointFeatureAndTask(
                 op, '{0}_feature_{1}'.format(self.name, op),
@@ -130,6 +131,10 @@ class MotionWalkRos(Motion):
              self.features['left-ankle'].reference)
         plug(self.correction.signal('right-ankle'),
              self.features['right-ankle'].reference)
+        plug(self.correction.signal('left-wrist'),
+             self.features['left-wrist'].reference)
+        plug(self.correction.signal('right-wrist'),
+             self.features['right-wrist'].reference)
         plug(self.correction.waistYaw, self.features['waist'].reference)
         plug(self.correction.posture, self.postureDes.errorIN)
 
@@ -154,10 +159,15 @@ class MotionWalkRos(Motion):
         #FIXME: HRP-2 specific
         unlockedDofsRleg = []
         unlockedDofsLleg = []
+        unlockedDofsRarm = []
+        unlockedDofsLarm = []
         unlockedDofsUpperBody = []
         for i in xrange(6):
             unlockedDofsRleg.append(6 + i)
             unlockedDofsLleg.append(6 + 6 + i)
+        for i in xrange(6):
+            unlockedDofsRarm.append(6 + 12 + 4 + i)
+            unlockedDofsLarm.append(6 + 12 + 4 + 7 + i)
 
         for i in xrange(len(self.robot.halfSitting) - 6 - 12):
             unlockedDofsUpperBody.append(6 + 12 + i)
@@ -170,23 +180,31 @@ class MotionWalkRos(Motion):
 
         motion.supervisor.addTask(self.postureTask.name,
                                   self.interval[0], self.interval[1],
-                                  self.priority + 4,
+                                  self.priority + 10,
                                   tuple(unlockedDofsUpperBody))
         motion.supervisor.addTask(self.comTask.name,
                                   self.interval[0], self.interval[1],
-                                  self.priority + 3,
+                                  self.priority + 9,
                                   tuple(self.extraUnlockedDofs))
         motion.supervisor.addTask(self.tasks['left-ankle'].name,
                                   self.interval[0], self.interval[1],
-                                  self.priority + 2,
+                                  self.priority + 8,
                                   tuple(unlockedDofsLleg))
         motion.supervisor.addTask(self.tasks['right-ankle'].name,
                                   self.interval[0], self.interval[1],
-                                  self.priority + 1,
+                                  self.priority + 7,
                                   tuple(unlockedDofsRleg))
+        motion.supervisor.addTask(self.tasks['left-wrist'].name,
+                                  self.interval[0], self.interval[1],
+                                  self.priority + 5,
+                                  tuple(unlockedDofsLarm))
+        motion.supervisor.addTask(self.tasks['right-wrist'].name,
+                                  self.interval[0], self.interval[1],
+                                  self.priority + 4,
+                                  tuple(unlockedDofsRarm))
         motion.supervisor.addTask(self.tasks['waist'].name,
                                   self.interval[0], self.interval[1],
-                                  self.priority,
+                                  self.priority + 6,
                                   ())
 
     def __str__(self):
