@@ -32,8 +32,11 @@ struct Correction
   (const sot::MatrixHomogeneous& positionError,
    const sot::ErrorTrajectory::interval_t& leftAnkleCorrectionInterval,
    const sot::ErrorTrajectory::interval_t& rightAnkleCorrectionInterval,
+   const sot::ErrorTrajectory::interval_t& leftWristCorrectionInterval,
+   const sot::ErrorTrajectory::interval_t& rightWristCorrectionInterval,
    const sot::ErrorTrajectory::interval_t& comCorrectionInterval,
-   const sot::ErrorTrajectory::vector_t& error)
+   const sot::ErrorTrajectory::vector_t& error,
+   const sot::ErrorTrajectory::vector_t& wristError)
     : positionError (positionError),
 
       leftAnkleCorrection
@@ -44,6 +47,14 @@ struct Correction
       (rightAnkleCorrectionInterval,
        error, "right-ankle correction"),
 
+      leftWristCorrection
+      (leftWristCorrectionInterval,
+       wristError, "left-wrist correction"),
+
+      rightWristCorrection
+      (rightWristCorrectionInterval,
+       wristError, "right-wrist correction"),
+
       comCorrection
       (comCorrectionInterval,
        error, "com correction")
@@ -53,6 +64,8 @@ struct Correction
 
   sot::ErrorTrajectory leftAnkleCorrection;
   sot::ErrorTrajectory rightAnkleCorrection;
+  sot::ErrorTrajectory leftWristCorrection;
+  sot::ErrorTrajectory rightWristCorrection;
   sot::ErrorTrajectory comCorrection;
 };
 
@@ -131,6 +144,7 @@ protected:
 			const sot::MatrixHomogeneous& error);
 
   void computeNewCorrection ();
+  void computeNewWristCorrection ();
 
 private:
   FeetFollower* referenceTrajectory_;
@@ -140,6 +154,8 @@ private:
 
   sot::MatrixHomogeneous correctionLeftAnkle_;
   sot::MatrixHomogeneous correctionRightAnkle_;
+  sot::MatrixHomogeneous correctionLeftWrist_;
+  sot::MatrixHomogeneous correctionRightWrist_;
   sot::MatrixHomogeneous correctionCom_;
 
   std::vector<boost::shared_ptr<Correction> > corrections_;

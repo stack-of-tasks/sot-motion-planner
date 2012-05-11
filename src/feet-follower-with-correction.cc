@@ -97,6 +97,8 @@ FeetFollowerWithCorrection::FeetFollowerWithCorrection (const std::string& name)
     (dg::nullptr, MAKE_SIGNAL_STRING (name, true, "MatrixHomo", "position")),
     correctionLeftAnkle_ (),
     correctionRightAnkle_ (),
+    correctionLeftWrist_ (),
+    correctionRightWrist_ (),
     correctionCom_ (),
     corrections_ (),
     maxErrorX_ (0.1),
@@ -174,6 +176,8 @@ FeetFollowerWithCorrection::impl_update ()
 
   leftAnkle_ = correctionLeftAnkle_ * leftAnkle_;
   rightAnkle_ = correctionRightAnkle_ * rightAnkle_;
+  leftWrist_ = correctionLeftWrist_ * leftWrist_;
+  rightWrist_ = correctionRightWrist_ * rightWrist_;
   comH = correctionCom_ * comH;
 
   // Correction is always the same for com and zmp.
@@ -396,7 +400,12 @@ FeetFollowerWithCorrection::computeNewCorrection ()
   if (t == supportFoot.end () || t1 == supportFoot.end ()
       || t2 == supportFoot.end () || t3 == supportFoot.end ()
       || t4 == supportFoot.end ())
-    return;
+    {
+      // We do not have enough remaining footsteps to compensate for
+      // errors, start arm trajectory correction.
+      computeNewWristCorrection ();
+      return;
+    }
 
   assert (t->second == WalkMovement::SUPPORT_FOOT_DOUBLE);
   assert (t1->second == WalkMovement::SUPPORT_FOOT_LEFT
@@ -425,6 +434,9 @@ FeetFollowerWithCorrection::computeNewCorrection ()
   sot::ErrorTrajectory::interval_t secondInterval =
     sot::ErrorTrajectory::makeInterval
     (t3->first + secondEpsilon, t4->first - secondEpsilon);
+
+  sot::ErrorTrajectory::interval_t wristInterval =
+    sot::ErrorTrajectory::makeInterval (t1->first, t4->first);
 
   // double start = t1->first + 0.15 + 0.95;
   // double end = t1->first + 0.15 + 1.05;
@@ -475,6 +487,10 @@ FeetFollowerWithCorrection::computeNewCorrection ()
      * XYThetaToMatrixHomogeneous (error)
      * p.inverse ()).accessToMotherLib ();
 
+  sot::ErrorTrajectory::vector_t errorWrist (3);
+  for (unsigned i = 0; i < 3; ++i)
+    errorWrist[i] = 0.;
+
   sot::MatrixHomogeneous previousCorrection;
   sot::MatrixHomogeneous positionError;
 
@@ -492,7 +508,9 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     (positionError,
      leftFirst ? firstInterval  : secondInterval,
      leftFirst ? secondInterval : firstInterval,
-     comCorrectionInterval, errorW);
+     wristInterval,
+     wristInterval,
+     comCorrectionInterval, errorW, errorWrist);
 
   if (shouldDelayCorrection (leftFirst,
 			     correction,
@@ -509,6 +527,22 @@ FeetFollowerWithCorrection::computeNewCorrection ()
     << "Adding new correction, offset = " << error
     << ", t = " << t_
     << ", " << (leftFirst ? 'l' : 'r') << std::endl;
+}
+
+void
+FeetFollowerWithCorrection::computeNewWristCorrection ()
+{
+  // sot::ErrorTrajectory::interval_t wristInterval =
+  //   sot::ErrorTrajectory::makeInterval (t1->first, t4->first);
+  // boost::shared_ptr<Correction> correction =
+  //   boost::make_shared<Correction>
+  //   (positionError,
+  //    leftFirst ? firstInterval  : secondInterval,
+  //    leftFirst ? secondInterval : firstInterval,
+  //    wristInterval,
+  //    wristInterval,
+  //    comCorrectionInterval, errorW, errorWrist);
+  //  corrections_.push_back (correction);
 }
 
 void
@@ -547,6 +581,8 @@ FeetFollowerWithCorrection::updateCorrection ()
 {
   correctionLeftAnkle_.setIdentity ();
   correctionRightAnkle_.setIdentity ();
+  correctionLeftWrist_.setIdentity ();
+  correctionRightWrist_.setIdentity ();
   correctionCom_.setIdentity ();
 
   if (!referenceTrajectory_ || !started_)
@@ -586,6 +622,23 @@ FeetFollowerWithCorrection::updateCorrection ()
       (currentCorrection.rightAnkleCorrection (time)) * previousCorrection;
   else
     correctionRightAnkle_ = currentCorrection.positionError;
+
+  // FIXME: For now it is 3d (x,y,theta correction), to be fixed?
+  if (before (time, currentCorrection.leftWristCorrection))
+    correctionLeftWrist_ = previousCorrection;
+  else if (contain (time, currentCorrection.leftWristCorrection))
+    correctionLeftWrist_ = XYThetaToMatrixHomogeneous
+      (currentCorrection.leftWristCorrection (time)) * previousCorrection;
+  else if (after (time, currentCorrection.leftWristCorrection))
+    correctionLeftWrist_ = currentCorrection.positionError;
+
+  if (before (time, currentCorrection.rightWristCorrection))
+    correctionRightWrist_ = previousCorrection;
+  else if (contain (time, currentCorrection.rightWristCorrection))
+    correctionRightWrist_ = XYThetaToMatrixHomogeneous
+      (currentCorrection.rightWristCorrection (time)) * previousCorrection;
+  else
+    correctionRightWrist_ = currentCorrection.positionError;
 
   if (before (time, currentCorrection.comCorrection))
     correctionCom_ = previousCorrection;
