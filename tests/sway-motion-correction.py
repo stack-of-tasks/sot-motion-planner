@@ -18,10 +18,12 @@
 from __future__ import print_function
 
 from dynamic_graph import plug
-from dynamic_graph.sot.dynamics.hrp2 import Hrp2Laas
+from dynamic_graph.sot.hrp2_14.robot import Robot
+
+robot = Robot(name = 'robot')
+
 from dynamic_graph.sot.motion_planner.feet_follower import SwayMotionCorrection
 
-robot = Hrp2Laas("robot")
 s = SwayMotionCorrection('s')
 
 plug(robot.frames['cameraBottomLeft'].position, s.wMcamera)
@@ -36,7 +38,7 @@ I = ((1., 0., 0., 0.),
 
 s.cMo.value = I
 s.cMoTimestamp.value = (0., 0.)
-s.initialize()
+s.initialize(s.cMo.value,0)
 
 def recomputeVelocity(cMo = I, inputPgVelocity = (0., 0., 0.)):
     global s
