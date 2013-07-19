@@ -14,6 +14,8 @@
 # sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
 INCLUDE(../cmake/python.cmake)
+FINDPYTHON()
+INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
 FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
   ADD_LIBRARY(${NAME} SHARED ${SOURCES})
