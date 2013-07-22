@@ -110,6 +110,7 @@ SET(FILES
   feet_follower_graph_with_correction.py
   math.py
   robot_viewer.py
+  sway_motion_correction.py
   )
 
 FOREACH(FILE ${FILES})
