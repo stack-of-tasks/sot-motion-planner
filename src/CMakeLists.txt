@@ -83,6 +83,7 @@ SET(FEET_FOLLOWER_SOURCES
   waist-error.cc
 
   sway-motion-correction.cc
+  go-to-one-position.cc
   )
 
 COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
