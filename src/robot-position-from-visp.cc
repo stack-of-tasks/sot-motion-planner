@@ -111,13 +111,15 @@ RobotPositionFromVisp::update (int t)
 
   dbgrMc_ = wMr.inverse () * wMc;
 
-  dbgcMo_ = cMc_ * cMo * cMc_.inverse ();
+  //  dbgcMo_ = cMc_ * cMo * cMc_.inverse ();
+  dbgcMo_ = cMc_ * cMo;
 
   // wMrobot = wMo * oMc * cMrobot = wMo * cMo^{-1} * robotMc^{-1}
   dbgPosition_ = wMo * dbgcMo_.inverse () * dbgrMc_.inverse ();
 
   position_ = MatrixHomogeneousToXYTheta (dbgPosition_);
-  positionTimestamp_ = cMoTimestampIn_ (t);
+  if (cMoTimestampIn_.isPluged())
+    positionTimestamp_ = cMoTimestampIn_ (t);
 }
 
 ml::Vector&
