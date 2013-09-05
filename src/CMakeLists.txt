@@ -74,6 +74,7 @@ SET(FEET_FOLLOWER_SOURCES
   visp-point-projection.cc
   error-merger.cc
   time.cc
+  simu-object-position-in-camera.cc
   supervisor.cc
 
   sway-motion-correction.cc

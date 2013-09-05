@@ -24,10 +24,13 @@
 
 GoToOnePosition::GoToOnePosition(const std::string &name)
   : dg::Entity(name),
+    ConvergenceReached_(false),
     robotPosition_(3),
     targetPosition_(3),
     pgVelocity_(3),
     gains_(3),
+    limits_up_(3),
+    limits_bottom_(3),
 
     robotPositionIn_
     (dg::nullptr,
@@ -55,11 +58,33 @@ GoToOnePosition::GoToOnePosition(const std::string &name)
               &GoToOnePosition::setGains,
               docstring));
 
+  addCommand("setUpperLimit",
+             new dg::command::Setter<GoToOnePosition,ml::Vector>
+             (*this,
+              &GoToOnePosition::setUpperLimit,
+              docstring));
+
+  addCommand("setBottomLimit",
+             new dg::command::Setter<GoToOnePosition,ml::Vector>
+             (*this,
+              &GoToOnePosition::setBottomLimit,
+              docstring));
+
+  addCommand("setConvergence",
+             new dg::command::Setter<GoToOnePosition,std::string>
+             (*this,
+              &GoToOnePosition::setConvergence,
+              docstring));
+
   for(unsigned int i=0;i<3;i++)
     {
-      gains_(i) = 1.0;
       pgVelocity_(i)=0.0;
+      gains_(i)=1.0;
     }
+  limits_up_(0) = 0.1 ; limits_bottom_(0)=-0.1;
+  limits_up_(1) = 0.03; limits_bottom_(1)=-0.03;
+  limits_up_(2) = 0.03 ;limits_bottom_(2)=-0.03;
+        
 }
 
 GoToOnePosition::~GoToOnePosition()
@@ -69,6 +94,9 @@ GoToOnePosition::~GoToOnePosition()
 void 
 GoToOnePosition::update(int t)
 {
+  if (ConvergenceReached_)
+    return;
+
   ml::Vector tmpPgVel(3);
   targetPosition_ = targetPositionIn_(t);
   robotPosition_ = robotPositionIn_(t);
@@ -76,33 +104,43 @@ GoToOnePosition::update(int t)
   // Switch to homogeneous matrix representation.
   sot::MatrixHomogeneous wMtarget = XYThetaToMatrixHomogeneous(targetPosition_);
   sot::MatrixHomogeneous wMrobot = XYThetaToMatrixHomogeneous(robotPosition_);
-  sot::MatrixHomogeneous targetMrobot = wMtarget.inverse() * wMrobot;
-  tmpPgVel = MatrixHomogeneousToXYTheta(targetMrobot);
+  sot::MatrixHomogeneous robotMtarget = wMrobot.inverse() * wMtarget;
+  tmpPgVel = MatrixHomogeneousToXYTheta(robotMtarget);
 
-  for(unsigned int i=0;i<2;i++)
+  if (sqrt(tmpPgVel(0)*tmpPgVel(0)+tmpPgVel(1)*tmpPgVel(1))<0.15)
     {
-      tmpPgVel(i) = gains_(i)*tmpPgVel(i);
-      
-      if (tmpPgVel(i)>0.1)
-        tmpPgVel(i)=0.1;
-      else if (tmpPgVel(i)<-0.1)
-        tmpPgVel(i)=-0.1;
+      pgVelocity_(0)=0.0;
+      pgVelocity_(1)=0.0;
+      pgVelocity_(2)=0.0;
+      ConvergenceReached_=true;
     }
-
-  double c=tmpPgVel(2);
-  double d= 2*M_PI- c;
-
-  if (fabs(c)<fabs(d))
-    tmpPgVel(2) = c;
   else
-    tmpPgVel(2) = d;
-
-  if (tmpPgVel(2)>0.03)
-    tmpPgVel(2)=0.03;
-  else if (tmpPgVel(2)<-0.03)
-    tmpPgVel(2)=-0.03;
-
-  pgVelocity_=tmpPgVel;    
+    {
+      for(unsigned int i=0;i<2;i++)
+        {
+          tmpPgVel(i) = gains_(i)*tmpPgVel(i);
+          
+          if (tmpPgVel(i)>limits_up_(i))
+            tmpPgVel(i)=limits_up_(i);
+          else if (tmpPgVel(i)<limits_bottom_(i))
+            tmpPgVel(i)=limits_bottom_(i);
+        }
+      
+      double c=tmpPgVel(2);
+      double d= 2*M_PI- c;
+      
+      if (fabs(c)<fabs(d))
+        tmpPgVel(2) = c;
+      else
+        tmpPgVel(2) = d;
+      
+      if (tmpPgVel(2)>limits_up_(2))
+        tmpPgVel(2)=limits_up_(2);
+      else if (tmpPgVel(2)<limits_bottom_(2))
+        tmpPgVel(2)=limits_bottom_(2);
+      
+      pgVelocity_=tmpPgVel;    
+    }
 }
 
 
@@ -113,6 +151,40 @@ GoToOnePosition::updatePgVelocity(ml::Vector & res, int t)
   update(t);
   res=pgVelocity_;
   return res;
+}
+/* --------------------------------------------------------------------- */
+/* --- DISPLAY --------------------------------------------------------- */
+/* --------------------------------------------------------------------- */
+
+void GoToOnePosition::
+display_vector(std::string title,
+               std::ostream& os, const ml::Vector &avector) const
+{
+  os << title << std::endl << "( ";
+  for(unsigned int i=0;i<2;i++)
+    os << avector(i)<< ",";
+  os << avector(2) << ")" << std::endl;
+}
+
+void GoToOnePosition::
+display( std::ostream& os ) const
+{
+  display_vector(std::string("Gains"),os,gains_);
+  display_vector(std::string("Upper limits"),os,limits_up_);
+  display_vector(std::string("Lower limits"),os,limits_bottom_);
+  os << "ConvergenceReached_:" << std::endl;
+  if (ConvergenceReached_)
+    os << "true" ;
+  else
+    os << "false" ;
+  os << std::endl;
+}
+
+std::ostream&
+operator<< ( std::ostream& os,const GoToOnePosition& g21p )
+{
+  g21p.display(os);
+  return os;
 }
     
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (GoToOnePosition,
