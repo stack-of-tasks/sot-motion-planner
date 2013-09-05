@@ -56,6 +56,29 @@ public:
     gains_ = gains;
   }
 
+  /// \brief Set the upper for the velocity
+  void setUpperLimit(const ml::Vector & limits_up)
+  {
+    limits_up_ = limits_up;
+  }
+
+  /// \brief Set the upper for the velocity
+  void setBottomLimit(const ml::Vector & limits_bottom)
+  {
+    limits_bottom_ = limits_bottom;
+  }
+
+  /// \brief Set the convergence boolean
+  void setConvergence(const std::string &Value)
+  {
+    if (Value=="true")
+      ConvergenceReached_ = false;
+    if (Value=="false")
+      ConvergenceReached_ = true;
+  }
+
+  friend std::ostream & operator << (std::ostream &os, const GoToOnePosition & ag21p);
+
 protected:
 
   /// \brief Udpate computation of pgVelocity according
@@ -67,8 +90,17 @@ protected:
   /// \brief Update the position signal.
   ml::Vector& updatePgVelocityTimestamp (ml::Vector& res, int t);
 
-
+  /// \brief Display informations on a vector of go21position.
+  void display_vector(std::string, std::ostream &, const ml::Vector &) const;
+  
+  /// \brief Display information on go21position.
+  void display(std::ostream &os) const;
+  
 private:
+
+  /// \brief Bool for convergence.
+  bool ConvergenceReached_;
+
   /// \brief Robot Position.
   ml::Vector robotPosition_;
   
@@ -80,6 +112,12 @@ private:
 
   /// \brief Gains for the velocity.
   ml::Vector gains_;
+
+  /// \brief Upper limits for the velocity.
+  ml::Vector limits_up_;
+  
+/// \brief Bottom limits for the velocity.
+  ml::Vector limits_bottom_;
 
   /// @{
   /// \brief Robot waist position estimation.
