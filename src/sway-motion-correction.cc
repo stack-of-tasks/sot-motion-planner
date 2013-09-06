@@ -29,11 +29,18 @@
 #include <visp/vpFeatureTranslation.h>
 #include <visp/vpFeatureThetaU.h>
 #include <visp/vpVelocityTwistMatrix.h>
+#include <visp/vpAdaptiveGain.h>
 
 
 #include "common.hh"
 
-static const double STEP = 0.005;
+#include <iostream>
+#include <string>
+#include <fstream>
+using namespace std;
+
+static const double STEP = 0.005; // Computation period
+static const double T = 1.6; // Walking period
 
 vpHomogeneousMatrix
 convert(sot::MatrixHomogeneous src)
@@ -107,7 +114,7 @@ protected:
   ml::Vector& updateVelocity (ml::Vector& v, int);
 
   /// \brief Is the error lower enough to stop?
-  bool shouldStop() const;
+  bool shouldStop(vpHomogeneousMatrix Error) const;
 
   /// \brief Is the control law started?
   bool initialized_;
@@ -123,7 +130,10 @@ protected:
 
   /// \brief Current desired position w.r.t to the current pose.
   vpHomogeneousMatrix cdMc_;
-
+  
+  /// \brief Current desired position w.r.t to the current waist pose.
+  vpHomogeneousMatrix cdMcwaist_;
+  
   /// \brief Translation feature handling position servoing.
   vpFeatureTranslation FT_;
   /// \brief Theta U feature handling orientation servoing.
@@ -131,9 +141,9 @@ protected:
 
   /// \brief Task computing the control law.
   vpServo task_;
-
-  /// \brief Input pattern generator velocity (signal).
-  signalVectorIn_t inputPgVelocity_;
+   
+  /// \brief Input com velocity (signal).
+  signalVectorIn_t inputdcom_;
   /// \brief Output pattern generator velocity (signal).
   signalVectorOut_t outputPgVelocity_;
 
@@ -146,11 +156,6 @@ protected:
   /// \brief Camera position w.r.t. world frame.
   signalMatrixHomoIn_t wMcamera_;
 
-  /// \brief Center of mass jacobian.
-  signalMatrixIn_t Jcom_;
-  /// \brief Joint velocities \dot{\mathbf{qdot}}
-  signalVectorIn_t qdot_;
-
   /// \brief If error is lower than this threshold then stop.
   double minThreshold_;
 
@@ -159,6 +164,21 @@ protected:
 
   /// \brief FIXME
   vpColVector integralLbk_;
+   
+  /// \brief Tab of previous E
+  double E[6][320];
+  
+  /// \brief increment of E
+  int Einc; 
+  
+  /// \brief bool to knnow if it's the first period
+  int Efp; 
+  
+  /// \brief last outputPgVelocity
+  vpColVector inputComVel;
+  
+  /// \brief mean of E_ on a period   
+  vpColVector E_tT;
 };
 
 namespace command
@@ -195,11 +215,9 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
     cdMc_ (),
     FT_ (vpFeatureTranslation::cdMc),
     FThU_ (vpFeatureThetaU::cdRc),
-
     task_ (),
-
-    inputPgVelocity_ (dg::nullptr,
-		      MAKE_SIGNAL_STRING (name, true, "Vector", "inputPgVelocity")),
+    inputdcom_ (dg::nullptr,
+		      MAKE_SIGNAL_STRING (name, true, "vector", "inputdcom")),    
     outputPgVelocity_ (INIT_SIGNAL_OUT
 		       ("outputPgVelocity",
 			SwayMotionCorrection::updateVelocity, "Vector")),
@@ -209,35 +227,27 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
     cMoTimestamp_ (dg::nullptr,
 		   MAKE_SIGNAL_STRING
 		   (name, true, "Vector", "cMoTimestamp")),
-
     wMwaist_ (dg::nullptr,
 	      MAKE_SIGNAL_STRING
 	      (name, true, "MatrixHomo", "wMwaist")),
     wMcamera_ (dg::nullptr,
 	       MAKE_SIGNAL_STRING
 	       (name, true, "MatrixHomo", "wMcamera")),
-
-    Jcom_ (dg::nullptr,
-	   MAKE_SIGNAL_STRING
-	   (name, true, "Matrix", "Jcom")),
-    qdot_ (dg::nullptr,
-	   MAKE_SIGNAL_STRING
-	   (name, true, "Vector", "qdot")),
-    minThreshold_ (0.1),
+    minThreshold_ (0.01),
     E_ (6),
-    integralLbk_ (6)
+    inputComVel(3),
+    integralLbk_ (6),
+    E_tT(6)
 {
-  signalRegistration (inputPgVelocity_ << outputPgVelocity_
-		      << cMo_ << cMoTimestamp_
-		      << wMwaist_ << wMcamera_
-		      << Jcom_ << qdot_);
+  signalRegistration (inputdcom_ << outputPgVelocity_ << cMo_ << cMoTimestamp_
+		      << wMwaist_ << wMcamera_ );
 
   for (unsigned i = 0; i < vmax_.getCols (); ++i)
     vmax_[i] = 0.;
-
+	
   task_.setServo (vpServo::EYEINHAND_CAMERA);
   task_.setInteractionMatrixType (vpServo::CURRENT);
-  task_.setLambda (lambda_);
+  task_.setLambda (lambda_/4);
 
   std::string docstring;
   addCommand
@@ -249,6 +259,13 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
     ("setMaximumVelocity",
      new command::swayMotionCorrection::SetMaximumVelocity
      (*this, docstring));
+     
+     // Signal dependencies
+  // outputPgVelocity_.addDependency ( inputdcom_ ); bug : loop between sway-motion and pg
+   outputPgVelocity_.addDependency ( cMo_ );
+   outputPgVelocity_.addDependency ( wMwaist_ );
+   outputPgVelocity_.addDependency ( wMcamera_ );
+   
 }
 
 SwayMotionCorrection::~SwayMotionCorrection ()
@@ -262,9 +279,19 @@ SwayMotionCorrection::initialize (const vpHomogeneousMatrix& cdMo, int t)
   if (initialized_)
     return;
 
-  for (unsigned i = 0; i < 6; ++i)
+  for (unsigned i = 0; i < 6; ++i){
     E_[i] = 0.;
-
+	  for (unsigned j = 0; j < 320; j++) {
+		  E[i][j]=0.;
+	  }
+  }
+  
+  Einc =0; 
+  Efp = 0;
+  
+  for (unsigned i = 0; i < 3; ++i)
+    inputComVel[i] = 0;
+   
   cdMo_ = cdMo;
   cdMc_ = cdMo_ * convert(cMo_ (t).inverse ());
 
@@ -276,12 +303,16 @@ SwayMotionCorrection::initialize (const vpHomogeneousMatrix& cdMo, int t)
 }
 
 bool
-SwayMotionCorrection::shouldStop () const
+SwayMotionCorrection::shouldStop (vpHomogeneousMatrix Error) const
 {
-  vpColVector error (3);;
-  error[0] = task_.error[0];
-  error[1] = task_.error[2];
-  error[2] = task_.error[4];
+  vpColVector error (5);
+  // Stop when error is low
+  error[0] = Error[0][3];
+  error[1] = Error[1][3];
+  // And when the error without sway motion is low
+  error[2] = task_.error[0];
+  error[3] = task_.error[1];
+  error[4] = task_.error[5];
 
   return error.infinityNorm() < minThreshold_;
 }
@@ -299,12 +330,15 @@ SwayMotionCorrection::stop ()
 // 2. Take into account the sway motion by adding a correcting term to
 // the camera velocity.
 //
+
 // 3. Change velocity frame.
 //
 // 4. Check whether we should stop.
 ml::Vector&
 SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
-{
+{      // --------------------- debug ---------------------------- //
+      ofstream fichier("/home/mgeisert/debug.txt", ios::out | ios::app);
+      
   if (velWaist.size () != 3)
     {
       velWaist.resize (3);
@@ -315,66 +349,79 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
       velWaist.setZero ();
       return velWaist;
     }
-  if (Jcom_(t).nbRows() != 3 || Jcom_(t).nbCols() != qdot_(t).size())
-    {
-      std::cerr << "bad size" << std::endl;
-
-      std::cout << Jcom_(t).nbCols() << std::endl;
-      std::cout << Jcom_(t).nbRows() << std::endl;
-
-      std::cout << qdot_(t).size() << std::endl;
-
-      velWaist.setZero ();
-      return velWaist;
-    }
-
+ 
+  // Compute distance between camera and desired camera, in the waist frame
   cdMc_ = cdMo_ * convert(cMo_ (t).inverse ());
-
-  // Compute new control law.
-  FT_.buildFrom (cdMc_);
-  FThU_.buildFrom (cdMc_);
-
-  vpColVector cVelocity_ = task_.computeControlLaw ();
-
-  // Compute correction.
-  vpColVector dcom (3);
-  ml::Vector dcom_ = Jcom_(t) * qdot_(t);
+   
+  vpHomogeneousMatrix cameraMcwaist =
+    convert (wMcamera_ (t).inverse () * wMwaist_ (t));
+    for (int i=0 ; i<3 ; i++ ) 
+      cameraMcwaist[i][3]=0;
+      
+  cdMcwaist_ =  cdMc_ *cameraMcwaist;
+  
+  // Compute sway motion correction   
+   vpColVector ComVel (3);
   for (unsigned i = 0; i < 3; ++i)
-    dcom[i] = dcom_(i);
-
-  vpColVector inputComVel (3);
-  for (unsigned i = 0; i < 3; ++i)
-    inputComVel[i] = inputPgVelocity_ (t) (i);
-
+  ComVel[i] = inputdcom_ (t)(i);
 
   vpColVector bk (6);
-  bk[0] = inputComVel[0] - dcom[0];
-  bk[1] = inputComVel[1] - dcom[1];
+  bk[0] = ComVel[0] - inputComVel[0];
+  bk[1] = ComVel[1] - inputComVel[1];
   bk[2] = bk[3] = bk[4] = 0.;
-  bk[5] = inputComVel[2] - dcom[2];
+  bk[5] = ComVel[2] - inputComVel[2];
 
-  vpColVector swayMotionCorrection = task_.L * bk;
-  integralLbk_ += swayMotionCorrection * STEP;
+  integralLbk_ += bk * STEP;
   E_ += integralLbk_ * STEP;
-
-  // Change the velocity frame from camera to waist.
-  vpVelocityTwistMatrix waistVcamera = fromCameraToWaistTwist (t);
-
-  vpColVector velWaistVisp = waistVcamera * cVelocity_;
-
-  // Compute bounded camera velocity.
+  
+  for (int i=0; i < 6; i++) {
+	  E_tT[i] = (E_[i] - E[i][Einc])/T;
+	  }
+    for (int i=0; i < 6; i++) {
+	 E[i][Einc]=E_[i]; // save E_ to calculate E_tT at the next period
+    }
+  Einc++;
+  Efp++;
+  if (Einc == 320) { Einc = 0; } 
+  
+  
+  // Add sway motion correction to the distance between cam and desired cam
+    cdMcwaist_ [0][3] = cdMcwaist_[0][3] -  (integralLbk_[0]- E_tT[0]);
+    cdMcwaist_ [1][3] = cdMcwaist_[1][3] -  (integralLbk_[1]- E_tT[1]);
+    
+  // Compute new control law.
+  FT_.buildFrom (cdMcwaist_);
+  FThU_.buildFrom (cdMcwaist_);
+  vpColVector cVelocity_ = task_.computeControlLaw ();
+  
+  // recompute control law (Visp-servoing overtaking)
+  cVelocity_[0] = - lambda_ * cdMcwaist_[0][3];
+  cVelocity_[1] = - 2.5*lambda_ * cdMcwaist_[1][3];
+      
+  // Compute bounded velocity.
   vpColVector velWaistVispBounded =
-    this->velocitySaturation (velWaistVisp);
+    this->velocitySaturation (cVelocity_);
+
+  // Modify the lateral velocity ( dead zone, velWaistVispBounded[1] must be >= 0.03 )
+  if (velWaistVispBounded[1] > 0 && velWaistVispBounded[1] < 0.03 && velWaistVispBounded[1] > 0.01) { velWaistVispBounded[1] = 0.03; }
+  if (velWaistVispBounded[1] < 0 && velWaistVispBounded[1] > -0.03 && velWaistVispBounded[1] < -0.010) { velWaistVispBounded[1] = -0.03; }
+    fichier << (task_.getError())[0] << " " << (task_.getError())[1] << " " << (task_.getError())[5] << " " << cMo_(t)(1,3) << " " << velWaistVispBounded[1] << endl;
 
   // Fill signal.
   for (unsigned i = 0; i < 3; ++i)
     velWaist (i) = velWaistVispBounded[i];
-
+    
   // If the error is low, stop.
-  if (shouldStop())
-    stop ();
+  if (shouldStop(cdMc_ * cameraMcwaist)){
+     stop (); }
+    
+  // Save Velocity command for the next loop  
+  for (unsigned i = 0; i < 3; ++i)
+  inputComVel[i] = velWaist(i);
+  
   return velWaist;
 }
+
 
 vpColVector
 SwayMotionCorrection::velocitySaturation (const vpColVector& velocity)
@@ -415,20 +462,11 @@ SwayMotionCorrection::velocitySaturation (const vpColVector& velocity)
     }
 
   vpColVector result(3);
-  for (int i=0; i<3;++i)
+  for (int i=0; i<3;++i) 
     result[i] = RawVel3ddl[i] * fac;
+
   return result;
 }
-
-vpVelocityTwistMatrix
-SwayMotionCorrection::fromCameraToWaistTwist (int t)
-{
-  vpHomogeneousMatrix waistMcamera =
-    convert (wMwaist_ (t).inverse () * wMcamera_ (t));
-  vpVelocityTwistMatrix waistVcamera (waistMcamera);
-  return waistVcamera;
-}
-
 
 DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN
 (SwayMotionCorrection, "SwayMotionCorrection");
