@@ -3,7 +3,7 @@ language: cpp
 before_install:
 - git submodule update --init --recursive
 - sudo apt-get update -qq
-- sudo apt-get install -qq doxygen doxygen-latex libboost-all-dev libeigen3-dev liblapack-dev libblas-dev gfortran python-dev python-sphinx python-numpy
+- sudo apt-get install -qq doxygen doxygen-latex libboost-all-dev libltdl-dev liblog4cxx10-dev  liblapack-dev libblas-dev gfortran python-dev python-sphinx python-numpy
 - sudo pip install cpp-coveralls --use-mirrors
 compiler:
 - clang
