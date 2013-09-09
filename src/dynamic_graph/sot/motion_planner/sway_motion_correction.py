@@ -7,6 +7,7 @@ from dynamic_graph.sot.motion_planner.feet_follower import SwayMotionCorrection,
 from dynamic_graph.sot.core.math_small_entities import Inverse_of_matrixHomo
 from dynamic_graph.ros import *
 
+
 class sway_control:
 
    def createSimuObject(self):
@@ -123,24 +124,42 @@ class garcia_sway_control(sway_control):
       robot.startTracer()
       robot.pg.parseCmd(":VSOnline 1")
    
-class dune_sway_control:
+class dune_sway_control(sway_control):
 
    def __init__(self,robot):
       sway_control.__init__(self,robot)
       # Create sway motion compensation entity
       self.smc = SwayMotionCorrection('smc')
       # -- Sway Control Part --
-  
+      
       # Plug the visp cMo into Dune Sway Control
       plug(self.rosExport.signal(self.objectName),
          self.smc.cMo)
-      plug(robot.dynamic.Jcom,self.smc.Jcom)
-      plug(robot.pg.dcomref, self.smc.inputPgVelocity)
-      plug(robot.device.control, self.smc.qdot)
+      s.cMoTimestamp.value = (0., 0.)
+      plug(robot.pg.dcomref, self.smc.inputdcom)
       plug(self.robot.frames[self.frameName].position,
          self.smc.wMcamera)
       plug(self.robot.dynamic.waist, self.smc.wMwaist)
+      
+      #initialize the loop between smc and pg (because pg needs a smc value and smc needs a pg value)
+      robot.pg.velocitydes.value = [ 0., 0., 0. ]
+      robot.pg.dcomref.recompute(0)
+      plug(self.smc.outputPgVelocity, robot.pg.velocitydes)
+      
+      #Initialize Herdt pg
+      robot.pg.parseCmd(":SetAlgoForZmpTrajectory Herdt")
+      robot.pg.parseCmd(":doublesupporttime 0.1")
+      robot.pg.parseCmd(":singlesupporttime 0.8")
+      robot.pg.parseCmd(":numberstepsbeforestop 2")
+      robot.pg.parseCmd(":setfeetconstraint XY 0.02 0.02")
 
+
+   def initialize(self,I)
+      self.smc.initialize(I,0)
+      
+   def startsmc(self,robot)
+     robot.startTracer()
+     robot.pg.parseCmd(":HerdtOnline")
 
 def prepare_gsc(robot):
    gsc=garcia_sway_control(robot)
