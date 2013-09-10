@@ -135,7 +135,7 @@ class dune_sway_control(sway_control):
       # Plug the visp cMo into Dune Sway Control
       plug(self.rosExport.signal(self.objectName),
          self.smc.cMo)
-      s.cMoTimestamp.value = (0., 0.)
+      self.smc.cMoTimestamp.value = (0., 0.)
       plug(robot.pg.dcomref, self.smc.inputdcom)
       plug(self.robot.frames[self.frameName].position,
          self.smc.wMcamera)
@@ -154,10 +154,10 @@ class dune_sway_control(sway_control):
       robot.pg.parseCmd(":setfeetconstraint XY 0.02 0.02")
 
 
-   def initialize(self,I)
+   def initialize(self,I):
       self.smc.initialize(I,0)
       
-   def startsmc(self,robot)
+   def startsmc(self,robot):
      robot.startTracer()
      robot.pg.parseCmd(":HerdtOnline")
 
@@ -170,11 +170,9 @@ def prepare_dsc(robot):
    robot.device.after.addSignal(robot.dsc.go21position.name+'.pgVelocity')
    robot.addTrace(robot.dsc.rosExport.name,'objectInCamera')
    robot.addTrace(robot.dsc.go21position.name,'pgVelocity')
-
-    
-
   
-
-
-
-
+def prepare_dunesc(robot,I):
+	dunesc=dune_sway_control(robot)
+	dunesc.initialize(I,0)
+	return dunesc
+	
