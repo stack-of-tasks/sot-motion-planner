@@ -144,6 +144,7 @@ protected:
    
   /// \brief Input com velocity (signal).
   signalVectorIn_t inputdcom_;
+  signalMatrixHomoIn_t inputcom_; // debug
   /// \brief Output pattern generator velocity (signal).
   signalVectorOut_t outputPgVelocity_;
 
@@ -179,6 +180,10 @@ protected:
   
   /// \brief mean of E_ on a period   
   vpColVector E_tT;
+  
+  //debug
+  int temps;
+  vpColVector ComVel3;
 };
 
 namespace command
@@ -217,7 +222,9 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
     FThU_ (vpFeatureThetaU::cdRc),
     task_ (),
     inputdcom_ (dg::nullptr,
-		      MAKE_SIGNAL_STRING (name, true, "vector", "inputdcom")),    
+		      MAKE_SIGNAL_STRING (name, true, "vector", "inputdcom")), 
+	inputcom_ (dg::nullptr,
+		      MAKE_SIGNAL_STRING (name, true, "matrixhomo", "inputcom")), //debug
     outputPgVelocity_ (INIT_SIGNAL_OUT
 		       ("outputPgVelocity",
 			SwayMotionCorrection::updateVelocity, "Vector")),
@@ -237,9 +244,10 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
     E_ (6),
     inputComVel(3),
     integralLbk_ (6),
-    E_tT(6)
+    E_tT(6),
+    ComVel3 (3) //debug
 {
-  signalRegistration (inputdcom_ << outputPgVelocity_ << cMo_ << cMoTimestamp_
+  signalRegistration (inputdcom_ << inputcom_ << outputPgVelocity_ << cMo_ << cMoTimestamp_ //debug
 		      << wMwaist_ << wMcamera_ );
 
   for (unsigned i = 0; i < vmax_.getCols (); ++i)
@@ -281,13 +289,15 @@ SwayMotionCorrection::initialize (const vpHomogeneousMatrix& cdMo, int t)
 
   for (unsigned i = 0; i < 6; ++i){
     E_[i] = 0.;
+    integralLbk_[i] = 0.;
 	  for (unsigned j = 0; j < 320; j++) {
 		  E[i][j]=0.;
 	  }
   }
-  
+  ComVel3[1]=0; //debug
   Einc =0; 
   Efp = 0;
+  temps=0; //debug
   
   for (unsigned i = 0; i < 3; ++i)
     inputComVel[i] = 0;
@@ -306,9 +316,9 @@ bool
 SwayMotionCorrection::shouldStop (vpHomogeneousMatrix Error) const
 {
   vpColVector error (5);
-  // Stop when error is low
-  error[0] = Error[0][3];
-  error[1] = Error[1][3];
+  // Stop when robot is between its feet
+  error[0] = (Error[0][3] - task_.error[0]);
+  error[1] = (Error[1][3] - task_.error[1]);
   // And when the error without sway motion is low
   error[2] = task_.error[0];
   error[3] = task_.error[1];
@@ -364,27 +374,35 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
    vpColVector ComVel (3);
   for (unsigned i = 0; i < 3; ++i)
   ComVel[i] = inputdcom_ (t)(i);
-
+  
+  // debug
+  vpColVector ComVel2 (3);
+  ComVel2[1] = inputcom_ (t)(1,3);
+  //
+  
+ 
+  //debug
   vpColVector bk (6);
   bk[0] = ComVel[0] - inputComVel[0];
-  bk[1] = ComVel[1] - inputComVel[1];
+  bk[1] = ComVel[1] ;//- inputComVel[1];
   bk[2] = bk[3] = bk[4] = 0.;
   bk[5] = ComVel[2] - inputComVel[2];
-
+  ComVel3[1] = ComVel2[1];
   integralLbk_ += bk * STEP;
   E_ += integralLbk_ * STEP;
+  //
   
   for (int i=0; i < 6; i++) {
-	  E_tT[i] = (E_[i] - E[i][Einc])/T;
-	  }
-    for (int i=0; i < 6; i++) {
+	 E_tT[i] = (E_[i] - E[i][Einc])/T;
+	}
+  for (int i=0; i < 6; i++) {
 	 E[i][Einc]=E_[i]; // save E_ to calculate E_tT at the next period
     }
   Einc++;
   Efp++;
   if (Einc == 320) { Einc = 0; } 
   
-  
+  fichier << E_tT[1] << endl;
   // Add sway motion correction to the distance between cam and desired cam
     cdMcwaist_ [0][3] = cdMcwaist_[0][3] -  (integralLbk_[0]- E_tT[0]);
     cdMcwaist_ [1][3] = cdMcwaist_[1][3] -  (integralLbk_[1]- E_tT[1]);
@@ -405,12 +423,21 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   // Modify the lateral velocity ( dead zone, velWaistVispBounded[1] must be >= 0.03 )
   if (velWaistVispBounded[1] > 0 && velWaistVispBounded[1] < 0.03 && velWaistVispBounded[1] > 0.01) { velWaistVispBounded[1] = 0.03; }
   if (velWaistVispBounded[1] < 0 && velWaistVispBounded[1] > -0.03 && velWaistVispBounded[1] < -0.010) { velWaistVispBounded[1] = -0.03; }
-    fichier << (task_.getError())[0] << " " << (task_.getError())[1] << " " << (task_.getError())[5] << " " << cMo_(t)(1,3) << " " << velWaistVispBounded[1] << endl;
 
   // Fill signal.
   for (unsigned i = 0; i < 3; ++i)
     velWaist (i) = velWaistVispBounded[i];
     
+    //debug
+    // if (temps>0) { velWaist (1) = 0.05; }
+    // if (temps>2000) { velWaist (1) = 0.07; }
+    //if (temps>4000) { velWaist (1) = 0.10; }
+    //if (temps>6000) { velWaist (1) = 0.15;}
+    //if (temps>8000) { velWaist (1) = 0.20; }
+     fichier << (task_.getError())[0] << " " << (task_.getError())[1] << " " << cdMcwaist_[1][3] << " " << bk[1] << " " << -inputComVel[1] << " " << (integralLbk_[1]- E_tT[1]) << " " << integralLbk_[1] << " " << E_tT[1] << " " << (cdMc_*cameraMcwaist)[0][3] << " " << (cdMc_*cameraMcwaist)[1][3] << " " << velWaistVispBounded[0] << " " << velWaistVispBounded[1] << endl;
+   temps++;
+   //
+   
   // If the error is low, stop.
   if (shouldStop(cdMc_ * cameraMcwaist)){
      stop (); }
