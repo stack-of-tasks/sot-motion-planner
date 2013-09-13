@@ -131,9 +131,6 @@ protected:
   /// \brief Current desired position w.r.t to the current pose.
   vpHomogeneousMatrix cdMc_;
   
-  /// \brief Current desired position w.r.t to the current waist pose.
-  vpHomogeneousMatrix cdMcwaist_;
-  
   /// \brief Translation feature handling position servoing.
   vpFeatureTranslation FT_;
   /// \brief Theta U feature handling orientation servoing.
@@ -308,8 +305,8 @@ SwayMotionCorrection::shouldStop (vpHomogeneousMatrix Error) const
 {
   vpColVector error (5);
   // Stop when robot is between its feet
-  error[0] = (Error[0][3] - task_.error[0]);
-  error[1] = (Error[1][3] - task_.error[1]);
+  error[0] = (Error[0][3] + task_.error[0]);
+  error[1] = (Error[1][3] + task_.error[1]);
   // And when the error without sway motion is low
   error[2] = task_.error[0];
   error[3] = task_.error[1];
@@ -351,15 +348,18 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
       return velWaist;
     }
  
-  // Compute distance between camera and desired camera, in the waist frame
   cdMc_ = cdMo_ * convert(cMo_ (t).inverse ());
-   
-  vpHomogeneousMatrix cameraMcwaist =
-    convert (wMcamera_ (t).inverse () * wMwaist_ (t));
-    for (int i=0 ; i<3 ; i++ ) 
-      cameraMcwaist[i][3]=0;
-      
-  cdMcwaist_ =  cdMc_ *cameraMcwaist;
+  
+  // Compute distance between camera and desired camera, in the waist frame
+  vpHomogeneousMatrix waistTc =
+    convert (wMwaist_ (t).inverse () * wMcamera_ (t));
+  vpHomogeneousMatrix cMcd = cdMc_.inverse();
+    for (int i=0 ; i<3 ; i++ ) {
+      waistTc[i][3]=0;
+  }
+  
+  vpHomogeneousMatrix cwaistMcd;
+  cwaistMcd = waistTc * cMcd;
   
   // Compute sway motion correction   
    vpColVector ComVel (3);
@@ -386,17 +386,17 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   if (Einc == 320) { Einc = 0; } 
   
   // Add sway motion correction to the distance between cam and desired cam
-  cdMcwaist_ [0][3] = cdMcwaist_[0][3] -  (integralLbk_[0]- E_tT[0]);
-  cdMcwaist_ [1][3] = cdMcwaist_[1][3] -  (integralLbk_[1]- E_tT[1]);
+  cwaistMcd [0][3] = cwaistMcd[0][3] +  (integralLbk_[0]- E_tT[0]);
+  cwaistMcd [1][3] = cwaistMcd[1][3] +  (integralLbk_[1]- E_tT[1]);
     
   // Compute new control law.
-  FT_.buildFrom (cdMcwaist_);
-  FThU_.buildFrom (cdMcwaist_);
+  FT_.buildFrom (cdMc_);
+  FThU_.buildFrom (cdMc_);
   vpColVector cVelocity_ = task_.computeControlLaw ();
   
   // recompute control law (Visp-servoing overtaking)
-  cVelocity_[0] = - lambda_ * cdMcwaist_[0][3];
-  cVelocity_[1] = - 2.5*lambda_ * cdMcwaist_[1][3];
+  cVelocity_[0] = lambda_ * cwaistMcd[0][3];
+  cVelocity_[1] = 2.5*lambda_ * cwaistMcd[1][3];
       
   // Compute bounded velocity.
   vpColVector velWaistVispBounded =
@@ -410,11 +410,12 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   for (unsigned i = 0; i < 3; ++i)
     velWaist (i) = velWaistVispBounded[i];
     
-     fichier << (task_.getError())[0] << " " << (task_.getError())[1] << (cdMc_*cameraMcwaist)[0][3] << " " << (cdMc_*cameraMcwaist)[1][3] << " " << velWaistVispBounded[0] << " " << velWaistVispBounded[1] << endl;
+     fichier << cwaistMcd[0][3] << " " << cwaistMcd[1][3] << " " << (waistTc * cMcd)[0][3] << " " << (waistTc * cMcd)[1][3] << " " << velWaistVispBounded[0] << " " << velWaistVispBounded[1] << endl;
 
-   
+    velWaist (0)=0;
+    velWaist (1)=0;
   // If the error is low, stop.
-  if (shouldStop(cdMc_ * cameraMcwaist)){
+  if (shouldStop(cwaistMcd)){
      stop (); }
     
   // Save Velocity command for the next loop  
