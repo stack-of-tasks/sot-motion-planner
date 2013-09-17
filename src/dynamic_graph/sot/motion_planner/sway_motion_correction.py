@@ -153,11 +153,13 @@ class dune_sway_control(sway_control):
       robot.pg.parseCmd(":numberstepsbeforestop 2")
       robot.pg.parseCmd(":setfeetconstraint XY 0.02 0.02")
 
-
+   def setvelocitymax(i,j,k):
+	   s.setMaximumVelocity(i,j,k)
+	   
    def initialize(self,I):
       self.smc.initialize(I,0)
       
-   def startsmc(self,robot):
+   def start_dunesc(self,robot):
      robot.startTracer()
      robot.pg.parseCmd(":HerdtOnline")
 
