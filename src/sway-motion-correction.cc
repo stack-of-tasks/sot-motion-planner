@@ -207,7 +207,7 @@ namespace command
 SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
   : dg::Entity (name),
     initialized_ (false),
-    lambda_ (0.6), //FIXME:
+    lambda_ (0.6),
     vmax_ (3),
     cdMc_ (),
     FT_ (vpFeatureTranslation::cdMc),
@@ -239,8 +239,9 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
   signalRegistration (inputdcom_ << outputPgVelocity_ << cMo_ << cMoTimestamp_ 
 		      << wMwaist_ << wMcamera_ );
 
-  for (unsigned i = 0; i < vmax_.getCols (); ++i)
-    vmax_[i] = 0.;
+    vmax_[0] = 0.25;
+    vmax_[1] = 0.2;
+    vmax_[2] = 0.2;
 	
   task_.setServo (vpServo::EYEINHAND_CAMERA);
   task_.setInteractionMatrixType (vpServo::CURRENT);
