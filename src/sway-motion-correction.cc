@@ -114,7 +114,7 @@ protected:
   ml::Vector& updateVelocity (ml::Vector& v, int);
 
   /// \brief Is the error lower enough to stop?
-  bool shouldStop(vpHomogeneousMatrix Error) const;
+  bool shouldStop(vpHomogeneousMatrix Error, double ErrorMoy) const;
 
   /// \brief Is the control law started?
   bool initialized_;
@@ -244,7 +244,7 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
 	
   task_.setServo (vpServo::EYEINHAND_CAMERA);
   task_.setInteractionMatrixType (vpServo::CURRENT);
-  task_.setLambda (lambda_/4);
+  task_.setLambda (lambda_);
 
   std::string docstring;
   addCommand
@@ -301,16 +301,15 @@ SwayMotionCorrection::initialize (const vpHomogeneousMatrix& cdMo, int t)
 }
 
 bool
-SwayMotionCorrection::shouldStop (vpHomogeneousMatrix Error) const
+SwayMotionCorrection::shouldStop (vpHomogeneousMatrix Error,double ErrorMoy) const
 {
-  vpColVector error (5);
+  vpColVector error (4);
   // Stop when robot is between its feet
-  error[0] = (Error[0][3] + task_.error[0]);
-  error[1] = (Error[1][3] + task_.error[1]);
+  error[0] = Error[1][3]-ErrorMoy;
   // And when the error without sway motion is low
-  error[2] = task_.error[0];
-  error[3] = task_.error[1];
-  error[4] = task_.error[5];
+  error[1] = Error[0][3];
+  error[2] = Error[1][3];
+  error[3] = task_.error[5];
 
   return error.infinityNorm() < minThreshold_;
 }
@@ -335,7 +334,7 @@ SwayMotionCorrection::stop ()
 ml::Vector&
 SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
 {      // --------------------- debug ---------------------------- //
-      ofstream fichier("/home/mgeisert/debug.txt", ios::out | ios::app);
+      //ofstream fichier("/home/mgeisert/debug.txt", ios::out | ios::app);
       
   if (velWaist.size () != 3)
     {
@@ -362,9 +361,12 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   cwaistMcd = waistTc * cMcd;
   
   // Compute sway motion correction   
-   vpColVector ComVel (3);
-  for (unsigned i = 0; i < 3; ++i)
-  ComVel[i] = inputdcom_ (t)(i);
+   vpColVector ComVel (6);
+  for (unsigned i = 0; i < 2; ++i) 
+    ComVel[i] = inputdcom_ (t)(i);  
+  ComVel[2] = ComVel[3] = ComVel[4] = ComVel[5] = 0;
+  vpVelocityTwistMatrix waistVw (convert (wMwaist_ (t)).inverse());
+  ComVel = waistVw * ComVel ;
   
   vpColVector bk (6);
   bk[0] = ComVel[0] - inputComVel[0];
@@ -395,27 +397,24 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   vpColVector cVelocity_ = task_.computeControlLaw ();
   
   // recompute control law (Visp-servoing overtaking)
-  cVelocity_[0] = lambda_ * cwaistMcd[0][3];
-  cVelocity_[1] = 2.5*lambda_ * cwaistMcd[1][3];
+  cVelocity_[0] = 1.5*lambda_ * cwaistMcd[0][3];
+  cVelocity_[1] = 2*lambda_ * cwaistMcd[1][3];
       
   // Compute bounded velocity.
   vpColVector velWaistVispBounded =
     this->velocitySaturation (cVelocity_);
 
   // Modify the lateral velocity ( dead zone, velWaistVispBounded[1] must be >= 0.03 )
-  if (velWaistVispBounded[1] > 0 && velWaistVispBounded[1] < 0.03 && velWaistVispBounded[1] > 0.01) { velWaistVispBounded[1] = 0.03; }
-  if (velWaistVispBounded[1] < 0 && velWaistVispBounded[1] > -0.03 && velWaistVispBounded[1] < -0.010) { velWaistVispBounded[1] = -0.03; }
+  if (velWaistVispBounded[1] > 0 && velWaistVispBounded[1] < 0.05 && velWaistVispBounded[1] > 0.01) { velWaistVispBounded[1] = 0.05; }
+  if (velWaistVispBounded[1] < 0 && velWaistVispBounded[1] > -0.05 && velWaistVispBounded[1] < -0.010) { velWaistVispBounded[1] = -0.05; }
 
   // Fill signal.
   for (unsigned i = 0; i < 3; ++i)
-    velWaist (i) = velWaistVispBounded[i];
-    
-     fichier << cwaistMcd[0][3] << " " << cwaistMcd[1][3] << " " << (waistTc * cMcd)[0][3] << " " << (waistTc * cMcd)[1][3] << " " << velWaistVispBounded[0] << " " << velWaistVispBounded[1] << endl;
+    velWaist (i) = velWaistVispBounded[i]; 
+     //fichier << cwaistMcd[0][3] << " " << cwaistMcd[1][3] << " " << wMcamera_(t)(0,3) << " " << wMcamera_(t)(1,3) << " " << task_.error[0] << " " << task_.error[1] << " " << (waistTc * cMcd)[0][3] << " " << (waistTc * cMcd)[1][3] << " " << integralLbk_[1] << " " << E_tT[1] << " " << integralLbk_[1]- E_tT[1] << " " << task_.error[5] << " " << ComVel[1] << " " << ComVel[0]<< " " << velWaistVispBounded[0] << " " << velWaistVispBounded[1] << " " << velWaistVispBounded[2] << endl;
 
-    velWaist (0)=0;
-    velWaist (1)=0;
   // If the error is low, stop.
-  if (shouldStop(cwaistMcd)){
+  if (shouldStop(waistTc * cMcd,cwaistMcd[1][3])){
      stop (); }
     
   // Save Velocity command for the next loop  
@@ -464,10 +463,20 @@ SwayMotionCorrection::velocitySaturation (const vpColVector& velocity)
 	}
     }
 
+  //
+  for ( int i = 0 ; i < 3 ; i++ ) {
+	  if ( RawVel3ddl[i] > vmax_[i] )
+	    RawVel3ddl[i] = vmax_[i];
+	  if ( RawVel3ddl[i] < -vmax_[i] )
+	    RawVel3ddl[i] = -vmax_[i];
+	  }
+  //Pb if backward velocity is big 
+  if ( RawVel3ddl[0] < -vmax_[0]/2 )
+    RawVel3ddl[0] = -vmax_[0]/2;
+	  
   vpColVector result(3);
   for (int i=0; i<3;++i) 
-    result[i] = RawVel3ddl[i] * fac;
-
+    result[i] = RawVel3ddl[i] /* fac*/ ; 
   return result;
 }
 
