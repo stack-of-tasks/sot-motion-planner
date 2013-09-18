@@ -392,7 +392,7 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   
   // recompute control law (Visp-servoing overtaking)
   cVelocity_[0] = 1.5*lambda_ * cwaistMcd[0][3];
-  cVelocity_[1] = 4*lambda_ * cwaistMcd[1][3];
+  cVelocity_[1] = 3*lambda_ * cwaistMcd[1][3];
       
   // Compute bounded velocity.
   vpColVector velWaistVispBounded =
@@ -419,9 +419,9 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   if ( inputComVel_[1] < 0.04 && inputComVel_[1] > -0.04) 
     inputComVel_[1] = 0;  
   if ( inputComVel_[1] > 0.04 ) 
-    inputComVel_[1] = ( inputComVel_[1] - 0.04 ) *0.7;
+    inputComVel_[1] = ( inputComVel_[1] - 0.04 ) *0.6;
   if ( inputComVel_[1] < -0.04 )
-    inputComVel_[1] = ( inputComVel_[1] + 0.04 ) *0.7;
+    inputComVel_[1] = ( inputComVel_[1] + 0.04 ) *0.6;
   
   return velWaist;
 }
