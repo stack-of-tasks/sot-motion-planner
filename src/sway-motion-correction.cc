@@ -163,13 +163,10 @@ protected:
   vpColVector integralLbk_;
    
   /// \brief Tab of previous E
-  double E[6][320];
+  double E[2][320];
   
   /// \brief increment of E
   int Einc; 
-  
-  /// \brief bool to knnow if it's the first period
-  int Efp; 
   
   /// \brief last outputPgVelocity
   vpColVector inputComVel;
@@ -231,10 +228,10 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
 	       MAKE_SIGNAL_STRING
 	       (name, true, "MatrixHomo", "wMcamera")),
     minThreshold_ (0.01),
-    E_ (6),
+    E_ (2),
     inputComVel(3),
-    integralLbk_ (6),
-    E_tT(6)
+    integralLbk_ (2),
+    E_tT(2)
 {
   signalRegistration (inputdcom_ << outputPgVelocity_ << cMo_ << cMoTimestamp_ 
 		      << wMwaist_ << wMcamera_ );
@@ -245,7 +242,7 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
 	
   task_.setServo (vpServo::EYEINHAND_CAMERA);
   task_.setInteractionMatrixType (vpServo::CURRENT);
-  task_.setLambda (lambda_);
+  task_.setLambda (lambda_/2);
 
   std::string docstring;
   addCommand
@@ -277,7 +274,7 @@ SwayMotionCorrection::initialize (const vpHomogeneousMatrix& cdMo, int t)
   if (initialized_)
     return;
 
-  for (unsigned i = 0; i < 6; ++i){
+  for (unsigned i = 0; i < 2; ++i){
     E_[i] = 0.;
     integralLbk_[i] = 0.;
 	  for (unsigned j = 0; j < 320; j++) {
@@ -286,7 +283,6 @@ SwayMotionCorrection::initialize (const vpHomogeneousMatrix& cdMo, int t)
   }
 
   Einc =0; 
-  Efp = 0;
   
   for (unsigned i = 0; i < 3; ++i)
     inputComVel[i] = 0;
@@ -335,7 +331,7 @@ SwayMotionCorrection::stop ()
 ml::Vector&
 SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
 {      // --------------------- debug ---------------------------- //
-      //ofstream fichier("/home/mgeisert/debug.txt", ios::out | ios::app);
+      ofstream fichier("/home/mgeisert/debug.txt", ios::out | ios::app);
       
   if (velWaist.size () != 3)
     {
@@ -369,23 +365,20 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   vpVelocityTwistMatrix waistVw (convert (wMwaist_ (t)).inverse());
   ComVel = waistVw * ComVel ;
   
-  vpColVector bk (6);
+  vpColVector bk (2);
   bk[0] = ComVel[0] - inputComVel[0];
   bk[1] = ComVel[1] ;//- inputComVel[1]; Pb lateral velocity
-  bk[2] = bk[3] = bk[4] = 0.;
-  bk[5] = ComVel[2] - inputComVel[2];
   
   integralLbk_ += bk * STEP;
   E_ += integralLbk_ * STEP;
     
-  for (int i=0; i < 6; i++) {
+  for (int i=0; i < 2; i++) {
 	 E_tT[i] = (E_[i] - E[i][Einc])/T;
 	}
-  for (int i=0; i < 6; i++) {
+  for (int i=0; i < 2; i++) {
 	 E[i][Einc]=E_[i]; // save E_ to calculate E_tT at the next period
     }
   Einc++;
-  Efp++;
   if (Einc == 320) { Einc = 0; } 
   
   // Add sway motion correction to the distance between cam and desired cam
@@ -412,7 +405,7 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   // Fill signal.
   for (unsigned i = 0; i < 3; ++i)
     velWaist (i) = velWaistVispBounded[i]; 
-     //fichier << cwaistMcd[0][3] << " " << cwaistMcd[1][3] << " " << wMcamera_(t)(0,3) << " " << wMcamera_(t)(1,3) << " " << task_.error[0] << " " << task_.error[1] << " " << (waistTc * cMcd)[0][3] << " " << (waistTc * cMcd)[1][3] << " " << integralLbk_[1] << " " << E_tT[1] << " " << integralLbk_[1]- E_tT[1] << " " << task_.error[5] << " " << ComVel[1] << " " << ComVel[0]<< " " << velWaistVispBounded[0] << " " << velWaistVispBounded[1] << " " << velWaistVispBounded[2] << endl;
+     fichier << cwaistMcd[0][3] << " " << cwaistMcd[1][3] << " " << wMcamera_(t)(0,3) << " " << wMcamera_(t)(1,3) << " " << task_.error[0] << " " << task_.error[1] << " " << (waistTc * cMcd)[0][3] << " " << (waistTc * cMcd)[1][3] << " " << integralLbk_[1] << " " << E_tT[1] << " " << integralLbk_[1]- E_tT[1] << " " << task_.error[5] << " " << ComVel[1] << " " << ComVel[0]<< " " << velWaistVispBounded[0] << " " << velWaistVispBounded[1] << " " << velWaistVispBounded[2] << endl;
 
   // If the error is low, stop.
   if (shouldStop(waistTc * cMcd,cwaistMcd[1][3])){
@@ -429,55 +422,27 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
 vpColVector
 SwayMotionCorrection::velocitySaturation (const vpColVector& velocity)
 {
-  vpColVector dv (0.05 * vmax_);
-  vpColVector Vinf  = vmax_ - dv;
-  vpColVector Vsup  = vmax_ + dv;
-
   // compute the 3ddl vector corresponding to the input
   vpColVector RawVel3ddl (3);
   RawVel3ddl[0] = velocity[0];
   RawVel3ddl[1] = velocity[1];
   RawVel3ddl[2] = velocity[5];
 
-  // temporary abs value of the input velocity
-  double absRawVel = 0.;
 
-  // normalization factor shared for all components to keep vector
-  // orientation.
-  double fac = 1.;
-
-  // for all the coeff
-  for (int i = 0; i < 3; ++i)
-    {
-      absRawVel = std::fabs (RawVel3ddl[i]);
-
-      fac = std::min (std::fabs(fac), vmax_[i] / (absRawVel + 0.00001));
-
-      // to prevent from discontinuities
-      if ((Vinf[i] <= absRawVel) && (absRawVel <= Vsup[i]))
-	{
-	  double newfac = 1 / (2 * dv[i] * absRawVel) *
-	    ((absRawVel - Vinf[i]) * vmax_[i]
-	     + (Vsup[i] - absRawVel) * Vinf[i]);
-
-	  fac  = std::min (std::fabs(fac), std::fabs(newfac));
-	}
-    }
-
-  //
+  //Saturation of the velocity
   for ( int i = 0 ; i < 3 ; i++ ) {
 	  if ( RawVel3ddl[i] > vmax_[i] )
 	    RawVel3ddl[i] = vmax_[i];
 	  if ( RawVel3ddl[i] < -vmax_[i] )
 	    RawVel3ddl[i] = -vmax_[i];
 	  }
-  //Pb if backward velocity is big 
+  //Lower saturation for the backward walking
   if ( RawVel3ddl[0] < -vmax_[0]/2 )
     RawVel3ddl[0] = -vmax_[0]/2;
 	  
   vpColVector result(3);
   for (int i=0; i<3;++i) 
-    result[i] = RawVel3ddl[i] /* fac*/ ; 
+    result[i] = RawVel3ddl[i];
   return result;
 }
 
