@@ -161,7 +161,7 @@ protected:
 
   /// \brief FIXME
   vpColVector integralLbk_;
-   
+
   /// \brief Tab of previous E
   double pE_[2][320];
   
@@ -242,7 +242,7 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
 	
   task_.setServo (vpServo::EYEINHAND_CAMERA);
   task_.setInteractionMatrixType (vpServo::CURRENT);
-  task_.setLambda (lambda_/2);
+  task_.setLambda (lambda_/2); // gain rotation
 
   std::string docstring;
   addCommand
@@ -332,6 +332,7 @@ ml::Vector&
 SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
 {      // --------------------- debug ---------------------------- //
       ofstream fichier("/home/mgeisert/debug.txt", ios::out | ios::app);
+      //
       
   if (velWaist.size () != 3)
     {
@@ -378,6 +379,7 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   for (int i=0; i < 2; i++) {
 	 pE_[i][Einc_]=E_[i]; // save E_ to calculate E_tT at the next period
     }
+
   Einc_++;
   if (Einc_ == 320) { Einc_ = 0; } 
   
@@ -414,8 +416,8 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   // Save Velocity command for the next loop  
   for (unsigned i = 0; i < 3; ++i)
   inputComVel_[i] = velWaist(i);
-  
-  //InputComVel to the velocity that will be done
+    
+  //Ajust InputComVel to the velocity that will be done
   if ( inputComVel_[1] < 0.04 && inputComVel_[1] > -0.04) 
     inputComVel_[1] = 0;  
   if ( inputComVel_[1] > 0.04 ) 
