@@ -168,11 +168,17 @@ protected:
   /// \brief increment of E
   int Einc_; 
   
-  /// \brief last outputPgVelocity
+  /// \brief last outputPgVelocity ajusted
   vpColVector inputComVel_;
   
   /// \brief mean of E_ on a period   
   vpColVector E_tT_;
+  
+  /// \brief Last outputPgVelocity (for soft start)
+  double pVel_[3][10];
+  
+  /// \brief increment of pVel
+  int Velinc_;
 };
 
 namespace command
@@ -280,9 +286,13 @@ SwayMotionCorrection::initialize (const vpHomogeneousMatrix& cdMo, int t)
 	  for (unsigned j = 0; j < 320; j++) {
 		  pE_[i][j]=0.;
 	  }
+	  for (unsigned j=0 ; j<10 ; j++) {
+		  pVel_[i][j]=0.;
+	  }
   }
 
   Einc_ =0; 
+  Velinc_ =0;
   
   for (unsigned i = 0; i < 3; ++i)
     inputComVel_[i] = 0;
@@ -399,6 +409,16 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   // Compute bounded velocity.
   vpColVector velWaistVispBounded =
     this->velocitySaturation (cVelocity_);
+
+  // Compute soft start (limitation between velWaistVispBouded and a last one)
+  for (int i=0 ; i<3 ; i++) {
+    if ( pVel_[i][Velinc_] + 0.01 < velWaistVispBounded[i] ) { velWaistVispBounded[i] = pVel_[i][Velinc_] + 0.01; }
+    if ( pVel_[i][Velinc_] - 0.01 > velWaistVispBounded[i] ) { velWaistVispBounded[i] = pVel_[i][Velinc_] - 0.01; }
+    pVel_[i][Velinc_] = velWaistVispBounded[i];
+  }
+  Velinc_++;
+  if ( Velinc_ == 10 ) { Velinc_ = 0; }
+  
 
   // Modify the lateral velocity ( dead zone, velWaistVispBounded[1] must be >= 0.03 )
   if (velWaistVispBounded[1] > 0 && velWaistVispBounded[1] < 0.05 && velWaistVispBounded[1] > 0.01) { velWaistVispBounded[1] = 0.05; }
