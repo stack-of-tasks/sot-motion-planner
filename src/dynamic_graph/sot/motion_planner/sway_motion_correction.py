@@ -175,6 +175,6 @@ def prepare_dsc(robot):
   
 def prepare_dunesc(robot,I):
 	dunesc=dune_sway_control(robot)
-	dunesc.initialize(I,0)
+	dunesc.initialize(I)
 	return dunesc
 	
