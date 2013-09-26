@@ -403,18 +403,23 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   vpColVector cVelocity_ = task_.computeControlLaw ();
   
   // recompute control law (Visp-servoing overtaking)
-  cVelocity_[0] = 1.5*lambda_ * cwaistMcd[0][3];
-  cVelocity_[1] = 3*lambda_ * cwaistMcd[1][3];
+  cVelocity_[0] = 1*lambda_ * cwaistMcd[0][3]; // FIXME (Geom 1.5)
+  cVelocity_[1] = 1*lambda_ * cwaistMcd[1][3]; // FIXME (Geom 3)
       
   // Compute bounded velocity.
   vpColVector velWaistVispBounded =
     this->velocitySaturation (cVelocity_);
 
   // Compute soft start (limitation between velWaistVispBouded and a last one)
+  double lim1=0.01;
+  double lim2=0.005;
+  double lim=0.1;
   for (int i=0 ; i<3 ; i++) {
-    if ( pVel_[i][Velinc_] + 0.01 < velWaistVispBounded[i] ) { velWaistVispBounded[i] = pVel_[i][Velinc_] + 0.01; }
-    if ( pVel_[i][Velinc_] - 0.01 > velWaistVispBounded[i] ) { velWaistVispBounded[i] = pVel_[i][Velinc_] - 0.01; }
-    pVel_[i][Velinc_] = velWaistVispBounded[i];
+	  if ( i==0 ) { lim = lim1; }
+	    else { lim = lim2; }
+    if ( pVel_[i][Velinc_] + lim < velWaistVispBounded[i] ) { velWaistVispBounded[i] = pVel_[i][Velinc_] + lim; }
+    if ( pVel_[i][Velinc_] - lim > velWaistVispBounded[i] ) { velWaistVispBounded[i] = pVel_[i][Velinc_] - lim; }
+    pVel_[i][Velinc_] = velWaistVispBounded[i];    
   }
   Velinc_++;
   if ( Velinc_ == 10 ) { Velinc_ = 0; }
@@ -423,6 +428,10 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   // Modify the lateral velocity ( dead zone, velWaistVispBounded[1] must be >= 0.03 )
   if (velWaistVispBounded[1] > 0 && velWaistVispBounded[1] < 0.05 && velWaistVispBounded[1] > 0.01) { velWaistVispBounded[1] = 0.05; }
   if (velWaistVispBounded[1] < 0 && velWaistVispBounded[1] > -0.05 && velWaistVispBounded[1] < -0.010) { velWaistVispBounded[1] = -0.05; }
+  if (velWaistVispBounded[1] < 0.01 && velWaistVispBounded[1] > -0.01 ) { velWaistVispBounded[1] = 0.; }
+
+  // Delete rotation when lateral steps 
+  if ( velWaistVispBounded[1] < 0.1 && velWaistVispBounded[1]>-0.1 && velWaistVispBounded[0]<0.1 && velWaistVispBounded[0]>-0.1 ) { velWaistVispBounded[2] = 0.; }
 
   // Fill signal.
   for (unsigned i = 0; i < 3; ++i)
