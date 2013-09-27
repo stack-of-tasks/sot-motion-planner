@@ -141,11 +141,6 @@ class dune_sway_control(sway_control):
          self.smc.wMcamera)
       plug(self.robot.dynamic.waist, self.smc.wMwaist)
       
-      #initialize the loop between smc and pg (because pg needs a smc value and smc needs a pg value)
-      robot.pg.velocitydes.value = [ 0., 0., 0. ]
-      robot.pg.dcomref.recompute(0)
-      plug(self.smc.outputPgVelocity, robot.pg.velocitydes)
-      
       #Initialize Herdt pg
       robot.pg.parseCmd(":SetAlgoForZmpTrajectory Herdt")
       robot.pg.parseCmd(":doublesupporttime 0.1")
@@ -153,13 +148,18 @@ class dune_sway_control(sway_control):
       robot.pg.parseCmd(":numberstepsbeforestop 2")
       robot.pg.parseCmd(":setfeetconstraint XY 0.02 0.02")
 
-   def setvelocitymax(i,j,k):
+   def setvelocitymax(self,i,j,k):
 	   s.setMaximumVelocity(i,j,k)
 	   
    def initialize(self,I):
       self.smc.initialize(I,0)
       
    def start_dunesc(self,robot):
+     #initialize the loop between smc and pg (because pg needs a smc value and smc needs a pg value)
+     robot.pg.velocitydes.value = [ 0., 0., 0. ]
+     robot.pg.dcomref.recompute(0)
+     plug(self.smc.outputPgVelocity, robot.pg.velocitydes)
+      
      robot.startTracer()
      robot.pg.parseCmd(":HerdtOnline")
 

@@ -179,6 +179,9 @@ protected:
   
   /// \brief increment of pVel
   int Velinc_;
+  
+  /// \brief increment to start with velocity=0.01,0,0 at the begining
+  int Startinc_;
 };
 
 namespace command
@@ -293,6 +296,7 @@ SwayMotionCorrection::initialize (const vpHomogeneousMatrix& cdMo, int t)
 
   Einc_ =0; 
   Velinc_ =0;
+  Startinc_=0;
   
   for (unsigned i = 0; i < 3; ++i)
     inputComVel_[i] = 0;
@@ -343,7 +347,7 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
 {      // --------------------- debug ---------------------------- //
       ofstream fichier("/home/mgeisert/debug.txt", ios::out | ios::app);
       //
-      
+  Startinc_++;   
   if (velWaist.size () != 3)
     {
       velWaist.resize (3);
@@ -352,6 +356,12 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   if (!initialized_)
     {
       velWaist.setZero ();
+      return velWaist;
+    }
+     if (Startinc_ < 320)
+    {
+      velWaist(0) = 0.01;
+      velWaist(1) = velWaist(2) = 0;
       return velWaist;
     }
  
