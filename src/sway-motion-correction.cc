@@ -103,6 +103,26 @@ class SwayMotionCorrection : public dg::Entity
     vmax_[2] = dtheta;
   }
 
+  void setAxis(const double& dx, const double& dy, const double& dtheta)
+  {
+    Axis_[0] = dx;
+    Axis_[1] = dy;
+    Axis_[2] = dtheta;
+  }
+
+  void setGain(const double& dx, const double& dy, const double& dtheta)
+  {
+    Gain_[0] = dx;
+    Gain_[1] = dy;
+    Gain_[2] = dtheta;
+  }
+
+  void setAcceleration(const double& dx, const double& dy, const double& dtheta)
+  {
+    Acceleration_[0] = dx;
+    Acceleration_[1] = dy;
+    Acceleration_[2] = dtheta;
+  }
 protected:
   /// \brief Compute camera velocity from (current) waist velocity.
   vpVelocityTwistMatrix fromCameraToWaistTwist (int t);
@@ -182,6 +202,15 @@ protected:
   
   /// \brief increment to start with velocity=0.01,0,0 at the begining
   int Startinc_;
+
+  /// \brief Tab to choose the active axis
+  double Axis_[3];
+
+  /// \brief Gain according to axis
+  double Gain_[3];
+
+  /// \brief Acceleration / Maximum difference between the velocity commanded and the last one
+  double Acceleration_[3];
 };
 
 namespace command
@@ -203,6 +232,30 @@ namespace command
     {
     public:
       SetMaximumVelocity (SwayMotionCorrection& entity,
+			  const std::string& docstring);
+      virtual Value doExecute ();
+    };
+
+    class SetAcceleration : public Command
+    {
+    public:
+      SetAcceleration (SwayMotionCorrection& entity,
+			  const std::string& docstring);
+      virtual Value doExecute ();
+    };
+
+    class SetAxis : public Command
+    {
+    public:
+      SetAxis (SwayMotionCorrection& entity,
+			  const std::string& docstring);
+      virtual Value doExecute ();
+    };
+
+    class SetGain : public Command
+    {
+    public:
+      SetGain (SwayMotionCorrection& entity,
 			  const std::string& docstring);
       virtual Value doExecute ();
     };
@@ -248,10 +301,23 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
     vmax_[0] = 0.25;
     vmax_[1] = 0.2;
     vmax_[2] = 0.2;
-	
+
+    Axis_[0] = 1;
+    Axis_[1] = 1;
+    Axis_[2] = 0;
+
+    Gain_[0] = 0.6;
+    Gain_[1] = 0.6;
+    Gain_[2] = 0.3;
+
+    Acceleration_[0] = 0.005;
+    Acceleration_[1] = 0.002;
+    Acceleration_[2] = 0.001;
+
+
   task_.setServo (vpServo::EYEINHAND_CAMERA);
   task_.setInteractionMatrixType (vpServo::CURRENT);
-  task_.setLambda (lambda_/2); // gain rotation
+  task_.setLambda (Gain_[2]); // gain rotation
 
   std::string docstring;
   addCommand
@@ -263,7 +329,22 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
     ("setMaximumVelocity",
      new command::swayMotionCorrection::SetMaximumVelocity
      (*this, docstring));
-     
+
+       addCommand
+    ("setAxis",
+     new command::swayMotionCorrection::SetAxis
+     (*this, docstring));
+
+  addCommand
+    ("setGain",
+     new command::swayMotionCorrection::SetGain
+     (*this, docstring));
+
+  addCommand
+    ("setAcceleration",
+     new command::swayMotionCorrection::SetAcceleration
+     (*this, docstring));
+
      // Signal dependencies
   // outputPgVelocity_.addDependency ( inputdcom_ ); bug : loop between sway-motion and pg
    outputPgVelocity_.addDependency ( cMo_ );
@@ -315,12 +396,23 @@ bool
 SwayMotionCorrection::shouldStop (vpHomogeneousMatrix Error,double ErrorMoy) const
 {
   vpColVector error (4);
+  for (int i=0 ; i<4 ; i++) {
+    error[i]=0.;
+  }
   // Stop when robot is between its feet
-  error[0] = (Error[1][3]-ErrorMoy)*10;
+  if ( Axis_[1] == 1 ) {
+    error[0] = (Error[1][3]-ErrorMoy)*10;
+  }
   // And when the error without sway motion is low
-  error[1] = Error[0][3];
-  error[2] = Error[1][3];
-  error[3] = task_.error[5];
+  if ( Axis_[0] == 1 ) {
+    error[1] = Error[0][3];
+  }
+  if ( Axis_[1] == 1 ) {
+    error[2] = Error[1][3];
+  }
+  if ( Axis_[2] == 1 ) {
+    error[3] = task_.error[5];
+  }
 
   return error.infinityNorm() < minThreshold_;
 }
@@ -344,9 +436,7 @@ SwayMotionCorrection::stop ()
 // 4. Check whether we should stop.
 ml::Vector&
 SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
-{      // --------------------- debug ---------------------------- //
-      ofstream fichier("/home/mgeisert/debug.txt", ios::out | ios::app);
-      //
+{
   Startinc_++;   
   if (velWaist.size () != 3)
     {
@@ -413,20 +503,17 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   vpColVector cVelocity_ = task_.computeControlLaw ();
   
   // recompute control law (Visp-servoing overtaking)
-  cVelocity_[0] = 1*lambda_ * cwaistMcd[0][3]; // FIXME (Geom 1.5)
-  cVelocity_[1] = 1*lambda_ * cwaistMcd[1][3]; // FIXME (Geom 3)
+  cVelocity_[0] = Gain_[0] * cwaistMcd[0][3]; // FIXME (Geom 1.5)
+  cVelocity_[1] = Gain_[1] * cwaistMcd[1][3]; // FIXME (Geom 3)
       
   // Compute bounded velocity.
   vpColVector velWaistVispBounded =
     this->velocitySaturation (cVelocity_);
 
   // Compute soft start (limitation between velWaistVispBouded and a last one)
-  double lim1=0.01;
-  double lim2=0.005;
-  double lim=0.1;
+  double lim=0.;
   for (int i=0 ; i<3 ; i++) {
-	  if ( i==0 ) { lim = lim1; }
-	    else { lim = lim2; }
+	  lim=Acceleration_[i];
     if ( pVel_[i][Velinc_] + lim < velWaistVispBounded[i] ) { velWaistVispBounded[i] = pVel_[i][Velinc_] + lim; }
     if ( pVel_[i][Velinc_] - lim > velWaistVispBounded[i] ) { velWaistVispBounded[i] = pVel_[i][Velinc_] - lim; }
     pVel_[i][Velinc_] = velWaistVispBounded[i];    
@@ -443,10 +530,14 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
   // Delete rotation when lateral steps 
   if ( velWaistVispBounded[1] < 0.1 && velWaistVispBounded[1]>-0.1 && velWaistVispBounded[0]<0.1 && velWaistVispBounded[0]>-0.1 ) { velWaistVispBounded[2] = 0.; }
 
+  // Select active Axis
+  for (int i=0 ; i<3 ; i++ ) {
+    if ( Axis_[i] != 1) { velWaistVispBounded[i]=0.; }	  
+  }
+
   // Fill signal.
   for (unsigned i = 0; i < 3; ++i)
     velWaist (i) = velWaistVispBounded[i]; 
-     fichier << cwaistMcd[0][3] << " " << cwaistMcd[1][3] << " " << wMcamera_(t)(0,3) << " " << wMcamera_(t)(1,3) << " " << task_.error[0] << " " << task_.error[1] << " " << (waistTc * cMcd)[0][3] << " " << (waistTc * cMcd)[1][3] << " " << integralLbk_[1] << " " << E_tT_[1] << " " << integralLbk_[1]- E_tT_[1] << " " << task_.error[5] << " " << ComVel[1] << " " << ComVel[0]<< " " << velWaistVispBounded[0] << " " << velWaistVispBounded[1] << " " << velWaistVispBounded[2] << " " << bk[0] << " " << bk[1] << endl;
 
   // If the error is low, stop.
   if (shouldStop(waistTc * cMcd,cwaistMcd[1][3])){
@@ -550,5 +641,73 @@ namespace command
       return Value ();
     }
 
+   SetAxis::SetAxis (SwayMotionCorrection& entity,
+					    const std::string& docstring)
+      : Command
+	(entity,
+	 boost::assign::list_of (Value::DOUBLE) (Value::DOUBLE) (Value::DOUBLE),
+	 docstring)
+    {}
+
+    Value
+    SetAxis::doExecute ()
+    {
+      SwayMotionCorrection& entity =
+	static_cast<SwayMotionCorrection&> (owner ());
+
+      std::vector<Value> values = getParameterValues ();
+      double dx = values[0].value ();
+      double dy = values[1].value ();
+      double dtheta = values[2].value ();
+
+      entity.setAxis(dx, dy, dtheta);
+      return Value ();
+    }
+
+   SetGain::SetGain (SwayMotionCorrection& entity,
+					    const std::string& docstring)
+      : Command
+	(entity,
+	 boost::assign::list_of (Value::DOUBLE) (Value::DOUBLE) (Value::DOUBLE),
+	 docstring)
+    {}
+
+    Value
+    SetGain::doExecute ()
+    {
+      SwayMotionCorrection& entity =
+	static_cast<SwayMotionCorrection&> (owner ());
+
+      std::vector<Value> values = getParameterValues ();
+      double dx = values[0].value ();
+      double dy = values[1].value ();
+      double dtheta = values[2].value ();
+
+      entity.setGain(dx, dy, dtheta);
+      return Value ();
+    }
+
+   SetAcceleration::SetAcceleration (SwayMotionCorrection& entity,
+					    const std::string& docstring)
+      : Command
+	(entity,
+	 boost::assign::list_of (Value::DOUBLE) (Value::DOUBLE) (Value::DOUBLE),
+	 docstring)
+    {}
+
+    Value
+    SetAcceleration::doExecute ()
+    {
+      SwayMotionCorrection& entity =
+	static_cast<SwayMotionCorrection&> (owner ());
+
+      std::vector<Value> values = getParameterValues ();
+      double dx = values[0].value ();
+      double dy = values[1].value ();
+      double dtheta = values[2].value ();
+
+      entity.setAcceleration(dx, dy, dtheta);
+      return Value ();
+    }
   } // end of namespace swayMotionCorrection.
 } // end of namespace command.

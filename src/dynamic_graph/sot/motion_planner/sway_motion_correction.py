@@ -6,7 +6,8 @@ from dynamic_graph.sot.hrp2_14.robot import Robot
 from dynamic_graph.sot.motion_planner.feet_follower import SwayMotionCorrection,RobotPositionFromVisp, GoToOnePosition, SimuObjectPositionInCamera
 from dynamic_graph.sot.core.math_small_entities import Inverse_of_matrixHomo
 from dynamic_graph.ros import *
-
+from dynamic_graph.sot.application.velocity.precomputed_tasks import initialize
+from dynamic_graph.sot.pattern_generator.walking import *
 
 class sway_control:
 
@@ -146,22 +147,16 @@ class dune_sway_control(sway_control):
       robot.pg.parseCmd(":doublesupporttime 0.1")
       robot.pg.parseCmd(":singlesupporttime 0.8")
       robot.pg.parseCmd(":numberstepsbeforestop 2")
-      robot.pg.parseCmd(":setfeetconstraint XY 0.02 0.02")
+      robot.pg.parseCmd(":setfeetconstraint XY 0.02 0.01")
 
    def setvelocitymax(self,i,j,k):
-	   s.setMaximumVelocity(i,j,k)
+	   self.setMaximumVelocity(i,j,k)
 	   
    def initialize(self,I):
       self.smc.initialize(I,0)
       
    def start_dunesc(self,robot):
-     #initialize the loop between smc and pg (because pg needs a smc value and smc needs a pg value)
-     robot.pg.velocitydes.value = [ 0., 0., 0. ]
-     robot.pg.dcomref.recompute(0)
      plug(self.smc.outputPgVelocity, robot.pg.velocitydes)
-      
-     robot.startTracer()
-     robot.pg.parseCmd(":HerdtOnline")
 
 def prepare_gsc(robot):
    gsc=garcia_sway_control(robot)
@@ -178,3 +173,16 @@ def prepare_dunesc(robot,I):
 	dunesc.initialize(I)
 	return dunesc
 	
+def initializeandlaunchdunesc(robot,I):
+   dunesc=dune_sway_control(robot)
+   dunesc.initialize(I)
+   dunesc.start_dunesc(robot)
+   
+def dunetest1(robot):
+	dunesc=dune_sway_control(robot)
+	dunesc.smc.setMaximumVelocity(0.1,0.1,0.05)
+	dunesc.smc.setAxis(1,0,0)
+	I=((0.36024424324189963, -0.011043073035810341, -0.93279265421046109, -0.034044911691398186), (0.26315928029913049, -0.95811474655506446, 0.11297488936116869, 0.70448444571656255), (-0.89496998743170975, -0.28617159707359219, -0.34224923465923912, 2.7397275131873364), (0.0, 0.0, 0.0, 1.0))
+	dunesc.initialize(I)
+	return dunesc
+
