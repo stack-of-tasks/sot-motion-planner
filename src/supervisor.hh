@@ -25,7 +25,7 @@
 # include <dynamic-graph/signal-ptr.h>
 # include <dynamic-graph/signal-time-dependent.h>
 
-# include <sot/core/feature-posture.h>
+# include <sot/core/feature-posture.hh>
 # include <sot/core/matrix-homogeneous.hh>
 # include <sot/core/sot.hh>
 # include <sot/core/task-abstract.hh>

@@ -330,7 +330,7 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
      new command::swayMotionCorrection::SetMaximumVelocity
      (*this, docstring));
 
-       addCommand
+  addCommand
     ("setAxis",
      new command::swayMotionCorrection::SetAxis
      (*this, docstring));
@@ -437,7 +437,7 @@ SwayMotionCorrection::stop ()
 ml::Vector&
 SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
 {
-  Startinc_++;   
+     
   if (velWaist.size () != 3)
     {
       velWaist.resize (3);
@@ -448,7 +448,8 @@ SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
       velWaist.setZero ();
       return velWaist;
     }
-     if (Startinc_ < 320)
+Startinc_++;
+  if (Startinc_ < 1000)
     {
       velWaist(0) = 0.01;
       velWaist(1) = velWaist(2) = 0;

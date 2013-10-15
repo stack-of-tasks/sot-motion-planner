@@ -74,6 +74,7 @@ SET(FEET_FOLLOWER_SOURCES
   visp-point-projection.cc
   error-merger.cc
   time.cc
+  simu-object-position.cc
   simu-object-position-in-camera.cc
   supervisor.cc
 
@@ -113,6 +114,7 @@ SET(FILES
   math.py
   robot_viewer.py
   sway_motion_correction.py
+  simu_object.py
   )
 
 FOREACH(FILE ${FILES})
@@ -150,6 +152,7 @@ SET(FILES
 FOREACH(FILE ${FILES})
   PYTHON_INSTALL("${PYTHON_MODULE}" "${FILE}" "${PYTHON_SITELIB}")
 ENDFOREACH()
+
 
 
 # Install dynamic_graph.sot.motion_planner.motion_plan.motion

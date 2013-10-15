@@ -149,6 +149,10 @@ class dune_sway_control(sway_control):
       robot.pg.parseCmd(":numberstepsbeforestop 2")
       robot.pg.parseCmd(":setfeetconstraint XY 0.02 0.01")
 
+      #Add trace
+      robot.addTrace(self.smc.name,'outputPgVelocity')
+      robot.addTrace(self.rosExport.name,'objectInCamera')
+     
    def setvelocitymax(self,i,j,k):
 	   self.setMaximumVelocity(i,j,k)
 	   
@@ -156,7 +160,18 @@ class dune_sway_control(sway_control):
       self.smc.initialize(I,0)
       
    def start_dunesc(self,robot):
+     robot.startTracer()
+     robot.pg.parseCmd(":setVelReference 0.01 0.0 0.0")
+     robot.pg.parseCmd(":HerdtOnline")
      plug(self.smc.outputPgVelocity, robot.pg.velocitydes)
+     
+   def dunetest1start(self,robot):
+     I=((0.36024424324189963, -0.011043073035810341, -0.93279265421046109, -0.034044911691398186),
+        (0.26315928029913049, -0.95811474655506446, 0.11297488936116869, 0.70448444571656255),
+        (-0.89496998743170975, -0.28617159707359219, -0.34224923465923912, 2.7397275131873364),
+        (0.0, 0.0, 0.0, 1.0))
+     self.initialize(I)
+     self.start_dunesc(robot)
 
 def prepare_gsc(robot):
    gsc=garcia_sway_control(robot)
@@ -182,7 +197,5 @@ def dunetest1(robot):
 	dunesc=dune_sway_control(robot)
 	dunesc.smc.setMaximumVelocity(0.1,0.1,0.05)
 	dunesc.smc.setAxis(1,0,0)
-	I=((0.36024424324189963, -0.011043073035810341, -0.93279265421046109, -0.034044911691398186), (0.26315928029913049, -0.95811474655506446, 0.11297488936116869, 0.70448444571656255), (-0.89496998743170975, -0.28617159707359219, -0.34224923465923912, 2.7397275131873364), (0.0, 0.0, 0.0, 1.0))
-	dunesc.initialize(I)
 	return dunesc
-
+	
