@@ -34,9 +34,12 @@
 
 #include "common.hh"
 
+// ------------- Debug ------------ //
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <stdlib.h>
+
 using namespace std;
 
 static const double STEP = 0.005; // Computation period
@@ -211,6 +214,27 @@ protected:
 
   /// \brief Acceleration / Maximum difference between the velocity commanded and the last one
   double Acceleration_[3];
+  
+  // Kalman parameters
+  /// \brief X = (x, y , theta) state vector of Kalman filter
+  vpColVector X1_;
+  vpColVector X2_;
+  
+  /// \brief W noise on model
+  vpMatrix W_;
+  
+  /// \brief V noise on measure
+  vpMatrix V_;
+  
+  /// |brief P covariance of the Kalman Filter
+  vpMatrix P_;
+  
+  /// \brief K gain of the Kalman filter
+  vpMatrix K_;
+  
+  /// \brief Y_ measures
+  vpColVector Y_;
+  
 };
 
 namespace command
@@ -293,10 +317,31 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
     E_ (2),
     inputComVel_(3),
     integralLbk_ (2),
-    E_tT_(2)
+    E_tT_(2),
+    X1_(3),
+    X2_(3),
+    W_(3,3),
+    V_(3,3),
+    P_(3,3),
+    K_(3,3),
+    Y_(3)
 {
   signalRegistration (inputdcom_ << outputPgVelocity_ << cMo_ << cMoTimestamp_ 
 		      << wMwaist_ << wMcamera_ );
+
+ // Kalman initialization
+ for ( int i=0 ; i<3 ; i++ ) {
+	 X1_[i] = X2_[i] = Y_[i] = 0;
+	 for ( int j=0 ; j<3 ; j++ ) {
+		 K_[i][j] = 0;
+	 }
+ }
+ P_.eye(3);
+ V_.eye(3);
+ W_.eye(3);
+ P_ = 1.*P_; // FIXME
+ V_ = 5.*V_;
+ W_ = 0.1*W_; // FIXME
 
     vmax_[0] = 0.25;
     vmax_[1] = 0.2;
@@ -389,6 +434,12 @@ SwayMotionCorrection::initialize (const vpHomogeneousMatrix& cdMo, int t)
   FThU_.buildFrom(cdMc_);
   task_.addFeature (FT_);
   task_.addFeature (FThU_);
+  task_.computeControlLaw ();
+  X1_[0] = task_.error[0];
+  X1_[1] = task_.error[1];
+  X1_[2] = task_.error[5];
+  X2_ = X1_;
+  
   initialized_ = true;
 }
 
@@ -436,7 +487,7 @@ SwayMotionCorrection::stop ()
 // 4. Check whether we should stop.
 ml::Vector&
 SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
-{
+{  ofstream fichier("/tmp/debug.txt", ios::out | ios::app);
      
   if (velWaist.size () != 3)
     {
@@ -458,21 +509,67 @@ Startinc_++;
  
   cdMc_ = cdMo_ * convert(cMo_ (t).inverse ());
   
+  // ----------- Debug --------------- //
+  
+  vpHomogeneousMatrix cdMcNoNoise;
+  cdMcNoNoise = cdMc_;
+  cdMc_[0][3] = cdMc_[0][3] + (rand() % 100)*0.001-0.05;
+  cdMc_[1][3] = cdMc_[1][3] + (rand() % 100)*0.001-0.05;
+  
+  
+  // Kalman Filter
+   /// get velocity in the cam frame
+     vpColVector ComVel (6);
+  for (unsigned i = 0; i < 2; ++i) 
+    ComVel[i] = inputdcom_ (t)(i);
+   ComVel[2] = ComVel[3] = ComVel[4] = ComVel[5] = 0;
+  vpVelocityTwistMatrix camVw (convert (wMcamera_ (t)).inverse());
+  
+
+  vpColVector xyVelocity(6);
+  xyVelocity = camVw * ComVel;
+  
+  vpColVector ComVelInCam(3);
+  ComVelInCam[0]=xyVelocity[0];
+  ComVelInCam[1]=xyVelocity[1];
+  ComVelInCam[2]=inputdcom_ (t)(2);
+  
+   /// get error from Visp
+  FT_.buildFrom (cdMc_);
+  FThU_.buildFrom (cdMc_);
+  vpColVector cVelocity = task_.computeControlLaw ();
+  Y_[0] = task_.error[0];
+  Y_[1] = task_.error[1];
+  Y_[2] = task_.error[5];
+  
+   /// Prediction
+   X2_ = X1_ + STEP * ComVelInCam;
+   P_ = P_ + W_;
+   
+   /// Correction
+   K_ = P_ * (P_ + V_).inverseByLU();
+   X1_ = X2_ + K_ * (Y_ - X2_);
+   vpMatrix I(3,3);
+   I.eye(3);
+   P_ = ( I - K_ ) * P_;
+   
+   fichier << cdMcNoNoise[0][3] << " " << cdMcNoNoise[1][3] << " " << cdMc_[0][3] << " " << cdMc_[1][3] << " " << X1_[0] << " " << X1_[1] << endl;
+   /// Adjuste cdMc to the result of the Kalman filter
+   cdMc_[0][3] = X1_[0];
+   cdMc_[1][3] = X1_[1]; 
+     
   // Compute distance between camera and desired camera, in the waist frame
   vpHomogeneousMatrix waistTc =
     convert (wMwaist_ (t).inverse () * wMcamera_ (t));
-  vpHomogeneousMatrix cMcd = cdMc_.inverse();
     for (int i=0 ; i<3 ; i++ ) {
       waistTc[i][3]=0;
-  }
-  
+  }  
+  vpHomogeneousMatrix cMcd = cdMc_.inverse();
   vpHomogeneousMatrix cwaistMcd;
   cwaistMcd = waistTc * cMcd;
   
   // Compute sway motion correction   
-   vpColVector ComVel (6);
-  for (unsigned i = 0; i < 2; ++i) 
-    ComVel[i] = inputdcom_ (t)(i);  
+ 
   ComVel[2] = ComVel[3] = ComVel[4] = ComVel[5] = 0;
   vpVelocityTwistMatrix waistVw (convert (wMwaist_ (t)).inverse());
   ComVel = waistVw * ComVel ;
@@ -497,19 +594,16 @@ Startinc_++;
   // Add sway motion correction to the distance between cam and desired cam
   cwaistMcd [0][3] = cwaistMcd[0][3] +  (integralLbk_[0]- E_tT_[0]);
   cwaistMcd [1][3] = cwaistMcd[1][3] +  (integralLbk_[1]- E_tT_[1]);
-    
-  // Compute new control law.
-  FT_.buildFrom (cdMc_);
-  FThU_.buildFrom (cdMc_);
-  vpColVector cVelocity_ = task_.computeControlLaw ();
+  
   
   // recompute control law (Visp-servoing overtaking)
-  cVelocity_[0] = Gain_[0] * cwaistMcd[0][3]; // FIXME (Geom 1.5)
-  cVelocity_[1] = Gain_[1] * cwaistMcd[1][3]; // FIXME (Geom 3)
+  cVelocity[0] = Gain_[0] * cwaistMcd[0][3]; // FIXME (Geom 1.5)
+  cVelocity[1] = Gain_[1] * cwaistMcd[1][3]; // FIXME (Geom 3)
+  cVelocity[5] = Gain_[2] * X1_[2];
       
   // Compute bounded velocity.
   vpColVector velWaistVispBounded =
-    this->velocitySaturation (cVelocity_);
+    this->velocitySaturation (cVelocity);
 
   // Compute soft start (limitation between velWaistVispBouded and a last one)
   double lim=0.;
