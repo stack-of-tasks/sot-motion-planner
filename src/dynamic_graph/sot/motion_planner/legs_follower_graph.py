@@ -24,7 +24,7 @@ from dynamic_graph.sot.dynamics.tools import *
 
 print "import from sot.core"
 from dynamic_graph.sot.core import \
-    FeatureGeneric, Task, MatrixConstant, RobotSimu
+    FeatureGeneric, MatrixConstant, RobotSimu
 
 print "import from sot.motion_planner"
 from dynamic_graph.sot.motion_planner import LegsFollower, PostureError, LegsError, WaistError
@@ -32,12 +32,6 @@ from dynamic_graph.sot.motion_planner import LegsFollower, PostureError, LegsErr
 print "import TracerRealTime"
 from dynamic_graph.tracer_real_time import TracerRealTime
 
-print "import CorbaServer"
-from dynamic_graph.corba_server import CorbaServer
-corba = CorbaServer('corba')
-#corba.displaySignals()
-
-#./sot-dynamic/_build-Release/src/dynamic_graph/sot/dynamics/hrp2.py: have been modified
 
 halfSitting = (0.0, 0.0, 0.648702, 0.0, 0.0, 0.0,
  0.0, 0.0, -0.45378600000000002, 0.87266500000000002, -0.418879, 0.0,

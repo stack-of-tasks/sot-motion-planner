@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright 2011, Florent Lamiraux, Thomas Moulard, JRL, CNRS/AIST
+# Copyright 2013, Olivier Stasse, LAAS, CNRS
 #
 # This file is part of sot-motion-planner.
 # sot-motion-planner is free software: you can redistribute it and/or
@@ -24,8 +25,5 @@ from feet_follower import \
     WaistYaw, VirtualSensor, \
     RobotPositionFromVisp, \
     LegsError, WaistError
-#    Supervisor, \
-#   LegsFollower, \ 
-#   VispPointProjection, \
-#   FeetFollowerFromFile, FeetFollowerAnalyticalPg, \
-#    FeetFollowerWithCorrection, Randomizer, ErrorEstimator, \
+
+@python_roboptim_import_files@

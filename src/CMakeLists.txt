@@ -31,12 +31,16 @@ FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mathtools)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mal)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} sot-core)
-  PKG_CONFIG_USE_DEPENDENCY(${NAME} roboptim-core)
+  IF (roboptim-core_FOUND)
+    PKG_CONFIG_USE_DEPENDENCY(${NAME} roboptim-core)
+  ENDIF (roboptim-core_FOUND)
 
   #FIXME: plug-ins should not be interdependent...
   TARGET_LINK_LIBRARIES(${NAME} "${DYNAMIC_GRAPH_PLUGINDIR}/sot.so")
   TARGET_LINK_LIBRARIES(${NAME} "${DYNAMIC_GRAPH_PLUGINDIR}/feature-posture.so")
-  TARGET_LINK_LIBRARIES(${NAME} visp)
+  IF (VISP_CONFIG)
+    TARGET_LINK_LIBRARIES(${NAME} visp)
+  ENDIF(VISP_CONFIG)
 
   INSTALL(TARGETS ${NAME} DESTINATION lib/plugin)
 
@@ -56,45 +60,47 @@ ENDFUNCTION()
 
 COMPILE_PLUGIN(localizer localizer.cc Localizer)
 
+IF (VISP_CONFIG)
+  SET(VISP_SOURCE_FILES sway-motion-correction.cc visp-point-projection.cc)
+ENDIF(VISP_CONFIG)
+
+IF (roboptim-core_FOUND)
+    SET(ROBOPTIM_SOURCE_FILES discretized-trajectory.cc error-trajectory.cc error-estimator.cc feet-follower.cc feet-follower-from-file.cc feet-follower-analytical-pg.cc feet-follower-with-correction.cc randomizer.cc   randomizer.hh supervisor.cc legs-follower.cc)
+ENDIF(roboptim-core_FOUND)
+
 SET(FEET_FOLLOWER_SOURCES
-  discretized-trajectory.cc
-  error-trajectory.cc
+  ${ROBOPTIM_SOURCE_FILES}
 
-  error-estimator.cc
-
-  feet-follower.cc
-  feet-follower-from-file.cc
-  feet-follower-analytical-pg.cc analytical-pg/newPGstepStudy.cpp
-  feet-follower-with-correction.cc
-
-  randomizer.cc randomizer.hh
+  analytical-pg/newPGstepStudy.cpp
 
   waist-yaw.cc
 
   virtual-sensor.cc
   robot-position-from-visp.cc
-  visp-point-projection.cc
   error-merger.cc
   time.cc
   simu-object-position-in-camera.cc
-  supervisor.cc
   
-  legs-follower.cc
   legs-error.cc
   waist-error.cc
 
-  sway-motion-correction.cc
   go-to-one-position.cc
+  ${VISP_SOURCE_FILES}
   )
 
-COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" FeetFollowerFromFile)
-
+COMPILE_PLUGIN(feet-follower "${FEET_FOLLOWER_SOURCES}" LegsError)
 
 SET(PYTHON_SITELIB "lib/python2.6/site-packages")
-
-
-
 SET(TRAJECTORY_PATH "${CMAKE_SOURCE_DIR}/tests")
+
+IF (roboption-core_FOUND)
+  SET(python_roboptim_import_files "from feet_follower import Supervisor, LegsFollower,  VispPointProjection, FeetFollowerFromFile, FeetFollowerAnalyticalPg, FeetFollowerWithCorrection, Randomizer, ErrorEstimator")
+ELSE()
+  SET(python_roboptim_import_files "")
+ENDIF()
+
+CONFIG_FILES(dynamic_graph/sot/motion_planner/__init__.py)
+
 CONFIG_FILES(dynamic_graph/sot/motion_planner/feet_follower_graph.py)
 #CONFIG_FILES(dynamic_graph/sot/motion_planner/legs_follower_graph.py)
 
@@ -114,6 +120,7 @@ SET(FILES
   math.py
   robot_viewer.py
 
+  joint_traj_legs_follower_graph.py
   clean2_legs_follower_graph.py
 
   sway_motion_correction.py

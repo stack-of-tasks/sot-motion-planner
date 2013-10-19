@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright 2011, Florent Lamiraux, Thomas Moulard, JRL, CNRS/AIST
+# Copyright 2013, Olivier Stasse, LAAS, CNRS
 #
-# This file is part of dynamic-graph.
-# dynamic-graph is free software: you can redistribute it and/or
+# This file is part of sot-motion-planner.
+# sot-motion-planner is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
 # as published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# dynamic-graph is distributed in the hope that it will be useful, but
+# sot-motion-planner is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # General Lesser Public License for more details.  You should have
 # received a copy of the GNU Lesser General Public License along with
-# dynamic-graph. If not, see <http://www.gnu.org/licenses/>.
+# sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
 print("Run legs_follower_graph.py  v2.0.")
 import time
@@ -21,16 +22,14 @@ import time
 from dynamic_graph import plug
 
 print "import from sot.core"
-from dynamic_graph.sot.core import FeatureGeneric, FeaturePosture, Task, MatrixConstant, RobotSimu
+from dynamic_graph.sot.core import FeatureGeneric, Task, FeaturePosture, MatrixConstant, RobotSimu
+from dynamic_graph.sot.core.joint_trajectory_entity import SotJointTrajectoryEntity
 
 print "import from sot.motion_planner"
-from dynamic_graph.sot.motion_planner import LegsFollower, PostureError, LegsError, WaistError
+from dynamic_graph.sot.motion_planner import LegsError, WaistError
 
 print "import TracerRealTime"
 from dynamic_graph.tracer_real_time import TracerRealTime
-
-
-#./sot-dynamic/_build-Release/src/dynamic_graph/sot/dynamics/hrp2.py: have been modified
 
 halfSitting = (0.0, 0.0, 0.648702, 0.0, 0.0, 0.0,
  0.0, 0.0, -0.45378600000000002, 0.87266500000000002, -0.418879, 0.0,
@@ -73,13 +72,17 @@ class LegsFollowerGraph(object):
 
     trace = None
 
-    def __init__(self, robot, solver, trace = None, postureTaskDofs = None):
+    def __init__(self, robot, solver, ros, trace = None, postureTaskDofs = None):
         print("Constructor of LegsFollower Graph")
         self.robot = robot
         self.solver = solver
-	self.legsFollower = LegsFollower('legs-follower')
+        self.ros = ros
+	self.legsFollower = SotJointTrajectoryEntity('legs-follower')
         self.statelength = len(robot.device.state.value)
 
+        # Plug ros in the legs follower entity
+        # We assume that a poseTrajectory has been initialized previously
+        plug(self.ros.rosExport.poseTrajectory,self.legsFollower.trajectoryIN)
  	# Initialize the posture task.
 	print("Posture Task")
         self.postureTaskDofs = postureTaskDofs
@@ -99,7 +102,7 @@ class LegsFollowerGraph(object):
         plug(self.robot.device.state, self.postureFeature.state)
 
         posture = list(self.robot.halfSitting)
-        self.postureFeature.setPosture(tuple(posture))
+        self.postureFeature.posture.value = tuple(posture)
         for (dof, isEnabled) in self.postureTaskDofs:
             self.postureFeature.selectDof(dof, isEnabled)
         self.postureTask.add(self.postureFeature.name)
@@ -120,8 +123,7 @@ class LegsFollowerGraph(object):
         self.legsError = LegsError('LegsError')
         plug(self.robot.device.state, self.legsError.state)
 
-        # self.legsFeatureDes.errorIN.value = self.legsFollower.ldof.value        
-        plug(self.legsFollower.ldof,self.legsFeatureDes.errorIN)
+        plug(self.legsFollower.position,self.legsFeatureDes.errorIN)
         self.legsFeature.jacobianIN.value = self.legsJacobian()
 
         self.legsFeature.setReference(legsFeatureDesName)
@@ -209,18 +211,6 @@ class LegsFollowerGraph(object):
 	self.trace.add(self.legsTask.name + '.error', 'errorLegs')
         self.trace.add(self.robot.comTask.name + '.error', 'errorCom')
 
-        #self.trace.add('legs-follower.outputStart','start')
-        #self.trace.add('legs-follower.outputYaw','yaw')
-        self.trace.add('corba.planner_steps','steps')
-        self.trace.add('corba.planner_outputGoal','goal')
-        self.trace.add('corba.waist','waistMocap')
-	self.trace.add('corba.left-foot','footMocap')
-        self.trace.add('corba.table','tableMocap')
-        self.trace.add('corba.bar','barMocap')
-        self.trace.add('corba.chair','chairMocap')
-	self.trace.add('corba.helmet','helmetMocap')
-	self.trace.add('corba.planner_outputObs','obstacles')
-
         self.trace.add(self.robot.dynamic.name + '.left-ankle',
                        self.robot.dynamic.name + '-left-ankle')
         self.trace.add(self.robot.dynamic.name + '.right-ankle',
@@ -238,14 +228,10 @@ class LegsFollowerGraph(object):
 
     def plugPlanner(self):
         print("Plug planner.")
-	plug(corba.planner_radQ, self.legsFollower.inputRef)
-	plug(self.legsFollower.outputStart, corba.planner_inputStart)
 	return
 
     def plugPlannerWithoutMocap(self):
         print("Plug planner without mocap.")
-	#plug(corba.planner_radQ, self.legsFollower.inputRef)
-	plug(self.legsFollower.outputStart, corba.planner_inputStart)
 	return
 
     def plugViewer(self):

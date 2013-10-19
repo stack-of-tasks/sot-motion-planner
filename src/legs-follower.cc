@@ -76,7 +76,8 @@ LegsFollower::LegsFollower (const std::string& name)
     outputYaw_   (dg::nullptr,MAKE_SIGNAL_STRING (name, true, "Vector", "outputYaw"))
 {
   sotDEBUGIN(15);
-  signalRegistration (ldof_out_ << waist_out_ << comOut_ << zmpOut_ << inputRef_ << outputStart_ << outputYaw_);
+  signalRegistration (ldof_out_ << waist_out_ << comOut_ << 
+     zmpOut_ << inputRef_ << outputStart_ << outputYaw_);
 
   ldof_out_.setNeedUpdateFromAllChildren (true);
   comOut_.setNeedUpdateFromAllChildren (true);

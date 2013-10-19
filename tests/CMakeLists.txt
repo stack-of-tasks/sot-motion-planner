@@ -41,15 +41,20 @@ MACRO(SOT_MOTION_PLANNER_TEST NAME)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mathtools)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mal)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} sot-core)
-  PKG_CONFIG_USE_DEPENDENCY(${NAME} roboptim-core)
+  IF (roboptim-core_FOUND)
+    PKG_CONFIG_USE_DEPENDENCY(${NAME} roboptim-core)
+  ENDIF(roboptim-core_FOUND)
 
 
   # Link against Boost.
   TARGET_LINK_LIBRARIES(${NAME} ${Boost_LIBRARIES})
 
   TARGET_LINK_LIBRARIES(${NAME} localizer)
-  TARGET_LINK_LIBRARIES(${NAME} feet-follower)
-  TARGET_LINK_LIBRARIES(${NAME} visp)
+  TARGET_LINK_LIBRARIES(${NAME} feet-follower)  
+  IF (roboptim-core_FOUND)
+    TARGET_LINK_LIBRARIES(${NAME} visp)
+  ENDIF(roboptim-core_FOUND)
+
 ENDMACRO(SOT_MOTION_PLANNER_TEST)
 
 # Time related tools.
