@@ -125,6 +125,15 @@ class SwayMotionCorrection : public dg::Entity
     Acceleration_[0] = dx;
     Acceleration_[1] = dy;
     Acceleration_[2] = dtheta;
+  } 
+  void setKalman(const double& p, const double& v, const double& w)
+  {
+    P_.eye(3);
+    P_ = p *P_;
+    V_.eye(3);
+    V_ = v *V_;
+    W_.eye(3);
+    W_ = w *W_;
   }
 protected:
   /// \brief Compute camera velocity from (current) waist velocity.
@@ -283,6 +292,14 @@ namespace command
 			  const std::string& docstring);
       virtual Value doExecute ();
     };
+    
+    class SetKalman : public Command
+    {
+    public:
+      SetKalman (SwayMotionCorrection& entity,
+			  const std::string& docstring);
+      virtual Value doExecute ();
+    }; 
   } // end of namespace swayMotionCorrection.
 } // end of namespace command.
 
@@ -339,9 +356,9 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
  P_.eye(3);
  V_.eye(3);
  W_.eye(3);
- P_ = 1.*P_; // FIXME
- V_ = 5.*V_;
- W_ = 0.1*W_; // FIXME
+ P_ = 10.*P_; // FIXME
+ V_ = 1000.*V_;
+ W_ = 0.01*W_; // FIXME
 
     vmax_[0] = 0.25;
     vmax_[1] = 0.2;
@@ -389,7 +406,12 @@ SwayMotionCorrection::SwayMotionCorrection (const std::string& name)
     ("setAcceleration",
      new command::swayMotionCorrection::SetAcceleration
      (*this, docstring));
-
+     
+  addCommand
+    ("setKalman",
+     new command::swayMotionCorrection::SetKalman
+     (*this, docstring));
+     
      // Signal dependencies
   // outputPgVelocity_.addDependency ( inputdcom_ ); bug : loop between sway-motion and pg
    outputPgVelocity_.addDependency ( cMo_ );
@@ -487,7 +509,7 @@ SwayMotionCorrection::stop ()
 // 4. Check whether we should stop.
 ml::Vector&
 SwayMotionCorrection::updateVelocity (ml::Vector& velWaist, int t)
-{  ofstream fichier("/tmp/debug.txt", ios::out | ios::app);
+{  //ofstream fichier("/tmp/debug.txt", ios::out | ios::app);
      
   if (velWaist.size () != 3)
     {
@@ -513,8 +535,8 @@ Startinc_++;
   
   vpHomogeneousMatrix cdMcNoNoise;
   cdMcNoNoise = cdMc_;
-  cdMc_[0][3] = cdMc_[0][3] + (rand() % 100)*0.001-0.05;
-  cdMc_[1][3] = cdMc_[1][3] + (rand() % 100)*0.001-0.05;
+ // cdMc_[0][3] = cdMc_[0][3] + (rand() % 100)*0.001-0.05;
+ // cdMc_[1][3] = cdMc_[1][3] + (rand() % 100)*0.001-0.05;
   
   
   // Kalman Filter
@@ -553,7 +575,7 @@ Startinc_++;
    I.eye(3);
    P_ = ( I - K_ ) * P_;
    
-   fichier << cdMcNoNoise[0][3] << " " << cdMcNoNoise[1][3] << " " << cdMc_[0][3] << " " << cdMc_[1][3] << " " << X1_[0] << " " << X1_[1] << endl;
+  // fichier << cdMcNoNoise[0][3] << " " << cdMcNoNoise[1][3] << " " << cdMc_[0][3] << " " << cdMc_[1][3] << " " << X1_[0] << " " << X1_[1] << endl;
    /// Adjuste cdMc to the result of the Kalman filter
    cdMc_[0][3] = X1_[0];
    cdMc_[1][3] = X1_[1]; 
@@ -804,5 +826,28 @@ namespace command
       entity.setAcceleration(dx, dy, dtheta);
       return Value ();
     }
+    
+  SetKalman::SetKalman (SwayMotionCorrection& entity,
+					    const std::string& docstring)
+      : Command
+	(entity,
+	 boost::assign::list_of (Value::DOUBLE) (Value::DOUBLE) (Value::DOUBLE),
+	 docstring)
+    {}
+
+    Value
+    SetKalman::doExecute ()
+    {
+      SwayMotionCorrection& entity =
+	static_cast<SwayMotionCorrection&> (owner ());
+
+      std::vector<Value> values = getParameterValues ();
+      double dx = values[0].value ();
+      double dy = values[1].value ();
+      double dtheta = values[2].value ();
+
+      entity.setKalman(dx, dy, dtheta);
+      return Value ();
+    } 
   } // end of namespace swayMotionCorrection.
 } // end of namespace command.

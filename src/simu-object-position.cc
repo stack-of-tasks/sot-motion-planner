@@ -54,13 +54,42 @@ SimuObjectInCam::SimuObjectInCam (const std::string& name)
     ("initialize",
      new command::simuObjectInCam::Initialize
      (*this, docstring));
-
+     
+  addCommand
+    ("SetUDThreshold",
+     new command::simuObjectInCam::SetUDThreshold
+     (*this, docstring));
+     
+  addCommand
+    ("SetUDFrequency",
+     new command::simuObjectInCam::SetUDFrequency
+     (*this, docstring)); 
+     
+  IncUD_ = 0;
+  
+  UDThreshold_ = 0.2;
+  UDFrequency_ = 199;
+  
   simu_cMo_.addDependency ( wMc_ );
+  simu_cMo_.addDependency ( cMo_ );
 }     
      
 SimuObjectInCam::~SimuObjectInCam ()
 {
 }
+
+void 
+SimuObjectInCam::setFrequency (int t)
+{
+	UDFrequency_ = t;
+}
+
+void 
+SimuObjectInCam::setThreshold (double t)
+{
+	UDThreshold_ = t;
+}
+
 
 void
 SimuObjectInCam::initialize (int t)
@@ -68,13 +97,37 @@ SimuObjectInCam::initialize (int t)
 	ciMo_ = cMo_(t);
 	wMci_ = wMc_(t);
 	
+	sot::MatrixHomogeneous wMo = wMc_(t)*cMo_(t);
+	Zi_  = wMo(2,3);
+	
 	initialized_ = true;
 }
 
 sot::MatrixHomogeneous&
 SimuObjectInCam::update(sot::MatrixHomogeneous& ret, int t) {
 	// Add protection if no initialization
-	ret=wMc_(t).inverse()*wMci_*ciMo_;
+	sot::MatrixHomogeneous cMo = wMc_(t).inverse()*wMci_*ciMo_;
+	
+	// Keep the same object height (in the world)
+	sot::MatrixHomogeneous wMo = wMc_(t)*cMo;
+	wMo(2,3) = Zi_;
+	ret = wMc_(t).inverse()*wMo;
+	
+	// each second, if the cMo from visp ~ cMo simulated, up-date initial positions here
+	if ( IncUD_ > UDFrequency_ ) {
+	    bool CanUD=true;
+		for (int i=0 ; i<2 ; i++) {
+			if ( ret(i,3) - (cMo_(t))(i,3) > UDThreshold_ || ret(i,3) - (cMo_(t))(i,3) < -UDThreshold_ ) {
+				CanUD = false;
+			}
+		}
+		if ( CanUD == true ) {
+			initialize(t);
+			IncUD_ = 0;
+		}
+	}
+	IncUD_++;			
+	
 	return ret;
 }
 
@@ -101,6 +154,44 @@ namespace command
 	std::vector<Value> values = getParameterValues ();
 	int t = values[0].value ();
       entity.initialize (t);
+      return Value ();
+    }
+
+    SetUDThreshold::SetUDThreshold (SimuObjectInCam& entity,
+			    const std::string& docstring)
+      : Command
+	(entity,
+	 boost::assign::list_of (Value::DOUBLE),
+	 docstring)
+    {}
+
+    Value
+    SetUDThreshold::doExecute ()
+    {
+      SimuObjectInCam& entity =
+	static_cast<SimuObjectInCam&> (owner ());
+	std::vector<Value> values = getParameterValues ();
+	double t = values[0].value ();
+      entity.setThreshold (t);
+      return Value ();
+    }
+
+    SetUDFrequency::SetUDFrequency (SimuObjectInCam& entity,
+			    const std::string& docstring)
+      : Command
+	(entity,
+	 boost::assign::list_of (Value::INT),
+	 docstring)
+    {}
+
+    Value
+    SetUDFrequency::doExecute ()
+    {
+      SimuObjectInCam& entity =
+	static_cast<SimuObjectInCam&> (owner ());
+	std::vector<Value> values = getParameterValues ();
+	int t = values[0].value ();
+      entity.setFrequency (t);
       return Value ();
     }
 }

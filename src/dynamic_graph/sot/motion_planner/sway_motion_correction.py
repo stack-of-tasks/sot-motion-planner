@@ -4,7 +4,7 @@ from dynamic_graph import plug
 from dynamic_graph.sot.hrp2_14.robot import Robot
 
 from dynamic_graph.sot.motion_planner.feet_follower import SwayMotionCorrection,RobotPositionFromVisp, GoToOnePosition, SimuObjectPositionInCamera
-from dynamic_graph.sot.core.math_small_entities import Inverse_of_matrixHomo
+from dynamic_graph.sot.core.math_small_entities import Inverse_of_matrixHomo, Multiply_of_matrixHomo
 from dynamic_graph.ros import *
 from dynamic_graph.sot.application.velocity.precomputed_tasks import initialize
 from dynamic_graph.sot.pattern_generator.walking import *
@@ -133,9 +133,17 @@ class dune_sway_control(sway_control):
       self.smc = SwayMotionCorrection('smc')
       # -- Sway Control Part --
       
+      # Set censor trnsformation
+      I =(( 0.,  0., 1., 0.),
+          (-1.,  0., 0., 0.),
+          ( 0., -1., 0., 0.),
+          ( 0.,  0., 0., 1.))
+      self.cMoOnRobotFrame = Multiply_of_matrixHomo("cMoOnRobotFrame")
+      self.cMoOnRobotFrame.sin1.value = I
+      plug(self.rosExport.signal(self.objectName), self.cMoOnRobotFrame.sin2)
+      
       # Plug the visp cMo into Dune Sway Control
-      plug(self.rosExport.signal(self.objectName),
-         self.smc.cMo)
+      plug(self.cMoOnRobotFrame.sout, self.smc.cMo)
       self.smc.cMoTimestamp.value = (0., 0.)
       plug(robot.pg.dcomref, self.smc.inputdcom)
       plug(self.robot.frames[self.frameName].position,

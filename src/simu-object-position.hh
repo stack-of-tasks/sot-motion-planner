@@ -52,6 +52,10 @@ class SimuObjectInCam : public dg::Entity
   sot::MatrixHomogeneous& update(sot::MatrixHomogeneous& ret, int t);
  /// \brief initialize first positions.
   void initialize(int t);
+ /// \brief set Threshold for updating or not
+ void setThreshold (double t);
+ /// \brief set updating frequency
+ void setFrequency(int t);
 
 protected:    
  /// \brief cMo
@@ -65,9 +69,20 @@ protected:
   sot::MatrixHomogeneous ciMo_;
  /// \brief first camera position in world
   sot::MatrixHomogeneous wMci_; 
+ /// \brief first height of the object in the world
+  double Zi_; 
  
  /// \brief Is the first positions taken
   bool initialized_;
+  
+ /// \brief increment for up-dating
+ int IncUD_;
+ 
+ /// \brief update frequency ( update when IncUD > UDfrequency )
+ int UDFrequency_;
+ 
+ /// \brief threshold for updating or not
+ double UDThreshold_;
 };
   
   namespace command
@@ -81,6 +96,22 @@ protected:
     {
     public:
       Initialize (SimuObjectInCam& entity,
+		  const std::string& docstring);
+      virtual Value doExecute ();
+    };
+    
+        class SetUDFrequency : public Command
+    {
+    public:
+      SetUDFrequency (SimuObjectInCam& entity,
+		  const std::string& docstring);
+      virtual Value doExecute ();
+    };
+    
+        class SetUDThreshold : public Command
+    {
+    public:
+      SetUDThreshold (SimuObjectInCam& entity,
 		  const std::string& docstring);
       virtual Value doExecute ();
     };
