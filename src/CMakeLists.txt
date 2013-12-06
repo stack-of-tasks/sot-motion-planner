@@ -74,6 +74,8 @@ SET(FEET_FOLLOWER_SOURCES
   visp-point-projection.cc
   error-merger.cc
   time.cc
+  object-position-kalman.cc
+  MotionCaptureToWaistMObject.cc
   simu-object-position.cc
   simu-object-position-in-camera.cc
   supervisor.cc
