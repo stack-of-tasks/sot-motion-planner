@@ -1,5 +1,5 @@
 // Copyright 2011
-// JRL, CNRS/AIST.
+// LAAS-CNRS, Mathieu Geisert 
 //
 // This file is part of sot-motion-planner.
 // sot-motion-planner is free software: you can redistribute it and/or
@@ -32,8 +32,9 @@
 #include <fstream>
 using namespace std;
 
-//const std::string SimuObjectInCam::CLASS_NAME="SimuObjectInCam";
-
+// This program give the position where the object should be according to a reference position
+// and the odometry of the robot. The reference position is the initial position then it is updated
+// if the difference between the calculated position and the mesured posiiton doesn't exceed a threshold.
 SimuObjectInCam::SimuObjectInCam (const std::string& name)
   : dg::Entity (name),
     initialized_ (false),
@@ -55,11 +56,13 @@ SimuObjectInCam::SimuObjectInCam (const std::string& name)
      new command::simuObjectInCam::Initialize
      (*this, docstring));
      
+     // Command to set threshold (if the reference position is update or not)
   addCommand
     ("SetUDThreshold",
      new command::simuObjectInCam::SetUDThreshold
      (*this, docstring));
      
+     // Command to set at wich frequency the reference position will be updated
   addCommand
     ("SetUDFrequency",
      new command::simuObjectInCam::SetUDFrequency
@@ -91,6 +94,7 @@ SimuObjectInCam::setThreshold (double t)
 }
 
 
+// initialization = set the reference position on the initial position
 void
 SimuObjectInCam::initialize (int t)
 {
@@ -98,6 +102,7 @@ SimuObjectInCam::initialize (int t)
 	wMci_ = wMc_(t);
 	
 	sot::MatrixHomogeneous wMo = wMc_(t)*cMo_(t);
+	// We suppose the robot move on a flat floor so the position on Z axis = const
 	Zi_  = wMo(2,3);
 	
 	initialized_ = true;

@@ -38,7 +38,7 @@
 #include <string>
 #include <fstream>
 
-//const std::string CMoKalman::CLASS_NAME="CMoKalman";
+
 static const double STEP = 0.005; // Computation period
 
 using namespace std;
@@ -99,6 +99,7 @@ CMoKalman::CMoKalman (const std::string& name)
      new command::cMoKalman::Initialize
      (*this, docstring));
 
+	// Command to set P, V and W of the Kalman filter
   addCommand
     ("setKalman",
      new command::cMoKalman::SetKalman
@@ -198,9 +199,6 @@ CMoKalman::update(sot::MatrixHomogeneous& ret, int t) {
   
   return ret;
 }
-
-//ml::Vector&
-//CMoKalman::update(ml::Vector& ret, int t) {
 
 void
 CMoKalman::setKalman(const double& p, const double& v, const double& w)

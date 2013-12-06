@@ -1,5 +1,5 @@
 // Copyright 2011
-// LAAS-CNRS, Mathieu Geisert
+// JRL, CNRS/AIST.
 //
 // This file is part of sot-motion-planner.
 // sot-motion-planner is free software: you can redistribute it and/or
@@ -14,8 +14,7 @@
 // received a copy of the GNU Lesser General Public License along with
 // sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
-//#ifndef SOT_MOTION_PLANNER_SIMU_OBJECT_POSITION_HH
-//# define SOT_MOTION_PLANNER_SIMU_OBJECT_POSITION_HH
+
 #include <boost/foreach.hpp>
 
 #include <dynamic-graph/factory.h>
@@ -25,7 +24,6 @@
 #include <dynamic-graph/signal-time-dependent.h>
 #include <dynamic-graph/signal-ptr.h>
 #include <sot/core/vector-roll-pitch-yaw.hh>
-
 #include "common.hh"
 
 #include <iostream>
@@ -33,87 +31,74 @@
 #include <fstream>
 using namespace std;
 
-class SimuObjectInCam : public dg::Entity
+class MotionCapture : public dg::Entity
 {
   DYNAMIC_GRAPH_ENTITY_DECL ();
  public:
  /// \brief Input homogeneous matrix signal.
   typedef dg::SignalPtr<sot::MatrixHomogeneous, int> signalMatrixHomoIn_t;   
- /// \brief Output vector signal.
+ /// \brief Output homogeneous matrix signal.
   typedef dg::SignalTimeDependent<sot::MatrixHomogeneous, int> signalMatrixHomoOut_t;
+    /// \brief Input vector signal.
+  typedef dg::SignalPtr<ml::Vector, int> signalVectorIn_t;
   
    /// \name Constructor and destructor.
   /// \{
-  explicit SimuObjectInCam (const std::string& name);
-  virtual ~SimuObjectInCam ();
+  explicit MotionCapture (const std::string& name)
+  ;
+  virtual ~MotionCapture ();
   /// \}
 
- /// \brief Update simu_cMo.
+ /// \brief Update waistMo.
   sot::MatrixHomogeneous& update(sot::MatrixHomogeneous& ret, int t);
- /// \brief initialize first positions.
-  void initialize(int t);
- /// \brief set Threshold for updating or not
- void setThreshold (double t);
- /// \brief set updating frequency
- void setFrequency(int t);
+ /// \brief set Transformation from the reflectors on the object frame to the object frame in the wrl file 
+  void setObjectTransformation(ml::Matrix& mcToObj);
+  /// \brief set Transformation from the reflectors on the robot frame to the waist frame
+  void setRobotTransformation(ml::Matrix& mcToRob);
+  
 
 protected:    
- /// \brief cMo
-  signalMatrixHomoIn_t cMo_;
- /// \brief wMc
-  signalMatrixHomoIn_t wMc_;
- /// \brief SimucMo
-  signalMatrixHomoOut_t simu_cMo_;
+ // Transformation matrix from motion capture to robot
+ /// \brief mcToObj_ Transformation from the object frame in the motion capture to the object frame in the wrl file
+ sot::MatrixHomogeneous mcToObj_;
+ 
+ /// \brief mcToRob_ Transformation from the robot frame in the motion capture to the ??? frame in the robot
+ sot::MatrixHomogeneous mcToRob_;
+ 
+ // Signals
+ /// \brief cmMrob_ Homogeneous matrix of the frame of the reflector on the robot in the motion capture frame
+  signalMatrixHomoIn_t mcMrob_;
   
- /// \brief first object position in camera 
-  sot::MatrixHomogeneous ciMo_;
- /// \brief first camera position in world
-  sot::MatrixHomogeneous wMci_; 
- /// \brief first height of the object in the world
-  double Zi_; 
- 
- /// \brief Is the first positions taken
-  bool initialized_;
+ /// \brief cmMobj_ Homogeneous matrix of thte frame of the reflector on the object in the motion capture frame
+  signalMatrixHomoIn_t mcMobj_;
   
- /// \brief increment for up-dating
- int IncUD_;
- 
- /// \brief update frequency ( update when IncUD > UDfrequency )
- int UDFrequency_;
- 
- /// \brief threshold for updating or not
- double UDThreshold_;
+ /// |brief waistMo Homogeneous matrix of the frame of the object in the waist frame
+  signalMatrixHomoOut_t waistMo_; 
 };
   
+
   namespace command
 {
-  namespace simuObjectInCam
+  namespace motionCapture
   {
     using ::dynamicgraph::command::Command;
     using ::dynamicgraph::command::Value;
 
-    class Initialize : public Command
+    class SetRobotTransformation : public Command
     {
     public:
-      Initialize (SimuObjectInCam& entity,
+      SetRobotTransformation (MotionCapture& entity,
 		  const std::string& docstring);
       virtual Value doExecute ();
     };
     
-        class SetUDFrequency : public Command
+    class SetObjectTransformation : public Command
     {
     public:
-      SetUDFrequency (SimuObjectInCam& entity,
+      SetObjectTransformation (MotionCapture& entity,
 		  const std::string& docstring);
       virtual Value doExecute ();
     };
-    
-        class SetUDThreshold : public Command
-    {
-    public:
-      SetUDThreshold (SimuObjectInCam& entity,
-		  const std::string& docstring);
-      virtual Value doExecute ();
-    };
-  } // end of namespace simuObjectInCam
+  
+  } // end of namespace MotionCapture
 } // end of namespace command.
