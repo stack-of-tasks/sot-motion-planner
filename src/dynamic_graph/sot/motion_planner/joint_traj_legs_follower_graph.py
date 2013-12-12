@@ -78,6 +78,13 @@ class LegsFollowerGraph(object):
         self.solver = solver
         self.ros = ros
 	self.legsFollower = SotJointTrajectoryEntity('legs-follower')
+        initTrajstr="((12,(1230.0,690059052.0),Trajectory_0),"
+        initTrajstr=initTrajstr+"(RLEG_JOINT0,RLEG_JOINT1,RLEG_JOINT2,RLEG_JOINT3,RLEG_JOINT4,RLEG_JOINT5,"
+        initTrajstr=initTrajstr+"LLEG_JOINT0,LLEG_JOINT1,LLEG_JOINT2,LLEG_JOINT3,LLEG_JOINT4,LLEG_JOINT5,"
+        initTrajstr=initTrajstr+"COM_X,COM_Y,COM_Z,COP_X,COP_Y),"
+        initTrajstr=initTrajstr+"(((0.0,0.0,-0.453786,0.872665,-0.418879,0.0,0.0,0.0,-0.453786,0.872665,-0.418879,0.0,0.0,0.0,0.81,0.0,0.0)"
+        initTrajstr=initTrajstr+",(),(),())))"
+        self.legsFollower.initTraj(initTrajstr) 
         self.statelength = len(robot.device.state.value)
 
         # Plug ros in the legs follower entity
@@ -137,24 +144,21 @@ class LegsFollowerGraph(object):
         print (0., 0., self.robot.dynamic.com.value[2])
 	self.robot.comTask.controlGain.value = 50.
         self.robot.featureComDes.errorIN.value =  (0., 0., self.robot.dynamic.com.value[2])
-        self.robot.featureCom.selec.value = '111'
+        self.robot.featureCom.selec.value = '110'
 	plug(self.legsFollower.com, self.robot.featureComDes.errorIN)
 
         # Plug the legs follower zmp output signals.
         plug(self.legsFollower.zmp, self.robot.device.zmp)
-
 
 	solver.sot.remove(self.robot.comTask.name)
 
 	print("Push in solver.")
         solver.sot.push(self.legsTask.name)
         solver.sot.push(self.postureTask.name)
-	solver.sot.push(self.robot.tasks['waist'].name)
         solver.sot.push(self.robot.comTask.name)
         
         solver.sot.remove(self.robot.tasks['left-ankle'].name)
 	solver.sot.remove(self.robot.tasks['right-ankle'].name)
-
 
 	print solver.sot.display()
 
@@ -205,8 +209,8 @@ class LegsFollowerGraph(object):
 	
 	self.trace.add('legs-follower.com', 'com')
 	self.trace.add('legs-follower.zmp', 'zmp')
-	self.trace.add('legs-follower.ldof', 'ldof')
 	self.trace.add('legs-follower.waist', 'waist')
+	self.trace.add('legs-follower.position', 'position')
 	self.trace.add(self.robot.device.name + '.state', 'state')
 	self.trace.add(self.legsTask.name + '.error', 'errorLegs')
         self.trace.add(self.robot.comTask.name + '.error', 'errorCom')
@@ -219,8 +223,8 @@ class LegsFollowerGraph(object):
 
 	# Recompute trace.triger at each iteration to enable tracing.
 	self.robot.device.after.addSignal('legs-follower.zmp')
-	self.robot.device.after.addSignal('legs-follower.outputStart')
-	self.robot.device.after.addSignal('legs-follower.outputYaw')
+	#self.robot.device.after.addSignal('legs-follower.outputStart')
+	#self.robot.device.after.addSignal('legs-follower.outputYaw')
         self.robot.device.after.addSignal(self.robot.dynamic.name + '.left-ankle')
 	self.robot.device.after.addSignal(self.robot.dynamic.name + '.right-ankle')
 	self.robot.device.after.addSignal('trace.triger')
@@ -261,10 +265,8 @@ class LegsFollowerGraph(object):
 
 	self.setupTrace()
 	self.trace.start()
-        self.legsFollower.start()
 	return
 
     def stop(self):
-	self.legsFollower.stop()
 	self.trace.dump()
 	return
