@@ -121,6 +121,7 @@ SET(FILES
   robot_viewer.py
 
   joint_traj_legs_follower_graph.py
+  joint_traj_meta_legs_follower_graph.py   
   clean2_legs_follower_graph.py
 
   sway_motion_correction.py

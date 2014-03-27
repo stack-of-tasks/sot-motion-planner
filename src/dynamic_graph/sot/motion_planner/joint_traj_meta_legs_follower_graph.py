@@ -81,8 +81,8 @@ class LegsFollowerGraph(object):
         initTrajstr="((0,(1230.0,690059052.0),Trajectory_0),"
         initTrajstr=initTrajstr+"(RLEG_JOINT0,RLEG_JOINT1,RLEG_JOINT2,RLEG_JOINT3,RLEG_JOINT4,RLEG_JOINT5,"
         initTrajstr=initTrajstr+"LLEG_JOINT0,LLEG_JOINT1,LLEG_JOINT2,LLEG_JOINT3,LLEG_JOINT4,LLEG_JOINT5,"
-        initTrajstr=initTrajstr+"COM_X,COM_Y,COM_Z,COP_X,COP_Y),"
-        initTrajstr=initTrajstr+"(((0.0,0.0,-0.453786,0.872665,-0.418879,0.0,0.0,0.0,-0.453786,0.872665,-0.418879,0.0,0.0,0.0,0.81,0.0,0.0)"
+        initTrajstr=initTrajstr+"COM_X,COM_Y,COM_THETA,COP_X,COP_Y),"
+        initTrajstr=initTrajstr+"(((0.0,0.0,-0.453786,0.872665,-0.418879,0.0,0.0,0.0,-0.453786,0.872665,-0.418879,0.0,0.0,0.0,0.0,0.0,0.0)"
         initTrajstr=initTrajstr+",(),(),())))"
         self.legsFollower.initTraj(initTrajstr) 
         self.statelength = len(robot.device.state.value)
@@ -119,9 +119,9 @@ class LegsFollowerGraph(object):
 
 	# Initialize the waist follower task.
 	print("Waist Task")
-        self.robot.features['waist'].selec.value = '111111'
-        plug(self.legsFollower.waist, self.robot.features['waist'].reference)
-        self.robot.tasks['waist'].controlGain.value = 1.
+        self.robot.mTasks['waist'].feature.selec.value = '111111'
+        plug(self.legsFollower.waist, self.robot.mTasks['waist'].featureDes.position)
+        self.robot.mTasks['waist'].task.controlGain.value = 1.
 
 	# Initialize the legs follower task.
 	print("Legs Task")
@@ -144,30 +144,27 @@ class LegsFollowerGraph(object):
 	#CoM task
         print("Com Task")
         print (0., 0., self.robot.dynamic.com.value[2])
-	self.robot.comTask.controlGain.value = 50.
-        self.robot.featureComDes.errorIN.value =  (0., 0., self.robot.dynamic.com.value[2])
-        self.robot.featureCom.selec.value = '110'
-	plug(self.legsFollower.com, self.robot.featureComDes.errorIN)
+	self.robot.mTasks['com'].task.controlGain.value = 50.
+        self.robot.mTasks['com'].featureDes.errorIN.value =  (0., 0., self.robot.dynamic.com.value[2])
+        self.robot.mTasks['com'].feature.selec.value = '110'
+	plug(self.legsFollower.com, self.robot.mTasks['com'].featureDes.errorIN)
 
         # Plug the legs follower zmp output signals.
         plug(self.legsFollower.zmp, self.robot.device.zmp)
 
-	solver.sot.remove(self.robot.comTask.name)
-
-	print("Push in solver.")
-        solver.sot.push(self.legsTask.name)
-        solver.sot.push(self.postureTask.name)
-        solver.sot.push(self.robot.comTask.name)
+        # Prepare stack
+	self.initStack()
         
-        solver.sot.remove(self.robot.tasks['left-ankle'].name)
-	solver.sot.remove(self.robot.tasks['right-ankle'].name)
-
-	print solver.sot.display()
-
-        print("Tasks added in solver.\n")
-	print("Command are : \n - f.plug()\n - f.plugViewer()\n - f.plugPlanner()\n"
-              " - f.plugPlannerWithoutMocap()\n - f.start()\n - f.stop()\n - f.readMocap()\n")
-
+    def initStack(self):
+        self.solver.sot.clear() 
+        print("robot.contactLF: " + str(dir(self.robot.contactLF)))
+        #self.solver.push(self.robot.taskLim)
+        self.solver.sot.push(self.robot.mTasks['waist'].task.name)
+        self.solver.sot.push(self.legsTask.name)
+        self.solver.sot.push(self.postureTask.name)
+        self.solver.sot.push(self.robot.mTasks['com'].task.name)
+        
+	print self.solver.sot.dispStack()
 
     def legsJacobian(self):
         j = []
@@ -215,7 +212,7 @@ class LegsFollowerGraph(object):
 	self.trace.add('legs-follower.position', 'position')
 	self.trace.add(self.robot.device.name + '.state', 'state')
 	self.trace.add(self.legsTask.name + '.error', 'errorLegs')
-        self.trace.add(self.robot.comTask.name + '.error', 'errorCom')
+        self.trace.add(self.robot.mTasks['com'].task.name + '.error', 'errorCom')
 
         self.trace.add(self.robot.dynamic.name + '.left-ankle',
                        self.robot.dynamic.name + '-left-ankle')
@@ -262,8 +259,8 @@ class LegsFollowerGraph(object):
 	self.postureTask.controlGain.value = 180.
         #self.waistTask.controlGain.value = 90.
 	self.legsTask.controlGain.value = 180.
-	self.robot.comTask.controlGain.value = 180.
-	self.robot.tasks['waist'].controlGain.value = 45.
+	self.robot.mTasks['com'].task.controlGain.value = 180.
+	self.robot.mTasks['waist'].task.controlGain.value = 45.
 
 	self.setupTrace()
 	self.trace.start()
