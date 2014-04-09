@@ -13,6 +13,7 @@
 # received a copy of the GNU Lesser General Public License along with
 # sot-motion-planner. If not, see <http://www.gnu.org/licenses/>.
 
+INCLUDE(FindPythonLibs 2.6)
 INCLUDE(../cmake/python.cmake)
 
 FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
@@ -29,12 +30,12 @@ FUNCTION(COMPILE_PLUGIN NAME SOURCES ENTITIES)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mathtools)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} jrl-mal)
   PKG_CONFIG_USE_DEPENDENCY(${NAME} sot-core)
-  PKG_CONFIG_USE_DEPENDENCY(${NAME} roboptim-core)
+#  PKG_CONFIG_USE_DEPENDENCY(${NAME} roboptim-core)
 
   #FIXME: plug-ins should not be interdependent...
   TARGET_LINK_LIBRARIES(${NAME} "${DYNAMIC_GRAPH_PLUGINDIR}/sot.so")
   TARGET_LINK_LIBRARIES(${NAME} "${DYNAMIC_GRAPH_PLUGINDIR}/feature-posture.so")
-  TARGET_LINK_LIBRARIES(${NAME} visp)
+  #TARGET_LINK_LIBRARIES(${NAME} visp)
 
   INSTALL(TARGETS ${NAME} DESTINATION lib/plugin)
 
@@ -55,17 +56,17 @@ ENDFUNCTION()
 COMPILE_PLUGIN(localizer localizer.cc Localizer)
 
 SET(FEET_FOLLOWER_SOURCES
-  discretized-trajectory.cc
-  error-trajectory.cc
+  #discretized-trajectory.cc
+  #error-trajectory.cc
 
-  error-estimator.cc
+  #error-estimator.cc
 
-  feet-follower.cc
-  feet-follower-from-file.cc
-  feet-follower-analytical-pg.cc analytical-pg/newPGstepStudy.cpp
-  feet-follower-with-correction.cc
+  #feet-follower.cc
+  #feet-follower-from-file.cc
+  #feet-follower-analytical-pg.cc analytical-pg/newPGstepStudy.cpp
+  #feet-follower-with-correction.cc
 
-  randomizer.cc randomizer.hh
+  # randomizer.cc randomizer.hh
 
   waist-yaw.cc
 
@@ -78,9 +79,9 @@ SET(FEET_FOLLOWER_SOURCES
   MotionCaptureToWaistMObject.cc
   simu-object-position.cc
   simu-object-position-in-camera.cc
-  supervisor.cc
+  #supervisor.cc
 
-  sway-motion-correction.cc
+  #sway-motion-correction.cc
   go-to-one-position.cc
   )
 

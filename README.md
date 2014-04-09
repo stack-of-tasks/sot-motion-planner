@@ -18,6 +18,12 @@ directory:
 Please note that CMake produces a `CMakeCache.txt` file which should
 be deleted to reconfigure a package from scratch.
 
+Here is an advanced cmake example:
+```
+ccmake .. -DCMAKE_INSTALL_PREFIX=/home/ostasse/devel/ros-unstable-1/install -DCMAKE_BUILD_TYPE=RELEASE -DPYTHON_LIBRARY=/usr/lib/libpython2.6.a -DPYTHON_INCLUDE_DIR=/usr/include/python2.6
+```
+which specifies the install directory, the type of build, the include directoy for python, and the associated library.
+
 
 ### Dependencies
 
