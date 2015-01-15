@@ -22,7 +22,7 @@ class Motion(object):
         self.robot = motion.robot
         self.interval = yamlData['interval']
         if len(self.interval) != 2:
-            raise RuntimeErrror('invalid interval')
+            raise RuntimeError('invalid interval')
         self.priority = yamlData.get('priority', 0)
 
     def setupTrace(self, trace):
